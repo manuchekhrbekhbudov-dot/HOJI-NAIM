@@ -5,8 +5,7 @@
   // 1. Танзимоти Supabase
   // URL ва KEY-и лоиҳаи худро баъдтар гузор.
 const SUPABASE_URL = "https://wfxbgkasstkxzmyrjwpi.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_RHfMgPtLrfPEJzqvBwk5Vg_ksk-iBr2";
-
+  const SUPABASE_ANON_KEY = "sb_publishable_RHfMgPtLrfPEJzqvBwk5Vg_ksk-iBr2";
   const $ = (id) => document.getElementById(id);
 
   const today = () => new Date().toISOString().slice(0, 10);
