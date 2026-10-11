@@ -4,9 +4,8 @@
 
   // 1. Танзимоти Supabase
   // URL ва KEY-и лоиҳаи худро баъдтар гузор.
-  const SUPABASE_URL = "PASTE_YOUR_SUPABASE_PROJECT_URL_HERE";
-  const SUPABASE_ANON_KEY =
-    "PASTE_YOUR_SUPABASE_ANON_OR_PUBLISHABLE_KEY_HERE";
+  const SUPABASE_URL = "sb_publishable_RHfMgPtLrfPEJzqvBwk5Vg_ksk-iBr2";
+const SUPABASE_ANON_KEY = "sb_secret";
 
   const $ = (id) => document.getElementById(id);
 
