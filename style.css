@@ -232,3 +232,43 @@ dialog{border-radius:22px;box-shadow:0 28px 100px #071d1260}
   .section-head .button{width:100%}
   .top-actions{gap:8px}
 }
+
+
+/* Final polish: premium tracking field + cleaner form rhythm */
+.dialog-form label{
+  gap:8px;
+  line-height:1.45;
+}
+.dialog-form input[name="tracking_number"]{
+  background:linear-gradient(135deg,#ffffff,#f6fbf7);
+  border:1px solid #b9d9c4;
+  color:#174b30;
+  font-weight:750;
+  letter-spacing:.25px;
+  box-shadow:inset 0 1px 2px rgba(13,73,39,.025);
+}
+.dialog-form input[name="tracking_number"]::placeholder{
+  color:#94a59a;
+  font-weight:450;
+  letter-spacing:0;
+}
+.dialog-form input[name="tracking_number"]:focus{
+  border-color:#15945a;
+  background:#fff;
+  box-shadow:0 0 0 4px rgba(21,148,90,.12);
+}
+.dialog-form label small#trackingHint{
+  display:block;
+  padding:0 2px;
+  color:#74877a;
+}
+.dialog-form .dialog-head .icon-button{
+  transition:background .18s ease,transform .18s ease;
+}
+.dialog-form .dialog-head .icon-button:hover{
+  background:#e3eee6;
+  transform:rotate(90deg);
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}
+}
