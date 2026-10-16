@@ -326,3 +326,18 @@ dialog{border-radius:22px;box-shadow:0 28px 100px #071d1260}
 .staff-role-select{border:1px solid #dce7df;border-radius:9px;padding:8px 10px;background:#fff;color:#243d2d;min-width:130px}
 .save-staff-role:disabled,.staff-role-select:disabled{opacity:.5;cursor:not-allowed}
 @media(max-width:720px){.admin-actions-grid{grid-template-columns:1fr;gap:10px}.admin-action-card{padding:15px}.admin-staff-panel .panel-head{align-items:flex-start;gap:10px;flex-wrap:wrap}}
+
+/* Admin panel polish and staff delete action */
+#view-admin .admin-actions-grid{gap:16px;margin:22px 0}
+#view-admin .admin-action-card{min-height:88px;border-radius:17px;padding:20px;border-color:#dce9df;background:linear-gradient(135deg,#fff,#f9fcfa)}
+#view-admin .admin-action-icon{width:46px;height:46px;border-radius:14px;background:#e8f5ec}
+#view-admin .admin-staff-panel{border-radius:18px}
+#view-admin .admin-staff-panel .panel-head{padding:22px 24px}
+#view-admin .admin-staff-panel table{min-width:760px}
+#view-admin .admin-staff-panel tbody tr:hover{background:#f2faf5}
+#view-admin .staff-role-select{min-height:38px;border-radius:10px}
+.admin-row-actions{display:flex;align-items:center;gap:8px}
+.button.danger{background:#fff0ee;border:1px solid #f2cbc5;color:#a82f25}
+.button.danger:hover{background:#ffe4e0;box-shadow:0 5px 14px rgba(168,47,37,.12)}
+.delete-staff-profile:disabled{opacity:.5;cursor:not-allowed}
+@media(max-width:720px){#view-admin .admin-staff-panel .panel-head{padding:17px 15px}.admin-row-actions{gap:6px}}
