@@ -91,7 +91,39 @@
   document.querySelectorAll(".nav").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.view)));
   document.querySelectorAll("[data-goto]").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.goto)));
   $("shipmentSearch").addEventListener("input",render);$("shipmentFilter").addEventListener("change",render);
-  const dialog=$("shipmentDialog"),openDialog=()=>{if(!state.user){toast("Аввал ворид шавед.");return;}if(!["owner","admin","accountant","operator"].includes(state.profile?.role)){toast("Барои сабти бор иҷозати корманд лозим аст.");return;}dialog.showModal();};
+  const dialog=$("shipmentDialog");
+  function populateExistingCustomers(){
+    const select=$("existingCustomerSelect");
+    if(!select)return;
+    const unique=new Map();
+    state.shipments.forEach(s=>{
+      const name=String(s.client_name||"").trim(),phone=String(s.client_phone||"").trim();
+      if(!name)return;
+      const key=(name.toLocaleLowerCase()+"|"+phone.replace(/\\s/g,""));
+      if(!unique.has(key))unique.set(key,{name,phone});
+    });
+    select.innerHTML='<option value="">+ Муштарии нав</option>'+Array.from(unique.entries()).map(([key,c])=>'<option value="'+safe(JSON.stringify(c))+'">'+safe(c.name)+(c.phone?' · '+safe(c.phone):'')+'</option>').join("");
+  }
+  const openDialog=()=>{
+    if(!state.user){toast("Аввал ворид шавед.");return;}
+    if(!["owner","admin","accountant","operator"].includes(state.profile?.role)){toast("Барои сабти бор иҷозати корманд лозим аст.");return;}
+    shipmentForm.reset();
+    const dateField=shipmentForm.elements.shipment_date;
+    if(dateField)dateField.value=new Date().toISOString().slice(0,10);
+    populateExistingCustomers();
+    updateShipmentEstimate();
+    $("formMessage").textContent="";
+    dialog.showModal();
+  };
+  $("existingCustomerSelect").addEventListener("change",()=>{
+    const raw=$("existingCustomerSelect").value;
+    if(!raw)return;
+    try{
+      const customer=JSON.parse(raw);
+      shipmentForm.elements.customer_name.value=customer.name||"";
+      shipmentForm.elements.customer_phone.value=customer.phone||"";
+    }catch(err){console.warn("Customer selection could not be parsed",err);}
+  });
   $("addShipmentBtn").addEventListener("click",openDialog);$("addShipmentTop").addEventListener("click",openDialog);$("closeDialog").addEventListener("click",()=>dialog.close());
   const shipmentForm=$("shipmentForm");
   const moneyRates={USD:9.2361,TJS:1,CNY:1.3803};
@@ -192,15 +224,15 @@
   });
   $("shipmentForm").addEventListener("submit",async e=>{
     e.preventDefault();if(!state.db||!state.user)return;
-    const f=new FormData(e.currentTarget),name=String(f.get("customer_name")).trim(),phone=String(f.get("customer_phone")).trim(),currency=String(f.get("currency")),rate=Number(f.get("exchange_rate")),weight=Number(f.get("weight_kg")||0),volume=Number(f.get("volume_m3")||0),type=chooseBillingType(weight,volume);
+    const f=new FormData(e.currentTarget),name=String(f.get("customer_name")).trim(),phone=String(f.get("customer_phone")).trim(),currency=String(f.get("currency")),rate=Number(f.get("exchange_rate")),weight=Number(f.get("weight_kg")||0),volume=Number(f.get("volume_m3")||0),arrivalDate=String(f.get("shipment_date")||""),type=chooseBillingType(weight,volume);
     if(weight<=0){$("formMessage").textContent="Вазни борро аз сифр зиёд ворид кунед.";return;}
     if(volume<=0){$("formMessage").textContent="Барои муайян кардани зичӣ ҳаҷми бор (м³)-ро низ ворид кунед. Танҳо вазн кофӣ нест.";return;}
     if(!type){$("formMessage").textContent="Вазн ва ҳаҷмро санҷед.";return;}
-    if(!Number.isFinite(rate)||rate<=0){$("formMessage").textContent="Қурби асъор бояд дуруст бошад.";return;}
+    if(!arrivalDate){$("formMessage").textContent="Санаи воридшавии борро интихоб кунед.";return;}\n    if(!Number.isFinite(rate)||rate<=0){$("formMessage").textContent="Қурби асъор бояд дуруст бошад.";return;}
     const price=currency==="USD"?(type==="kg"?1:200):currency==="TJS"?(type==="kg"?moneyRates.USD:200*moneyRates.USD):(type==="kg"?moneyRates.USD/moneyRates.CNY:200*moneyRates.USD/moneyRates.CNY);
     const qty=type==="kg"?weight:volume,totalTjs=Number((qty*price*rate).toFixed(2));
     $("formMessage").textContent="Сабт шуда истодааст…";
-    const result=await state.db.from("shipments").insert({client_name:name,client_phone:phone,tracking_no:String(f.get("tracking_number")).trim(),shipment_date:new Date().toISOString().slice(0,10),billing_type:type,weight_kg:weight,volume_m3:volume,currency,unit_price:price,fx_rate:rate,total_original:Number((qty*price).toFixed(2)),total_tjs:totalTjs,notes:String(f.get("notes")||"").trim(),created_by:state.user.id});
+    const result=await state.db.from("shipments").insert({client_name:name,client_phone:phone,tracking_no:String(f.get("tracking_number")).trim(),shipment_date:arrivalDate,billing_type:type,weight_kg:weight,volume_m3:volume,currency,unit_price:price,fx_rate:rate,total_original:Number((qty*price).toFixed(2)),total_tjs:totalTjs,notes:String(f.get("notes")||"").trim(),created_by:state.user.id});
     if(result.error){$("formMessage").textContent=result.error.message;return;}
     $("shipmentForm").reset();dialog.close();toast("Бор сабт шуд.");await loadData();
   });
