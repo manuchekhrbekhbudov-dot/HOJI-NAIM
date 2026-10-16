@@ -54,8 +54,38 @@
     state.db.auth.onAuthStateChange((_event,session)=>{state.user=session?.user||null;setTimeout(()=>state.user? (showAuth(false),loadData()):showAuth(true),0);});
   }
   let authMode="signin";
-  $("authModeToggle").addEventListener("click",()=>{authMode=authMode==="signin"?"signup":"signin";$("authHeading").textContent=authMode==="signin"?"Воридшавӣ бо Email":"Сохтани ҳисоб";$("authDescription").textContent=authMode==="signin"?"Email ва паролро ворид кунед.":"Email ва пароли нав ворид кунед. Барои тасдиқи Email паёмро дар почта санҷед.";$("authSubmit").textContent=authMode==="signin"?"Ворид шудан":"Сабти ном";$("password").autocomplete=authMode==="signin"?"current-password":"new-password";$("authModeToggle").textContent=authMode==="signin"?"Ҳисоб надорӣ? Сабти ном":"Аллакай ҳисоб дорӣ? Воридшавӣ";$("authMessage").textContent="";});
-  $("emailForm").addEventListener("submit",async e=>{e.preventDefault();if(!state.db)return;const email=$("email").value.trim(),password=$("password").value;$("authMessage").textContent=authMode==="signin"?"Ворид шуда истодааст…":"Ҳисоб сохта шуда истодааст…";$("authSubmit").disabled=true;try{const result=authMode==="signin"?await state.db.auth.signInWithPassword({email,password}):await state.db.auth.signUp({email,password});if(result.error){$("authMessage").textContent=result.error.message;return;}if(authMode==="signup"&&!result.data.session){$("authMessage").textContent="Ҳисоб сохта шуд. Барои фаъол кардан Email-и худро тасдиқ кунед, баъд ворид шавед.";return;}if(result.data.session){$("authMessage").textContent="Муваффақ шуд.";state.user=result.data.user;showAuth(false);await loadData();}}catch(err){$("authMessage").textContent=err.message||"Хатои номаълум.";}finally{$("authSubmit").disabled=false;}});
+  const authModeToggle=$("authModeToggle");
+  if(authModeToggle) authModeToggle.addEventListener("click",()=>{
+    authMode=authMode==="signin"?"signup":"signin";
+    $("authHeading").textContent=authMode==="signin"?"Воридшавӣ бо Email":"Сохтани ҳисоб";
+    $("authDescription").textContent=authMode==="signin"?"Email ва паролро ворид кунед.":"Email ва пароли нав ворид кунед. Барои тасдиқи Email паёмро дар почта санҷед.";
+    $("authSubmit").textContent=authMode==="signin"?"Ворид шудан":"Сабти ном";
+    $("password").autocomplete=authMode==="signin"?"current-password":"new-password";
+    authModeToggle.textContent=authMode==="signin"?"Ҳисоб надорӣ? Сабти ном":"Аллакай ҳисоб дорӣ? Воридшавӣ";
+    $("authMessage").textContent="";
+  });
+  const emailForm=$("emailForm");
+  if(emailForm) emailForm.addEventListener("submit",async e=>{
+    e.preventDefault();if(!state.db)return;
+    const email=$("email").value.trim(),password=$("password").value;
+    $("authMessage").textContent=authMode==="signin"?"Ворид шуда истодааст…":"Ҳисоб сохта шуда истодааст…";
+    $("authSubmit").disabled=true;
+    try {
+      const result=authMode==="signin"
+        ? await state.db.auth.signInWithPassword({email,password})
+        : await state.db.auth.signUp({email,password});
+      if(result.error){$("authMessage").textContent=result.error.message;return;}
+      if(authMode==="signup"&&!result.data.session){
+        $("authMessage").textContent="Ҳисоб сохта шуд. Барои фаъол кардан Email-и худро тасдиқ кунед, баъд ворид шавед.";
+        return;
+      }
+      if(result.data.session){$("authMessage").textContent="Муваффақ шуд.";state.user=result.data.user;showAuth(false);await loadData();}
+    } catch(err) {
+      $("authMessage").textContent=err.message||"Хатои номаълум.";
+    } finally {
+      $("authSubmit").disabled=false;
+    }
+  });
   $("logoutBtn").addEventListener("click",async()=>{if(state.db)await state.db.auth.signOut();});
   document.querySelectorAll(".nav").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.view)));
   document.querySelectorAll("[data-goto]").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.goto)));
