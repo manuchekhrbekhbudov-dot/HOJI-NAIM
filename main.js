@@ -44,11 +44,11 @@
     $("adminRoleBadge").textContent=String(state.profile?.role||"").toUpperCase();
     $("reportShipments").textContent=state.shipments.length;$("reportPaid").textContent=fmt(revenue);$("reportDebt").textContent=fmt(debts);$("reportExpenses").textContent=fmt(costs);
     const payButton=s=>debt(s)>0.005?`<button class="button secondary pay-shipment" data-shipment-id="${safe(s.id)}">Пардохт</button>`:`<span class="pill paid">Пардохт шуд</span>`;
-    const row=s=>`<tr><td>${safe(s.client_name||"—")}</td><td>${safe(s.tracking_no||"—")}</td><td>${fmt(s.weight_kg)} кг / ${fmt(s.volume_m3)} м³</td><td>${fmt(total(s))}</td><td>${fmt(debt(s))}</td><td><span class="pill ${status(s)}">${statusText(status(s))}</span></td><td>${payButton(s)}</td></tr>`;
+    const row=s=>`<tr><td>${safe(s.client_name||"—")}</td><td>${safe(s.tracking_no||"—")}</td><td>${fmt(s.weight_kg)} кг / ${fmt(s.volume_m3)} м³</td><td>${fmt(total(s))}</td><td>${fmt(debt(s))}</td><td><span class="pill ${status(s)}">${statusText(status(s))}</span></td><td>${payButton(s)}${["owner","admin"].includes(state.profile?.role)?` <button class="button danger delete-shipment" data-shipment-id="${safe(s.id)}">Удалить</button>`:""}</td></tr>`;
     $("recentRows").innerHTML=state.shipments.slice(0,8).map(row).join("");$("recentEmpty").classList.toggle("hidden",state.shipments.length>0);
     const search=$("shipmentSearch").value.trim().toLocaleLowerCase(),filter=$("shipmentFilter").value;
     const filtered=state.shipments.filter(s=>(!search||[s.client_name,s.client_phone,s.tracking_no].some(v=>String(v||"").toLocaleLowerCase().includes(search)))&&(!filter||status(s)===filter));
-    $("shipmentRows").innerHTML=filtered.map(s=>`<tr><td>${safe(s.client_name||"—")}</td><td>${safe(s.client_phone||"—")}</td><td>${safe(s.tracking_no||"—")}</td><td>${fmt(s.weight_kg)}</td><td>${fmt(s.volume_m3)}</td><td>${fmt(total(s))}</td><td>${fmt(paid(s))}</td><td>${fmt(debt(s))}</td><td><span class="pill ${status(s)}">${statusText(status(s))}</span></td><td>${payButton(s)}</td></tr>`).join("");
+    $("shipmentRows").innerHTML=filtered.map(s=>`<tr><td>${safe(s.client_name||"—")}</td><td>${safe(s.client_phone||"—")}</td><td>${safe(s.tracking_no||"—")}</td><td>${fmt(s.weight_kg)}</td><td>${fmt(s.volume_m3)}</td><td>${fmt(total(s))}</td><td>${fmt(paid(s))}</td><td>${fmt(debt(s))}</td><td><span class="pill ${status(s)}">${statusText(status(s))}</span></td><td>${payButton(s)}${["owner","admin"].includes(state.profile?.role)?` <button class="button danger delete-shipment" data-shipment-id="${safe(s.id)}">Удалить</button>`:""}</td></tr>`).join("");
     $("shipmentEmpty").classList.toggle("hidden",filtered.length>0);
     $("paymentRows").innerHTML=state.payments.map(p=>`<tr><td>${safe(p.payment_date||"—")}</td><td>${safe(state.shipments.find(s=>s.id===p.shipment_id)?.tracking_no||p.shipment_id||"—")}</td><td>${fmt(p.amount_tjs)}</td><td>${safe(p.currency||"TJS")}</td><td>${safe(p.method||"—")}</td><td>${safe(p.notes||"—")}</td></tr>`).join("");$("paymentEmpty").classList.toggle("hidden",state.payments.length>0);
     const canDeleteExpense=["owner","admin"].includes(state.profile?.role);
@@ -136,6 +136,16 @@
     toast("Нақши корманд нав шуд.");await loadAdminStaff();
   });
 
+  document.addEventListener("click",async e=>{
+    const btn=e.target.closest(".delete-shipment");
+    if(!btn)return;
+    if(!["owner","admin"].includes(state.profile?.role)){toast("Ҳазф танҳо барои админ аст.");return;}
+    if(!confirm("Ин бор ҳазф шавад? Агар пардохти вобаста дошта бошад, система иҷозат намедиҳад."))return;
+    btn.disabled=true;btn.textContent="…";
+    const {error}=await state.db.rpc("admin_delete_shipment",{target_shipment_id:btn.dataset.shipmentId});
+    if(error){btn.disabled=false;btn.textContent="Удалить";toast(error.message.includes("payments")?"Аввал пардохтҳои ин борро ҳал кунед.":"Бор ҳазф нашуд. SQL-и ҳазфи борро иҷро кунед.");console.error(error);return;}
+    toast("Бор ҳазф шуд.");await loadData();
+  });
   $("logoutBtn").addEventListener("click",async()=>{if(state.db)await state.db.auth.signOut();});
   document.querySelectorAll(".nav").forEach(b=>{b.addEventListener("click",e=>{e.preventDefault();showView(b.dataset.view);});b.addEventListener("touchend",()=>showView(b.dataset.view),{passive:true});});
   document.querySelectorAll("[data-goto]").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.goto)));
