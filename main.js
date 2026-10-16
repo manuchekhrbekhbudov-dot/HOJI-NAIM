@@ -143,7 +143,7 @@
     if(!confirm("Ин бор ҳазф шавад? Агар пардохти вобаста дошта бошад, система иҷозат намедиҳад."))return;
     btn.disabled=true;btn.textContent="…";
     const {error}=await state.db.rpc("admin_delete_shipment",{target_shipment_id:btn.dataset.shipmentId});
-    if(error){btn.disabled=false;btn.textContent="Удалить";toast(error.message.includes("payments")?"Аввал пардохтҳои ин борро ҳал кунед.":"Бор ҳазф нашуд. SQL-и ҳазфи борро иҷро кунед.");console.error(error);return;}
+    if(error){btn.disabled=false;btn.textContent="Удалить";toast("Хатои ҳазф: "+(error.message||"сабаби номаълум"));console.error("Shipment delete error:",error);return;}
     toast("Бор ҳазф шуд.");await loadData();
   });
   $("logoutBtn").addEventListener("click",async()=>{if(state.db)await state.db.auth.signOut();});
