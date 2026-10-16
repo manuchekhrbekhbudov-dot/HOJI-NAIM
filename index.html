@@ -29,9 +29,13 @@
       </header>
       <section id="configNotice" class="notice hidden"><b>Пайвастшавӣ ба база танзим нашудааст.</b><p>Дар аввали <code>main.js</code> URL ва publishable key-и Supabase-ро гузоред, баъд SQL-и <code>supabase/schema.sql</code>-ро дар SQL Editor иҷро кунед. Калиди service_role-ро ба браузер нагузоред.</p></section>
       <section id="authPanel" class="auth-panel hidden">
-        <div class="auth-card"><span class="brand-mark">H</span><p class="eyebrow">HOJI-NAIM CARGO</p><h2 id="authHeading">Воридшавӣ бо телефон</h2><p>Рақами телефонро бо рамзи кишвар ворид кунед. Барои гирифтани SMS, Phone Auth бояд дар Supabase фаъол бошад.</p>
-          <form id="phoneForm"><label for="phone">Рақами телефон</label><input id="phone" type="tel" placeholder="+992900000000" autocomplete="tel" required><button class="button primary full" type="submit">Фиристодани SMS-код</button></form>
-          <form id="otpForm" class="hidden"><label for="otp">SMS-код</label><input id="otp" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" required><button class="button primary full" type="submit">Тасдиқ ва воридшавӣ</button></form>
+        <div class="auth-card"><span class="brand-mark">H</span><p class="eyebrow">HOJI-NAIM CARGO</p><h2 id="authHeading">Воридшавӣ бо Email</h2><p id="authDescription">Email ва паролро ворид кунед.</p>
+          <form id="emailForm">
+            <label for="email">Email</label><input id="email" type="email" placeholder="name@example.com" autocomplete="username" required>
+            <label for="password">Парол</label><input id="password" type="password" minlength="8" autocomplete="current-password" placeholder="Парол" required>
+            <button class="button primary full" id="authSubmit" type="submit">Ворид шудан</button>
+          </form>
+          <button class="text-button" id="authModeToggle" type="button">Ҳисоб надорӣ? Сабти ном</button>
           <p id="authMessage" class="message" role="status"></p>
         </div>
       </section>
