@@ -341,3 +341,8 @@ dialog{border-radius:22px;box-shadow:0 28px 100px #071d1260}
 .button.danger:hover{background:#ffe4e0;box-shadow:0 5px 14px rgba(168,47,37,.12)}
 .delete-staff-profile:disabled{opacity:.5;cursor:not-allowed}
 @media(max-width:720px){#view-admin .admin-staff-panel .panel-head{padding:17px 15px}.admin-row-actions{gap:6px}}
+
+/* Shipment delete action */
+.button.danger{background:#fff0ee;border:1px solid #f1c9c3;color:#a62f25}
+.button.danger:hover{background:#ffe4df;box-shadow:0 5px 14px rgba(166,47,37,.12)}
+.delete-shipment{margin:3px 0}
