@@ -111,6 +111,8 @@
     const dateField=shipmentForm.elements.shipment_date;
     if(dateField)dateField.value=new Date().toISOString().slice(0,10);
     populateExistingCustomers();
+    const trackingField=shipmentForm.elements.tracking_number;
+    if(trackingField) trackingField.value=generateTrackingNumber();
     updateShipmentEstimate();
     $("formMessage").textContent="";
     dialog.showModal();
@@ -127,9 +129,14 @@
   $("addShipmentBtn").addEventListener("click",openDialog);$("addShipmentTop").addEventListener("click",openDialog);$("closeDialog").addEventListener("click",()=>dialog.close());
   const shipmentForm=$("shipmentForm");
   const moneyRates={USD:9.2361,TJS:1,CNY:1.3803};
+  function generateTrackingNumber(){
+    const d=new Date();
+    const date=[d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("");
+    return "HNC-"+date+"-"+Math.random().toString(36).slice(2,7).toUpperCase();
+  }
   function chooseBillingType(weight,volume){
     if(weight<=0 || volume<=0) return "";
-    return weight/volume>=200 ? "kg" : "volume";
+    return weight/volume>=200 ? "kg" : "cube";
   }
   function updateShipmentEstimate(){
     const currency=shipmentForm.elements.currency.value;
@@ -137,9 +144,9 @@
     const volume=Number(shipmentForm.elements.volume_m3.value||0);
     const type=chooseBillingType(weight,volume);
     const rate=Number(shipmentForm.elements.exchange_rate.value||0);
-    const usdPrice=type==="kg"?1:type==="volume"?200:0;
+    const usdPrice=type==="kg"?1:type==="cube"?200:0;
     const price=currency==="USD"?usdPrice:currency==="TJS"?usdPrice*moneyRates.USD:usdPrice*moneyRates.USD/moneyRates.CNY;
-    const qty=type==="kg"?weight:type==="volume"?volume:0;
+    const qty=type==="kg"?weight:type==="cube"?volume:0;
     const original=qty*price;
     const tjs=original*rate;
     shipmentForm.elements.billing_type.value=type||"kg";
@@ -233,9 +240,15 @@
     const price=currency==="USD"?(type==="kg"?1:200):currency==="TJS"?(type==="kg"?moneyRates.USD:200*moneyRates.USD):(type==="kg"?moneyRates.USD/moneyRates.CNY:200*moneyRates.USD/moneyRates.CNY);
     const qty=type==="kg"?weight:volume,totalTjs=Number((qty*price*rate).toFixed(2));
     $("formMessage").textContent="Сабт шуда истодааст…";
-    const result=await state.db.from("shipments").insert({client_name:name,client_phone:phone,tracking_no:String(f.get("tracking_number")).trim(),shipment_date:arrivalDate,billing_type:type,weight_kg:weight,volume_m3:volume,currency,unit_price:price,fx_rate:rate,total_original:Number((qty*price).toFixed(2)),total_tjs:totalTjs,notes:String(f.get("notes")||"").trim(),created_by:state.user.id});
-    if(result.error){$("formMessage").textContent=result.error.message;return;}
-    $("shipmentForm").reset();dialog.close();toast("Бор сабт шуд.");await loadData();
+    let result=null;
+    for(let attempt=0;attempt<5;attempt++){
+      const trackingNo=generateTrackingNumber();
+      result=await state.db.from("shipments").insert({client_name:name,client_phone:phone,tracking_no:trackingNo,shipment_date:arrivalDate,billing_type:type,weight_kg:weight,volume_m3:volume,currency,unit_price:price,fx_rate:rate,total_original:Number((qty*price).toFixed(2)),total_tjs:totalTjs,notes:String(f.get("notes")||"").trim(),created_by:state.user.id});
+      if(!result.error)break;
+      if(result.error.code!=="23505" || !String(result.error.message||"").includes("tracking_no"))break;
+    }
+    if(result?.error){$("formMessage").textContent=result.error.message;return;}
+    $("shipmentForm").reset();dialog.close();toast("Бор сабт шуд. Рақами трек автоматӣ сохта шуд.");await loadData();
   });
   $("exportCsv").addEventListener("click",()=>{const rows=[["Муштарӣ","Телефон","Рақами бор","Вазн кг","Ҳаҷм м3","Ҳисоб TJS","Пардохт TJS","Қарз TJS"],...state.shipments.map(s=>[s.client_name||"",s.client_phone||"",s.tracking_no||"",s.weight_kg||0,s.volume_m3||0,total(s),paid(s),debt(s)])];const csv="\uFEFF"+rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(",")).join("\r\n");const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));const a=document.createElement("a");a.href=url;a.download="hoji-naim-cargo-report.csv";a.click();URL.revokeObjectURL(url);});
   $("language").addEventListener("change",e=>{const lang=e.target.value,labels={tg:{dashboard:"Асосӣ",shipments:"Борҳо",payments:"Пардохтҳо",expenses:"Расходҳо",reports:"Ҳисобот"},ru:{dashboard:"Главная",shipments:"Грузы",payments:"Платежи",expenses:"Расходы",reports:"Отчёты"},en:{dashboard:"Dashboard",shipments:"Shipments",payments:"Payments",expenses:"Expenses",reports:"Reports"}};document.querySelectorAll("[data-i18n]").forEach(el=>el.textContent=labels[lang][el.dataset.i18n]);});
