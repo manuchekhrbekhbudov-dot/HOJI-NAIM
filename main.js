@@ -94,39 +94,43 @@
   $("addShipmentBtn").addEventListener("click",openDialog);$("addShipmentTop").addEventListener("click",openDialog);$("closeDialog").addEventListener("click",()=>dialog.close());
   const shipmentForm=$("shipmentForm");
   const moneyRates={USD:9.2361,TJS:1,CNY:1.3803};
-  const baseUsdPrice=()=>shipmentForm.elements.billing_type.value==="volume"?200:shipmentForm.elements.billing_type.value==="kg"?1:0;
-  function setDefaultPrice(){
-    const type=shipmentForm.elements.billing_type.value;
-    const currency=shipmentForm.elements.currency.value;
-    const rate=moneyRates[currency]||1;
-    shipmentForm.elements.exchange_rate.value=String(rate);
-    const usdPrice=type==="volume"?200:type==="kg"?1:0;
-    if(type!=="fixed") shipmentForm.elements.unit_price.value=((usdPrice*moneyRates.USD)/rate).toFixed(2);
-    updateShipmentEstimate();
+  function chooseBillingType(weight,volume){
+    if(weight<=0 || volume<=0) return "";
+    return weight/volume>=200 ? "kg" : "volume";
   }
   function updateShipmentEstimate(){
-    const type=shipmentForm.elements.billing_type.value;
     const currency=shipmentForm.elements.currency.value;
     const weight=Number(shipmentForm.elements.weight_kg.value||0);
     const volume=Number(shipmentForm.elements.volume_m3.value||0);
-    const qty=type==="kg"?weight:type==="volume"?volume:1;
-    const price=Number(shipmentForm.elements.unit_price.value||0);
+    const type=chooseBillingType(weight,volume);
     const rate=Number(shipmentForm.elements.exchange_rate.value||0);
+    const usdPrice=type==="kg"?1:type==="volume"?200:0;
+    const price=currency==="USD"?usdPrice:currency==="TJS"?usdPrice*moneyRates.USD:usdPrice*moneyRates.USD/moneyRates.CNY;
+    const qty=type==="kg"?weight:type==="volume"?volume:0;
     const original=qty*price;
     const tjs=original*rate;
+    shipmentForm.elements.billing_type.value=type||"kg";
+    shipmentForm.elements.unit_price.value=price.toFixed(2);
+    const decision=$("billingDecision");
+    if(decision) decision.textContent=type ? (type==="kg"?"Ин бор бо КГ ҳисоб мешавад (зичӣ ≥ 200 кг/м³)":"Ин бор бо КУБ ҳисоб мешавад (зичӣ < 200 кг/м³)") : "Вазн ва ҳаҷмро ворид кунед, то барнома интихоб кунад.";
     const estimate=$("shipmentEstimate"),estimateTjs=$("shipmentEstimateTjs");
     if(estimate) estimate.textContent=(currency==="USD"?"$":currency==="CNY"?"¥":"SM ")+original.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
     if(estimateTjs) estimateTjs.textContent=tjs.toLocaleString("tg-TJ",{minimumFractionDigits:2,maximumFractionDigits:2})+" сомонӣ";
   }
-  ["weight_kg","volume_m3","unit_price","exchange_rate"].forEach(name=>shipmentForm.elements[name].addEventListener("input",updateShipmentEstimate));
-  shipmentForm.elements.currency.addEventListener("change",setDefaultPrice);
-  shipmentForm.elements.billing_type.addEventListener("change",setDefaultPrice);
+  ["weight_kg","volume_m3"].forEach(name=>shipmentForm.elements[name].addEventListener("input",updateShipmentEstimate));
+  shipmentForm.elements.currency.addEventListener("change",()=>{
+    shipmentForm.elements.exchange_rate.value=String(moneyRates[shipmentForm.elements.currency.value]||1);
+    updateShipmentEstimate();
+  });
+  shipmentForm.elements.exchange_rate.addEventListener("input",updateShipmentEstimate);
   updateShipmentEstimate();
   $("shipmentForm").addEventListener("submit",async e=>{
     e.preventDefault();if(!state.db||!state.user)return;
-    const f=new FormData(e.currentTarget),name=String(f.get("customer_name")).trim(),phone=String(f.get("customer_phone")).trim(),currency=String(f.get("currency")),rate=Number(f.get("exchange_rate")),price=Number(f.get("unit_price")),type=String(f.get("billing_type")),weight=Number(f.get("weight_kg")||0),volume=Number(f.get("volume_m3")||0);
-    if(!Number.isFinite(rate)||rate<=0||price<0){$("formMessage").textContent="Нарх ва қурб бояд дуруст бошанд.";return;}
-    const qty=type==="kg"?weight:type==="volume"?volume:1,totalTjs=Number((qty*price*rate).toFixed(2));
+    const f=new FormData(e.currentTarget),name=String(f.get("customer_name")).trim(),phone=String(f.get("customer_phone")).trim(),currency=String(f.get("currency")),rate=Number(f.get("exchange_rate")),weight=Number(f.get("weight_kg")||0),volume=Number(f.get("volume_m3")||0),type=chooseBillingType(weight,volume);
+    if(!type){$("formMessage").textContent="Вазн ва ҳаҷми борро аз сифр зиёд ворид кунед.";return;}
+    if(!Number.isFinite(rate)||rate<=0){$("formMessage").textContent="Қурби асъор бояд дуруст бошад.";return;}
+    const price=currency==="USD"?(type==="kg"?1:200):currency==="TJS"?(type==="kg"?moneyRates.USD:200*moneyRates.USD):(type==="kg"?moneyRates.USD/moneyRates.CNY:200*moneyRates.USD/moneyRates.CNY);
+    const qty=type==="kg"?weight:volume,totalTjs=Number((qty*price*rate).toFixed(2));
     $("formMessage").textContent="Сабт шуда истодааст…";
     const result=await state.db.from("shipments").insert({client_name:name,client_phone:phone,tracking_no:String(f.get("tracking_number")).trim(),shipment_date:new Date().toISOString().slice(0,10),billing_type:type,weight_kg:weight,volume_m3:volume,currency,unit_price:price,fx_rate:rate,total_original:Number((qty*price).toFixed(2)),total_tjs:totalTjs,notes:String(f.get("notes")||"").trim(),created_by:state.user.id});
     if(result.error){$("formMessage").textContent=result.error.message;return;}
