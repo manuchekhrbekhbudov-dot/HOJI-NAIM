@@ -72,7 +72,7 @@
     <p class="muted">Сабти бор қарзро эҷод мекунад; пардохт бояд ҳамчун амалиёти алоҳида сабт шавад.</p><p id="formMessage" class="message" role="status"></p><button class="button primary full" type="submit">Сабт кардани бор</button>
   </form></dialog>
   <dialog id="paymentDialog"><form id="paymentForm" class="dialog-form"><div class="dialog-head"><div><p class="eyebrow">МУҲОСИБӢ</p><h2>Сабти пардохт</h2><p id="paymentCargoLabel" class="muted"></p></div><button type="button" class="icon-button" id="closePaymentDialog" aria-label="Пӯшидан">×</button></div>
-    <input type="hidden" name="shipment_id">
+    <label>Бор / муштарӣ<select name="shipment_id" id="paymentShipmentSelect" required></select></label>
     <label>Маблағи пардохт<input name="amount" type="number" min="0.01" step="0.01" required></label>
     <div class="form-grid"><label>Асъор<select name="currency"><option value="TJS">TJS — сомонӣ</option><option value="USD">USD — доллар</option><option value="CNY">CNY — юан</option></select></label><label>Қурб ба сомонӣ<input name="fx_rate" type="number" min="0.000001" step="0.000001" value="1" required></label></div>
     <p id="paymentDebtInfo" class="muted"></p>
