@@ -123,8 +123,19 @@ create policy "customer read own payments" on public.payments for select to auth
 using (exists(select 1 from public.shipments s join public.customers c on c.id=s.customer_id where s.id=shipment_id and c.linked_user_id=auth.uid()));
 
 drop policy if exists "staff manage expenses" on public.expenses;
-create policy "staff manage expenses" on public.expenses for all to authenticated
-using (public.current_app_role() in ('owner','admin','accountant')) with check (public.current_app_role() in ('owner','admin','accountant'));
+drop policy if exists "staff read expenses" on public.expenses;
+drop policy if exists "staff insert expenses" on public.expenses;
+drop policy if exists "staff update expenses" on public.expenses;
+drop policy if exists "admin delete expenses" on public.expenses;
+create policy "staff read expenses" on public.expenses for select to authenticated
+using (public.current_app_role() in ('owner','admin','accountant'));
+create policy "staff insert expenses" on public.expenses for insert to authenticated
+with check (public.current_app_role() in ('owner','admin','accountant'));
+create policy "staff update expenses" on public.expenses for update to authenticated
+using (public.current_app_role() in ('owner','admin','accountant'))
+with check (public.current_app_role() in ('owner','admin','accountant'));
+create policy "admin delete expenses" on public.expenses for delete to authenticated
+using (public.current_app_role() in ('owner','admin'));
 
 drop policy if exists "staff read audit log" on public.audit_log;
 create policy "staff read audit log" on public.audit_log for select to authenticated
