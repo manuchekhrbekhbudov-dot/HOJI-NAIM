@@ -310,3 +310,19 @@ dialog{border-radius:22px;box-shadow:0 28px 100px #071d1260}
   .admin-nav-button{flex-direction:row;justify-content:flex-start;padding:9px 12px}
   .admin-nav-arrow{margin-left:auto}
 }
+
+
+/* Functional admin dashboard */
+.admin-actions-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:20px 0}
+.admin-action-card{display:flex;align-items:center;gap:14px;text-align:left;padding:18px;background:#fff;border:1px solid #e0e9e2;border-radius:15px;color:#183a28;box-shadow:0 7px 22px rgba(8,43,29,.04);transition:transform .16s,border-color .16s,box-shadow .16s}
+.admin-action-card:hover{transform:translateY(-2px);border-color:#acd5b9;box-shadow:0 12px 26px rgba(8,43,29,.08)}
+.admin-action-card>span:nth-child(2){display:grid;gap:5px;min-width:0}
+.admin-action-card b{font-size:13px;font-weight:800}
+.admin-action-card small{font-size:11px;color:#718477}
+.admin-action-icon{width:43px;height:43px;flex:0 0 43px;display:grid;place-items:center;border-radius:13px;background:#edf7f0;color:#0d6842;font-size:21px}
+.admin-action-arrow{margin-left:auto;color:#0d6842;font-size:20px}
+.admin-staff-panel{margin-top:18px}
+.admin-staff-note{padding:0 20px 14px}
+.staff-role-select{border:1px solid #dce7df;border-radius:9px;padding:8px 10px;background:#fff;color:#243d2d;min-width:130px}
+.save-staff-role:disabled,.staff-role-select:disabled{opacity:.5;cursor:not-allowed}
+@media(max-width:720px){.admin-actions-grid{grid-template-columns:1fr;gap:10px}.admin-action-card{padding:15px}.admin-staff-panel .panel-head{align-items:flex-start;gap:10px;flex-wrap:wrap}}
