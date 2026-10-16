@@ -135,8 +135,12 @@
     return "HNC-"+date+"-"+Math.random().toString(36).slice(2,7).toUpperCase();
   }
   function chooseBillingType(weight,volume){
-    if(weight<=0 || volume<=0) return "";
-    return weight/volume>=200 ? "kg" : "cube";
+    // Агар танҳо вазн ворид шавад — КГ; агар танҳо ҳаҷм ворид шавад — КУБ.
+    // Агар ҳар ду ворид шаванд, зичӣ муайян мекунад: аз 200 кг/м³ боло — КГ.
+    if(weight>0 && volume<=0) return "kg";
+    if(volume>0 && weight<=0) return "cube";
+    if(weight>0 && volume>0) return weight/volume>=200 ? "kg" : "cube";
+    return "kg";
   }
   function updateShipmentEstimate(){
     const currency=shipmentForm.elements.currency.value;
@@ -144,15 +148,15 @@
     const volume=Number(shipmentForm.elements.volume_m3.value||0);
     const type=chooseBillingType(weight,volume);
     const rate=Number(shipmentForm.elements.exchange_rate.value||0);
-    const usdPrice=type==="kg"?1:type==="cube"?200:0;
+    const usdPrice=type==="kg"?1:200;
     const price=currency==="USD"?usdPrice:currency==="TJS"?usdPrice*moneyRates.USD:usdPrice*moneyRates.USD/moneyRates.CNY;
-    const qty=type==="kg"?weight:type==="cube"?volume:0;
+    const qty=type==="kg"?weight:volume;
     const original=qty*price;
     const tjs=original*rate;
-    shipmentForm.elements.billing_type.value=type||"kg";
+    shipmentForm.elements.billing_type.value=type;
     shipmentForm.elements.unit_price.value=price.toFixed(2);
     const decision=$("billingDecision");
-    if(decision) decision.textContent=type ? (type==="kg"?"Ин бор бо КГ ҳисоб мешавад (зичӣ ≥ 200 кг/м³)":"Ин бор бо КУБ ҳисоб мешавад (зичӣ < 200 кг/м³)") : "Вазн ва ҳаҷмро ворид кунед, то барнома интихоб кунад.";
+    if(decision) decision.textContent=type==="kg" ? (volume>0 ? "Ин бор бо КГ ҳисоб мешавад (зичӣ ≥ 200 кг/м³)" : "Вазн ворид шуд — барнома ҳисобро аз рӯи КГ мекунад.") : (weight>0 ? "Ин бор бо КУБ ҳисоб мешавад (зичӣ < 200 кг/м³)" : "Ҳаҷм ворид шуд — барнома ҳисобро аз рӯи КУБ мекунад.");
     const estimate=$("shipmentEstimate"),estimateTjs=$("shipmentEstimateTjs");
     if(estimate) estimate.textContent=(currency==="USD"?"$":currency==="CNY"?"¥":"SM ")+original.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
     if(estimateTjs) estimateTjs.textContent=tjs.toLocaleString("tg-TJ",{minimumFractionDigits:2,maximumFractionDigits:2})+" сомонӣ";
