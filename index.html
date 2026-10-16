@@ -19,6 +19,7 @@
         <button class="nav" data-view="payments">↔ <span data-i18n="payments">Пардохтҳо</span></button>
         <button class="nav" data-view="expenses">↘ <span data-i18n="expenses">Расходҳо</span></button>
         <button class="nav" data-view="reports">▤ <span data-i18n="reports">Ҳисобот</span></button>
+        <button class="nav hidden" id="adminNav" data-view="admin">⚙ <span>Админ-панел</span></button>
       </nav>
       <div class="side-bottom"><span class="status-dot"></span><span id="connectionStatus">Танзими база лозим</span></div>
     </aside>
@@ -56,6 +57,19 @@
         </section>
         <section class="view" id="view-payments"><div class="section-head"><div><h2>Пардохтҳо</h2><p>Таърихи пардохтҳо</p></div><button class="button primary" id="addPaymentBtn">+ Сабти пардохт</button></div><div class="panel"><div class="table-wrap"><table><thead><tr><th>Сана</th><th>Рақами бор</th><th>Маблағ</th><th>Асъор</th><th>Усул</th><th>Эзоҳ</th></tr></thead><tbody id="paymentRows"></tbody></table></div><p class="empty" id="paymentEmpty">Ҳоло пардохт нест.</p></div></section>
         <section class="view" id="view-expenses"><div class="section-head"><div><h2>Хароҷот</h2><p>Назорати хароҷоти ширкат</p></div><button class="button primary" id="addExpenseBtn">+ Иловаи хароҷот</button></div><div class="panel"><div class="table-wrap"><table><thead><tr><th>Сана</th><th>Категория</th><th>Маблағ (TJS)</th><th>Эзоҳ</th><th id="expenseActionHead" class="hidden">Амалиёт</th></tr></thead><tbody id="expenseRows"></tbody></table></div><p class="empty" id="expenseEmpty">Ҳоло хароҷот нест.</p></div></section>
+        <section class="view" id="view-admin">
+          <div class="section-head"><div><h2>Админ-панел</h2><p>Идоракунии хароҷот ва назорати система</p></div><span class="pill paid" id="adminRoleBadge">ADMIN</span></div>
+          <div class="stats">
+            <article class="stat"><span>Ҳамаи борҳо</span><strong id="adminShipments">—</strong><small>сабтшуда</small></article>
+            <article class="stat"><span>Пардохтҳо</span><strong id="adminPayments">—</strong><small>амалиёти молиявӣ</small></article>
+            <article class="stat"><span>Хароҷот</span><strong id="adminExpenses">—</strong><small>сабтшуда</small></article>
+            <article class="stat"><span>Қарзи умумӣ</span><strong id="adminDebt">—</strong><small>сомонӣ</small></article>
+          </div>
+          <div class="panel"><div class="panel-head"><div><h3>Амалиёти админ</h3><p>Ин амалҳо танҳо барои Admin ва Owner дастрасанд.</p></div></div>
+            <div class="toolbar"><button class="button primary" data-goto="expenses">Идоракунии расходҳо</button><button class="button secondary" data-goto="reports">Ҳисобот ва содирот</button><button class="button secondary" data-goto="shipments">Идоракунии борҳо</button></div>
+            <p class="muted">Дар қисми «Расходҳо» тугмаҳои «Таҳрир» ва «Удалить» ҳастанд. Ҳазф инчунин аз сиёсати амнияти Supabase вобаста аст.</p>
+          </div>
+        </section>
         <section class="view" id="view-reports"><div class="section-head"><div><h2>Ҳисобот</h2><p>Хулосаи маълумоти борҳо ва молия</p></div><button class="button secondary" id="exportCsv">Содирот ба CSV</button></div><div class="stats"><article class="stat"><span>Шумораи борҳо</span><strong id="reportShipments">—</strong></article><article class="stat"><span>Пардохт (TJS)</span><strong id="reportPaid">—</strong></article><article class="stat"><span>Қарз (TJS)</span><strong id="reportDebt">—</strong></article><article class="stat"><span>Хароҷот (TJS)</span><strong id="reportExpenses">—</strong></article></div><p class="muted">Ҳисобҳои автоматӣ танҳо баъди пайваст шудани база ва дуруст ворид кардани маълумот ҳисоб мешаванд.</p></section>
       </section>
     </main>
