@@ -68,3 +68,26 @@ dialog{border-radius:22px;box-shadow:0 28px 100px #071d1260}
 #toast{border:1px solid #ffffff20;border-radius:13px;padding:14px 19px;box-shadow:0 14px 35px #061d1240}
 @media(max-width:1050px){.main{padding:22px 18px}.hero{padding:26px}.hero-icon{width:80px;height:80px;font-size:44px}}
 @media(max-width:720px){.sidebar{background:linear-gradient(180deg,#0a3926,#092c1f);border-radius:0 0 18px 18px}.brand{padding-bottom:16px}.main{padding:18px 12px}.hero{min-height:auto;padding:23px 19px;border-radius:17px}.hero h2{font-size:23px}.hero-icon{display:none}.stats{gap:10px}.stat{border-radius:14px;padding:15px 13px}.stat strong{font-size:19px}.panel{border-radius:14px}.panel-head{padding:17px 15px}.section-head h2{font-size:24px}.dialog-form{padding:20px}}
+
+
+/* Tracking number and form polish */
+.dialog-form input[readonly]{
+  background:linear-gradient(110deg,#edf7f0,#f7fbf8);
+  border-color:#c7e4d1;
+  color:#12643d;
+  font-weight:800;
+  letter-spacing:.6px;
+}
+.dialog-form label small.muted{font-weight:400;font-size:11px;line-height:1.5;margin-top:-1px}
+.dialog-form .message:empty{display:none}
+.dialog-form .form-grid{align-items:start}
+.dialog-form .calculation-preview{position:relative;overflow:hidden}
+.dialog-form .calculation-preview:after{
+  content:"";
+  position:absolute;
+  width:110px;height:110px;
+  right:-48px;bottom:-58px;
+  border:1px solid #08744722;border-radius:50%;
+  box-shadow:0 0 0 15px #08744708,0 0 0 30px #08744705;
+  pointer-events:none;
+}
