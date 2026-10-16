@@ -128,18 +128,26 @@
   const paymentDialog=$("paymentDialog"),paymentForm=$("paymentForm");
   const paymentRates={TJS:1,USD:9.2361,CNY:1.3803};
   function openPayment(shipmentId){
-    const s=state.shipments.find(x=>x.id===shipmentId);
-    if(!s)return;
     if(!["owner","admin","accountant"].includes(state.profile?.role)){toast("Барои сабти пардохт иҷозати муҳосиб лозим аст.");return;}
+    const dueShipments=state.shipments.filter(s=>debt(s)>0.005);
+    if(!dueShipments.length){toast("Бори қарздор ёфт нашуд.");return;}
     paymentForm.reset();
-    paymentForm.elements.shipment_id.value=s.id;
+    const select=$("paymentShipmentSelect");
+    select.innerHTML=dueShipments.map(s=>`<option value="${safe(s.id)}">${safe(s.tracking_no||"Бе рақам")} — ${safe(s.client_name||"Муштарӣ")} (қарз: ${fmt(debt(s))} сомонӣ)</option>`).join("");
+    if(shipmentId && dueShipments.some(s=>s.id===shipmentId)) select.value=shipmentId;
     paymentForm.elements.currency.value="TJS";
     paymentForm.elements.fx_rate.value="1";
-    $("paymentCargoLabel").textContent="Бор: "+(s.tracking_no||"—")+" · "+(s.client_name||"Муштарӣ");
+    const s=dueShipments.find(x=>x.id===select.value)||dueShipments[0];
+    $("paymentCargoLabel").textContent="Муштарӣ: "+(s.client_name||"—");
     $("paymentDebtInfo").textContent="Қарзи боқимонда: "+fmt(debt(s))+" сомонӣ.";
     $("paymentMessage").textContent="";
     paymentDialog.showModal();
   }
+  $("paymentShipmentSelect").addEventListener("change",()=>{
+    const s=state.shipments.find(x=>x.id===$("paymentShipmentSelect").value);
+    if(s){$("paymentCargoLabel").textContent="Муштарӣ: "+(s.client_name||"—");$("paymentDebtInfo").textContent="Қарзи боқимонда: "+fmt(debt(s))+" сомонӣ.";}
+  });
+  $("addPaymentBtn").addEventListener("click",()=>openPayment());
   document.addEventListener("click",e=>{
     const btn=e.target.closest(".pay-shipment");
     if(btn)openPayment(btn.dataset.shipmentId);
@@ -161,6 +169,26 @@
     const result=await state.db.from("payments").insert({shipment_id:shipmentId,currency,amount_original:amount,fx_rate:rate,amount_tjs:amountTjs,payment_date:new Date().toISOString().slice(0,10),notes,created_by:state.user.id});
     if(result.error){$("paymentMessage").textContent=result.error.message;return;}
     paymentDialog.close();toast("Пардохт сабт шуд.");await loadData();
+  });
+  const expenseDialog=$("expenseDialog"),expenseForm=$("expenseForm");
+  const expenseRates={TJS:1,USD:9.2361,CNY:1.3803};
+  if(expenseForm.elements.expense_date) expenseForm.elements.expense_date.value=new Date().toISOString().slice(0,10);
+  $("addExpenseBtn").addEventListener("click",()=>{
+    if(!state.user){toast("Аввал ворид шавед.");return;}
+    if(!["owner","admin","accountant"].includes(state.profile?.role)){toast("Барои сабти хароҷот иҷозати муҳосиб лозим аст.");return;}
+    expenseForm.reset();expenseForm.elements.expense_date.value=new Date().toISOString().slice(0,10);expenseForm.elements.currency.value="TJS";expenseForm.elements.fx_rate.value="1";$("expenseMessage").textContent="";expenseDialog.showModal();
+  });
+  $("closeExpenseDialog").addEventListener("click",()=>expenseDialog.close());
+  expenseForm.elements.currency.addEventListener("change",()=>{expenseForm.elements.fx_rate.value=String(expenseRates[expenseForm.elements.currency.value]||1);});
+  expenseForm.addEventListener("submit",async e=>{
+    e.preventDefault();if(!state.db||!state.user)return;
+    if(!["owner","admin","accountant"].includes(state.profile?.role)){ $("expenseMessage").textContent="Барои сабти хароҷот иҷозати муҳосиб лозим аст.";return;}
+    const f=new FormData(expenseForm),category=String(f.get("category")).trim(),amount=Number(f.get("amount")),currency=String(f.get("currency")),rate=Number(f.get("fx_rate")),expenseDate=String(f.get("expense_date")),description=String(f.get("description")||"").trim();
+    if(!category||amount<=0||rate<=0){$("expenseMessage").textContent="Категория, маблағ ва қурбро дуруст ворид кунед.";return;}
+    $("expenseMessage").textContent="Сабт шуда истодааст…";
+    const result=await state.db.from("expenses").insert({category,currency,amount_original:amount,fx_rate:rate,amount_tjs:Number((amount*rate).toFixed(2)),expense_date:expenseDate,description,created_by:state.user.id});
+    if(result.error){$("expenseMessage").textContent=result.error.message;return;}
+    expenseDialog.close();toast("Хароҷот сабт шуд.");await loadData();
   });
   $("shipmentForm").addEventListener("submit",async e=>{
     e.preventDefault();if(!state.db||!state.user)return;
