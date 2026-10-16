@@ -95,27 +95,32 @@
   const shipmentForm=$("shipmentForm");
   const moneyRates={USD:9.2361,TJS:1,CNY:1.3803};
   const baseUsdPrice=()=>shipmentForm.elements.billing_type.value==="volume"?200:shipmentForm.elements.billing_type.value==="kg"?1:0;
+  function setDefaultPrice(){
+    const type=shipmentForm.elements.billing_type.value;
+    const currency=shipmentForm.elements.currency.value;
+    const rate=moneyRates[currency]||1;
+    shipmentForm.elements.exchange_rate.value=String(rate);
+    const usdPrice=type==="volume"?200:type==="kg"?1:0;
+    if(type!=="fixed") shipmentForm.elements.unit_price.value=((usdPrice*moneyRates.USD)/rate).toFixed(2);
+    updateShipmentEstimate();
+  }
   function updateShipmentEstimate(){
     const type=shipmentForm.elements.billing_type.value;
     const currency=shipmentForm.elements.currency.value;
     const weight=Number(shipmentForm.elements.weight_kg.value||0);
     const volume=Number(shipmentForm.elements.volume_m3.value||0);
     const qty=type==="kg"?weight:type==="volume"?volume:1;
-    const usdPrice=baseUsdPrice();
-    const priceInput=shipmentForm.elements.unit_price;
-    const rateInput=shipmentForm.elements.exchange_rate;
-    const rate=moneyRates[currency]||1;
-    rateInput.value=String(rate);
-    priceInput.value=type==="fixed"?(Number(priceInput.value)||0):((usdPrice*moneyRates.USD)/rate).toFixed(2);
-    const original=qty*Number(priceInput.value||0);
+    const price=Number(shipmentForm.elements.unit_price.value||0);
+    const rate=Number(shipmentForm.elements.exchange_rate.value||0);
+    const original=qty*price;
     const tjs=original*rate;
     const estimate=$("shipmentEstimate"),estimateTjs=$("shipmentEstimateTjs");
     if(estimate) estimate.textContent=(currency==="USD"?"$":currency==="CNY"?"¥":"SM ")+original.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
     if(estimateTjs) estimateTjs.textContent=tjs.toLocaleString("tg-TJ",{minimumFractionDigits:2,maximumFractionDigits:2})+" сомонӣ";
   }
-  ["billing_type","currency","weight_kg","volume_m3","unit_price"].forEach(name=>shipmentForm.elements[name].addEventListener("input",updateShipmentEstimate));
-  shipmentForm.elements.currency.addEventListener("change",updateShipmentEstimate);
-  shipmentForm.elements.billing_type.addEventListener("change",updateShipmentEstimate);
+  ["weight_kg","volume_m3","unit_price","exchange_rate"].forEach(name=>shipmentForm.elements[name].addEventListener("input",updateShipmentEstimate));
+  shipmentForm.elements.currency.addEventListener("change",setDefaultPrice);
+  shipmentForm.elements.billing_type.addEventListener("change",setDefaultPrice);
   updateShipmentEstimate();
   $("shipmentForm").addEventListener("submit",async e=>{
     e.preventDefault();if(!state.db||!state.user)return;
