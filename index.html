@@ -48,11 +48,11 @@
             <article class="stat"><span>Фарқи даромад ва хароҷот</span><strong id="statProfit">—</strong><small>пардохтҳои гирифташуда − хароҷот</small></article>
             <article class="stat"><span>Қарзи умумӣ</span><strong id="statDebt">—</strong><small id="statCargoCount">Борҳо: —</small></article>
           </div>
-          <div class="panel"><div class="panel-head"><div><h3>Борҳои охирин</h3><p>Маълумоти сабтшуда</p></div><button class="text-button" data-goto="shipments">Ҳамаи борҳо →</button></div><div class="table-wrap"><table><thead><tr><th>Муштарӣ</th><th>Рақами бор</th><th>Вазн / ҳаҷм</th><th>Арзиш</th><th>Қарз (TJS)</th><th>Ҳолат</th></tr></thead><tbody id="recentRows"></tbody></table></div><p class="empty" id="recentEmpty">Барои оғози кор базаи маълумотро пайваст кунед.</p></div>
+          <div class="panel"><div class="panel-head"><div><h3>Борҳои охирин</h3><p>Маълумоти сабтшуда</p></div><button class="text-button" data-goto="shipments">Ҳамаи борҳо →</button></div><div class="table-wrap"><table><thead><tr><th>Муштарӣ</th><th>Рақами бор</th><th>Вазн / ҳаҷм</th><th>Арзиш</th><th>Қарз (TJS)</th><th>Ҳолат</th><th>Амалиёт</th></tr></thead><tbody id="recentRows"></tbody></table></div><p class="empty" id="recentEmpty">Барои оғози кор базаи маълумотро пайваст кунед.</p></div>
         </section>
         <section class="view" id="view-shipments"><div class="section-head"><div><h2>Борҳо</h2><p>Рӯйхат ва сабти борҳои муштариён</p></div><button class="button primary" id="addShipmentBtn">+ Иловаи бор</button></div>
           <div class="toolbar"><input id="shipmentSearch" placeholder="Ҷустуҷӯи муштарӣ ё рақами бор…"><select id="shipmentFilter"><option value="">Ҳамаи ҳолатҳо</option><option value="unpaid">Қарздор</option><option value="partial">Қисман пардохт</option><option value="paid">Пардохт шуд</option></select></div>
-          <div class="panel"><div class="table-wrap"><table><thead><tr><th>Муштарӣ</th><th>Телефон</th><th>Рақами бор</th><th>Вазн</th><th>Ҳаҷм</th><th>Ҳисоб (TJS)</th><th>Пардохт (TJS)</th><th>Қарз (TJS)</th><th>Ҳолат</th></tr></thead><tbody id="shipmentRows"></tbody></table></div><p class="empty" id="shipmentEmpty">Ҳоло маълумот нест.</p></div>
+          <div class="panel"><div class="table-wrap"><table><thead><tr><th>Муштарӣ</th><th>Телефон</th><th>Рақами бор</th><th>Вазн</th><th>Ҳаҷм</th><th>Ҳисоб (TJS)</th><th>Пардохт (TJS)</th><th>Қарз (TJS)</th><th>Ҳолат</th><th>Амалиёт</th></tr></thead><tbody id="shipmentRows"></tbody></table></div><p class="empty" id="shipmentEmpty">Ҳоло маълумот нест.</p></div>
         </section>
         <section class="view" id="view-payments"><div class="section-head"><div><h2>Пардохтҳо</h2><p>Таърихи пардохтҳо</p></div></div><div class="panel"><div class="table-wrap"><table><thead><tr><th>Сана</th><th>Рақами бор</th><th>Маблағ</th><th>Асъор</th><th>Усул</th><th>Эзоҳ</th></tr></thead><tbody id="paymentRows"></tbody></table></div><p class="empty" id="paymentEmpty">Ҳоло пардохт нест.</p></div></section>
         <section class="view" id="view-expenses"><div class="section-head"><div><h2>Хароҷот</h2><p>Назорати хароҷоти ширкат</p></div></div><div class="panel"><div class="table-wrap"><table><thead><tr><th>Сана</th><th>Категория</th><th>Маблағ (TJS)</th><th>Эзоҳ</th></tr></thead><tbody id="expenseRows"></tbody></table></div><p class="empty" id="expenseEmpty">Ҳоло хароҷот нест.</p></div></section>
@@ -70,6 +70,14 @@
     <div class="calculation-preview"><span id="billingDecision">Вазн ва ҳаҷмро ворид кунед, то барнома интихоб кунад.</span><strong id="shipmentEstimate">$0.00</strong><span id="shipmentEstimateTjs">0.00 сомонӣ</span></div>
     <label>Ёддошт<textarea name="notes" rows="2" maxlength="1000"></textarea></label>
     <p class="muted">Сабти бор қарзро эҷод мекунад; пардохт бояд ҳамчун амалиёти алоҳида сабт шавад.</p><p id="formMessage" class="message" role="status"></p><button class="button primary full" type="submit">Сабт кардани бор</button>
+  </form></dialog>
+  <dialog id="paymentDialog"><form id="paymentForm" class="dialog-form"><div class="dialog-head"><div><p class="eyebrow">МУҲОСИБӢ</p><h2>Сабти пардохт</h2><p id="paymentCargoLabel" class="muted"></p></div><button type="button" class="icon-button" id="closePaymentDialog" aria-label="Пӯшидан">×</button></div>
+    <input type="hidden" name="shipment_id">
+    <label>Маблағи пардохт<input name="amount" type="number" min="0.01" step="0.01" required></label>
+    <div class="form-grid"><label>Асъор<select name="currency"><option value="TJS">TJS — сомонӣ</option><option value="USD">USD — доллар</option><option value="CNY">CNY — юан</option></select></label><label>Қурб ба сомонӣ<input name="fx_rate" type="number" min="0.000001" step="0.000001" value="1" required></label></div>
+    <p id="paymentDebtInfo" class="muted"></p>
+    <label>Эзоҳ<textarea name="notes" rows="2" maxlength="500"></textarea></label>
+    <p id="paymentMessage" class="message" role="status"></p><button class="button primary full" type="submit">Сабт кардани пардохт</button>
   </form></dialog>
   <div id="toast" role="status" aria-live="polite"></div>
 </body>
