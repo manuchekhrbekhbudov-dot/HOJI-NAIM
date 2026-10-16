@@ -123,7 +123,7 @@
     if(dateField)dateField.value=new Date().toISOString().slice(0,10);
     populateExistingCustomers();
     const trackingField=shipmentForm.elements.tracking_number;
-    if(trackingField) trackingField.value=generateTrackingNumber();
+    if(trackingField) trackingField.value="";
     updateShipmentEstimate();
     $("formMessage").textContent="";
     dialog.showModal();
@@ -294,13 +294,14 @@
     $("formMessage").textContent="Сабт шуда истодааст…";
     let result=null;
     for(let attempt=0;attempt<5;attempt++){
-      const trackingNo=generateTrackingNumber();
+      const trackingNo=String(f.get("tracking_number")||"").trim();
+      if(!trackingNo){$("formMessage").textContent="Рақами борро дастӣ ворид кунед.";return;}
       result=await state.db.from("shipments").insert({client_name:name,client_phone:phone,tracking_no:trackingNo,shipment_date:arrivalDate,billing_type:type,weight_kg:weight,volume_m3:volume,currency,unit_price:price,fx_rate:rate,total_original:Number((qty*price).toFixed(2)),total_tjs:totalTjs,notes:String(f.get("notes")||"").trim(),created_by:state.user.id});
       if(!result.error)break;
       if(result.error.code!=="23505" || !String(result.error.message||"").includes("tracking_no"))break;
     }
     if(result?.error){$("formMessage").textContent=result.error.message;return;}
-    $("shipmentForm").reset();dialog.close();toast("Бор сабт шуд. Рақами трек автоматӣ сохта шуд.");await loadData();
+    $("shipmentForm").reset();dialog.close();toast("Бор сабт шуд.");await loadData();
   });
   $("exportCsv").addEventListener("click",()=>{const rows=[["Муштарӣ","Телефон","Рақами бор","Вазн кг","Ҳаҷм м3","Ҳисоб TJS","Пардохт TJS","Қарз TJS"],...state.shipments.map(s=>[s.client_name||"",s.client_phone||"",s.tracking_no||"",s.weight_kg||0,s.volume_m3||0,total(s),paid(s),debt(s)])];const csv="\uFEFF"+rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(",")).join("\r\n");const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));const a=document.createElement("a");a.href=url;a.download="hoji-naim-cargo-report.csv";a.click();URL.revokeObjectURL(url);});
   $("language").addEventListener("change",e=>{const lang=e.target.value,labels={tg:{dashboard:"Асосӣ",shipments:"Борҳо",payments:"Пардохтҳо",expenses:"Расходҳо",reports:"Ҳисобот"},ru:{dashboard:"Главная",shipments:"Грузы",payments:"Платежи",expenses:"Расходы",reports:"Отчёты"},en:{dashboard:"Dashboard",shipments:"Shipments",payments:"Payments",expenses:"Expenses",reports:"Reports"}};document.querySelectorAll("[data-i18n]").forEach(el=>el.textContent=labels[lang][el.dataset.i18n]);});
