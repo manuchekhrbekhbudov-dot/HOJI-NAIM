@@ -37,11 +37,12 @@
     const debts=state.shipments.reduce((n,s)=>n+debt(s),0);
     $("statPaid").textContent=fmt(revenue);$("statExpenses").textContent=fmt(costs);$("statProfit").textContent=fmt(revenue-costs);$("statDebt").textContent=fmt(debts);$("statCargoCount").textContent="Борҳо: "+state.shipments.length;
     $("reportShipments").textContent=state.shipments.length;$("reportPaid").textContent=fmt(revenue);$("reportDebt").textContent=fmt(debts);$("reportExpenses").textContent=fmt(costs);
-    const row=s=>`<tr><td>${safe(s.client_name||"—")}</td><td>${safe(s.tracking_no||"—")}</td><td>${fmt(s.weight_kg)} кг / ${fmt(s.volume_m3)} м³</td><td>${fmt(total(s))}</td><td>${fmt(debt(s))}</td><td><span class="pill ${status(s)}">${statusText(status(s))}</span></td></tr>`;
+    const payButton=s=>debt(s)>0.005?`<button class="button secondary pay-shipment" data-shipment-id="${safe(s.id)}">Пардохт</button>`:`<span class="pill paid">Пардохт шуд</span>`;
+    const row=s=>`<tr><td>${safe(s.client_name||"—")}</td><td>${safe(s.tracking_no||"—")}</td><td>${fmt(s.weight_kg)} кг / ${fmt(s.volume_m3)} м³</td><td>${fmt(total(s))}</td><td>${fmt(debt(s))}</td><td><span class="pill ${status(s)}">${statusText(status(s))}</span></td><td>${payButton(s)}</td></tr>`;
     $("recentRows").innerHTML=state.shipments.slice(0,8).map(row).join("");$("recentEmpty").classList.toggle("hidden",state.shipments.length>0);
     const search=$("shipmentSearch").value.toLowerCase(),filter=$("shipmentFilter").value;
     const filtered=state.shipments.filter(s=>(!search||[s.client_name,s.client_phone,s.tracking_no].some(v=>String(v||"").toLowerCase().includes(search)))&&(!filter||status(s)===filter));
-    $("shipmentRows").innerHTML=filtered.map(s=>`<tr><td>${safe(s.client_name||"—")}</td><td>${safe(s.client_phone||"—")}</td><td>${safe(s.tracking_no||"—")}</td><td>${fmt(s.weight_kg)}</td><td>${fmt(s.volume_m3)}</td><td>${fmt(total(s))}</td><td>${fmt(paid(s))}</td><td>${fmt(debt(s))}</td><td><span class="pill ${status(s)}">${statusText(status(s))}</span></td></tr>`).join("");
+    $("shipmentRows").innerHTML=filtered.map(s=>`<tr><td>${safe(s.client_name||"—")}</td><td>${safe(s.client_phone||"—")}</td><td>${safe(s.tracking_no||"—")}</td><td>${fmt(s.weight_kg)}</td><td>${fmt(s.volume_m3)}</td><td>${fmt(total(s))}</td><td>${fmt(paid(s))}</td><td>${fmt(debt(s))}</td><td><span class="pill ${status(s)}">${statusText(status(s))}</span></td><td>${payButton(s)}</td></tr>`).join("");
     $("shipmentEmpty").classList.toggle("hidden",filtered.length>0);
     $("paymentRows").innerHTML=state.payments.map(p=>`<tr><td>${safe(p.payment_date||"—")}</td><td>${safe(state.shipments.find(s=>s.id===p.shipment_id)?.tracking_no||p.shipment_id||"—")}</td><td>${fmt(p.amount_tjs)}</td><td>${safe(p.currency||"TJS")}</td><td>${safe(p.method||"—")}</td><td>${safe(p.notes||"—")}</td></tr>`).join("");$("paymentEmpty").classList.toggle("hidden",state.payments.length>0);
     $("expenseRows").innerHTML=state.expenses.map(e=>`<tr><td>${safe(e.expense_date||"—")}</td><td>${safe(e.category||"—")}</td><td>${fmt(e.amount_tjs)}</td><td>${safe(e.description||e.notes||"—")}</td></tr>`).join("");$("expenseEmpty").classList.toggle("hidden",state.expenses.length>0);
@@ -124,6 +125,43 @@
   });
   shipmentForm.elements.exchange_rate.addEventListener("input",updateShipmentEstimate);
   updateShipmentEstimate();
+  const paymentDialog=$("paymentDialog"),paymentForm=$("paymentForm");
+  const paymentRates={TJS:1,USD:9.2361,CNY:1.3803};
+  function openPayment(shipmentId){
+    const s=state.shipments.find(x=>x.id===shipmentId);
+    if(!s)return;
+    if(!["owner","admin","accountant"].includes(state.profile?.role)){toast("Барои сабти пардохт иҷозати муҳосиб лозим аст.");return;}
+    paymentForm.reset();
+    paymentForm.elements.shipment_id.value=s.id;
+    paymentForm.elements.currency.value="TJS";
+    paymentForm.elements.fx_rate.value="1";
+    $("paymentCargoLabel").textContent="Бор: "+(s.tracking_no||"—")+" · "+(s.client_name||"Муштарӣ");
+    $("paymentDebtInfo").textContent="Қарзи боқимонда: "+fmt(debt(s))+" сомонӣ.";
+    $("paymentMessage").textContent="";
+    paymentDialog.showModal();
+  }
+  document.addEventListener("click",e=>{
+    const btn=e.target.closest(".pay-shipment");
+    if(btn)openPayment(btn.dataset.shipmentId);
+  });
+  $("closePaymentDialog").addEventListener("click",()=>paymentDialog.close());
+  paymentForm.elements.currency.addEventListener("change",()=>{
+    paymentForm.elements.fx_rate.value=String(paymentRates[paymentForm.elements.currency.value]||1);
+  });
+  paymentForm.addEventListener("submit",async e=>{
+    e.preventDefault();
+    if(!state.db||!state.user)return;
+    const f=new FormData(paymentForm),shipmentId=String(f.get("shipment_id")),amount=Number(f.get("amount")),currency=String(f.get("currency")),rate=Number(f.get("fx_rate")),notes=String(f.get("notes")||"").trim();
+    const s=state.shipments.find(x=>x.id===shipmentId);
+    if(!s){$("paymentMessage").textContent="Бор ёфт нашуд.";return;}
+    if(!Number.isFinite(amount)||amount<=0||!Number.isFinite(rate)||rate<=0){$("paymentMessage").textContent="Маблағ ва қурбро дуруст ворид кунед.";return;}
+    const amountTjs=Number((amount*rate).toFixed(2));
+    if(amountTjs>debt(s)+0.005){$("paymentMessage").textContent="Маблағи пардохт аз қарзи боқимонда зиёд аст.";return;}
+    $("paymentMessage").textContent="Пардохт сабт шуда истодааст…";
+    const result=await state.db.from("payments").insert({shipment_id:shipmentId,currency,amount_original:amount,fx_rate:rate,amount_tjs:amountTjs,payment_date:new Date().toISOString().slice(0,10),notes,created_by:state.user.id});
+    if(result.error){$("paymentMessage").textContent=result.error.message;return;}
+    paymentDialog.close();toast("Пардохт сабт шуд.");await loadData();
+  });
   $("shipmentForm").addEventListener("submit",async e=>{
     e.preventDefault();if(!state.db||!state.user)return;
     const f=new FormData(e.currentTarget),name=String(f.get("customer_name")).trim(),phone=String(f.get("customer_phone")).trim(),currency=String(f.get("currency")),rate=Number(f.get("exchange_rate")),weight=Number(f.get("weight_kg")||0),volume=Number(f.get("volume_m3")||0),type=chooseBillingType(weight,volume);
