@@ -45,7 +45,11 @@
     $("shipmentRows").innerHTML=filtered.map(s=>`<tr><td>${safe(s.client_name||"—")}</td><td>${safe(s.client_phone||"—")}</td><td>${safe(s.tracking_no||"—")}</td><td>${fmt(s.weight_kg)}</td><td>${fmt(s.volume_m3)}</td><td>${fmt(total(s))}</td><td>${fmt(paid(s))}</td><td>${fmt(debt(s))}</td><td><span class="pill ${status(s)}">${statusText(status(s))}</span></td><td>${payButton(s)}</td></tr>`).join("");
     $("shipmentEmpty").classList.toggle("hidden",filtered.length>0);
     $("paymentRows").innerHTML=state.payments.map(p=>`<tr><td>${safe(p.payment_date||"—")}</td><td>${safe(state.shipments.find(s=>s.id===p.shipment_id)?.tracking_no||p.shipment_id||"—")}</td><td>${fmt(p.amount_tjs)}</td><td>${safe(p.currency||"TJS")}</td><td>${safe(p.method||"—")}</td><td>${safe(p.notes||"—")}</td></tr>`).join("");$("paymentEmpty").classList.toggle("hidden",state.payments.length>0);
-    $("expenseRows").innerHTML=state.expenses.map(e=>`<tr><td>${safe(e.expense_date||"—")}</td><td>${safe(e.category||"—")}</td><td>${fmt(e.amount_tjs)}</td><td>${safe(e.description||e.notes||"—")}</td></tr>`).join("");$("expenseEmpty").classList.toggle("hidden",state.expenses.length>0);
+    const canDeleteExpense=["owner","admin"].includes(state.profile?.role);
+    $("expenseRows").innerHTML=state.expenses.map(e=>`<tr><td>${safe(e.expense_date||"—")}</td><td>${safe(e.category||"—")}</td><td>${fmt(e.amount_tjs)}</td><td>${safe(e.description||e.notes||"—")}</td>${canDeleteExpense?`<td><button class="button danger delete-expense" data-expense-id="${safe(e.id)}">Удалить</button></td>`:""}</tr>`).join("");
+    const expenseActionHead=$("expenseActionHead");
+    if(expenseActionHead) expenseActionHead.classList.toggle("hidden",!canDeleteExpense);
+    $("expenseEmpty").classList.toggle("hidden",state.expenses.length>0);
   }
   async function start(){
     if(!window.supabase||!SUPABASE_URL||!SUPABASE_ANON_KEY){$("configNotice").classList.remove("hidden");showAuth(false);return;}
@@ -222,6 +226,28 @@
     expenseForm.reset();expenseForm.elements.expense_date.value=new Date().toISOString().slice(0,10);expenseForm.elements.currency.value="TJS";expenseForm.elements.fx_rate.value="1";$("expenseMessage").textContent="";expenseDialog.showModal();
   });
   $("closeExpenseDialog").addEventListener("click",()=>expenseDialog.close());
+  // Танҳо админ/соҳиб метавонад хароҷотро нест кунад.
+  $("expenseRows").addEventListener("click",async e=>{
+    const button=e.target.closest(".delete-expense");
+    if(!button)return;
+    if(!["owner","admin"].includes(state.profile?.role)){
+      toast("Барои нест кардани хароҷот танҳо админ иҷозат дорад.");
+      return;
+    }
+    const expense=state.expenses.find(item=>String(item.id)===button.dataset.expenseId);
+    if(!expense){toast("Хароҷот ёфт нашуд. Рӯйхатро нав кунед.");return;}
+    if(!window.confirm(`Хароҷоти «${expense.category||"бе категория"}» ба маблағи ${fmt(expense.amount_tjs)} сомонӣ нест карда шавад? Ин амал баргардонида намешавад.`))return;
+    button.disabled=true;
+    const result=await state.db.from("expenses").delete().eq("id",expense.id);
+    if(result.error){
+      console.error("Expense deletion failed",result.error);
+      toast("Нест карда нашуд: "+result.error.message);
+      button.disabled=false;
+      return;
+    }
+    toast("Хароҷот нест карда шуд.");
+    await loadData();
+  });
   expenseForm.elements.currency.addEventListener("change",()=>{expenseForm.elements.fx_rate.value=String(expenseRates[expenseForm.elements.currency.value]||1);});
   expenseForm.addEventListener("submit",async e=>{
     e.preventDefault();if(!state.db||!state.user)return;
