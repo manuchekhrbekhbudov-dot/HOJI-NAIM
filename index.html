@@ -67,9 +67,16 @@
             <article class="stat"><span>Хароҷот</span><strong id="adminExpenses">—</strong><small>сабтшуда</small></article>
             <article class="stat"><span>Қарзи умумӣ</span><strong id="adminDebt">—</strong><small>сомонӣ</small></article>
           </div>
-          <div class="panel"><div class="panel-head"><div><h3>Амалиёти админ</h3><p>Ин амалҳо танҳо барои Admin ва Owner дастрасанд.</p></div></div>
-            <div class="toolbar"><button class="button primary" data-goto="expenses">Идоракунии расходҳо</button><button class="button secondary" data-goto="reports">Ҳисобот ва содирот</button><button class="button secondary" data-goto="shipments">Идоракунии борҳо</button></div>
-            <p class="muted">Дар қисми «Расходҳо» тугмаҳои «Таҳрир» ва «Удалить» ҳастанд. Ҳазф инчунин аз сиёсати амнияти Supabase вобаста аст.</p>
+          <div class="admin-actions-grid">
+            <button class="admin-action-card" data-goto="shipments"><span class="admin-action-icon">📦</span><span><b>Идоракунии борҳо</b><small>Борҳо, трек ва қарзҳо</small></span><span class="admin-action-arrow">→</span></button>
+            <button class="admin-action-card" data-goto="expenses"><span class="admin-action-icon">↘</span><span><b>Идоракунии хароҷот</b><small>Таҳрир ва ҳазфи хароҷот</small></span><span class="admin-action-arrow">→</span></button>
+            <button class="admin-action-card" data-goto="payments"><span class="admin-action-icon">↔</span><span><b>Пардохтҳо</b><small>Таърихи пардохтҳо</small></span><span class="admin-action-arrow">→</span></button>
+            <button class="admin-action-card" data-goto="reports"><span class="admin-action-icon">▤</span><span><b>Ҳисобот ва содирот</b><small>Натиҷаҳои молиявӣ ва CSV</small></span><span class="admin-action-arrow">→</span></button>
+          </div>
+          <div class="panel admin-staff-panel">
+            <div class="panel-head"><div><h3>Кормандон ва ҳуқуқҳо</h3><p>Нақшҳои аккаунтҳои дохили система</p></div><button class="button secondary" id="refreshStaffBtn">⟳ Навсозӣ</button></div>
+            <div class="table-wrap"><table><thead><tr><th>Ном</th><th>Телефон</th><th>Нақш</th><th>Иваз кардани нақш</th><th>Амалиёт</th></tr></thead><tbody id="adminStaffRows"><tr><td colspan="5">Барои бор кардани кормандон «Навсозӣ»-ро пахш кунед.</td></tr></tbody></table></div>
+            <p class="muted admin-staff-note">Тағйири нақш пас аз насби SQL-и амниятӣ фаъол мешавад.</p>
           </div>
         </section>
         <section class="view" id="view-reports"><div class="section-head"><div><h2>Ҳисобот</h2><p>Хулосаи маълумоти борҳо ва молия</p></div><button class="button secondary" id="exportCsv">Содирот ба CSV</button></div><div class="stats"><article class="stat"><span>Шумораи борҳо</span><strong id="reportShipments">—</strong></article><article class="stat"><span>Пардохт (TJS)</span><strong id="reportPaid">—</strong></article><article class="stat"><span>Қарз (TJS)</span><strong id="reportDebt">—</strong></article><article class="stat"><span>Хароҷот (TJS)</span><strong id="reportExpenses">—</strong></article></div><p class="muted">Ҳисобҳои автоматӣ танҳо баъди пайваст шудани база ва дуруст ворид кардани маълумот ҳисоб мешаванд.</p></section>
