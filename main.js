@@ -20,14 +20,13 @@
       state.db.from("shipments").select("*").order("created_at",{ascending:false}).limit(1000),
       state.db.from("payments").select("*").order("payment_date",{ascending:false}).limit(5000),
       state.db.from("expenses").select("*").order("expense_date",{ascending:false}).limit(2000),
-      state.db.from("profiles").select("display_name,role,active").eq("id",state.user.id).maybeSingle()
+      state.db.from("profiles").select("role").eq("id",state.user.id).maybeSingle()
     ]);
     const err=results.slice(0,3).find(r=>r.error);
     if(err){console.error(err.error);$("connectionStatus").textContent="Хатои база";toast("Хатои хондани ҷадвалҳо: "+err.error.message);return;}
     [state.shipments,state.payments,state.expenses]=results.slice(0,3).map(r=>r.data||[]);
     state.profile=results[3].data||null;
     if(results[3].error) console.warn("Profile could not be read",results[3].error);
-    if(state.profile?.active===false){toast("Ҳисоби шумо ғайрифаъол аст.");await state.db.auth.signOut();return;}
     $("connectionStatus").textContent="Пайваст шуд"+(state.profile?.role?" · "+state.profile.role:"");
     const isAdmin=["owner","admin"].includes(state.profile?.role);
     $("adminNav").classList.toggle("hidden",!isAdmin);
