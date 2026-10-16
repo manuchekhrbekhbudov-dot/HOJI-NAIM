@@ -97,6 +97,35 @@
       $("authSubmit").disabled=false;
     }
   });
+
+  async function loadAdminStaff(){
+    if(!["owner","admin"].includes(state.profile?.role)){toast("Ин қисм танҳо барои админ аст.");return;}
+    const body=$("adminStaffRows");
+    body.innerHTML='<tr><td colspan="5">Бор шуда истодааст…</td></tr>';
+    const {data,error}=await state.db.from("profiles").select("id,full_name,phone,role").order("created_at",{ascending:true});
+    if(error){body.innerHTML='<tr><td colspan="5">Хато: '+safe(error.message)+'</td></tr>';return;}
+    if(!data?.length){body.innerHTML='<tr><td colspan="5">Аккаунт ёфт нашуд.</td></tr>';return;}
+    body.innerHTML=data.map(p=>{
+      const role=String(p.role||"customer");
+      const roles=["customer","operator","accountant","admin",...(state.profile.role==="owner"?["owner"]:[])];
+      const labels={customer:"Муштарӣ",operator:"Оператор",accountant:"Муҳосиб",admin:"Админ",owner:"Соҳиб"};
+      const options=roles.map(r=>'<option value="'+r+'" '+(r===role?"selected":"")+'>'+labels[r]+'</option>').join("");
+      const locked=p.id===state.user.id||(role==="owner"&&state.profile.role!=="owner");
+      return '<tr><td>'+safe(p.full_name||"—")+(p.id===state.user.id?' <span class="pill paid">Шумо</span>':"")+'</td><td>'+safe(p.phone||"—")+'</td><td><span class="pill '+(["admin","owner"].includes(role)?"paid":"partial")+'">'+safe(role)+'</span></td><td><select class="staff-role-select" data-staff-id="'+safe(p.id)+'" '+(locked?"disabled":"")+'>'+options+'</select></td><td><button class="button secondary save-staff-role" data-staff-id="'+safe(p.id)+'" '+(locked?"disabled":"")+'>Захира</button></td></tr>';
+    }).join("");
+  }
+  $("refreshStaffBtn").addEventListener("click",loadAdminStaff);
+  $("adminStaffRows").addEventListener("click",async e=>{
+    const btn=e.target.closest(".save-staff-role");if(!btn)return;
+    const id=btn.dataset.staffId,select=$("adminStaffRows").querySelector('.staff-role-select[data-staff-id="'+id+'"]');
+    if(!select)return;
+    btn.disabled=true;btn.textContent="…";
+    const {error}=await state.db.rpc("admin_set_profile_role",{target_user_id:id,new_role:select.value});
+    btn.disabled=false;btn.textContent="Захира";
+    if(error){toast("Нақш иваз нашуд. SQL-и амниятиро насб кунед.");console.error(error);return;}
+    toast("Нақши корманд нав шуд.");await loadAdminStaff();
+  });
+
   $("logoutBtn").addEventListener("click",async()=>{if(state.db)await state.db.auth.signOut();});
   document.querySelectorAll(".nav").forEach(b=>{b.addEventListener("click",e=>{e.preventDefault();showView(b.dataset.view);});b.addEventListener("touchend",()=>showView(b.dataset.view),{passive:true});});
   document.querySelectorAll("[data-goto]").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.goto)));
