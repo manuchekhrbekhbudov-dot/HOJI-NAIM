@@ -111,11 +111,21 @@
       const labels={customer:"Муштарӣ",operator:"Оператор",accountant:"Муҳосиб",admin:"Админ",owner:"Соҳиб"};
       const options=roles.map(r=>'<option value="'+r+'" '+(r===role?"selected":"")+'>'+labels[r]+'</option>').join("");
       const locked=p.id===state.user.id||(role==="owner"&&state.profile.role!=="owner");
-      return '<tr><td>'+safe(p.full_name||"—")+(p.id===state.user.id?' <span class="pill paid">Шумо</span>':"")+'</td><td>'+safe(p.phone||"—")+'</td><td><span class="pill '+(["admin","owner"].includes(role)?"paid":"partial")+'">'+safe(role)+'</span></td><td><select class="staff-role-select" data-staff-id="'+safe(p.id)+'" '+(locked?"disabled":"")+'>'+options+'</select></td><td><button class="button secondary save-staff-role" data-staff-id="'+safe(p.id)+'" '+(locked?"disabled":"")+'>Захира</button></td></tr>';
+      return '<tr><td>'+safe(p.full_name||"—")+(p.id===state.user.id?' <span class="pill paid">Шумо</span>':"")+'</td><td>'+safe(p.phone||"—")+'</td><td><span class="pill '+(["admin","owner"].includes(role)?"paid":"partial")+'">'+safe(role)+'</span></td><td><select class="staff-role-select" data-staff-id="'+safe(p.id)+'" '+(locked?"disabled":"")+'>'+options+'</select></td><td><div class="admin-row-actions"><button class="button secondary save-staff-role" data-staff-id="'+safe(p.id)+'" '+(locked?"disabled":"")+'>Захира</button><button class="button danger delete-staff-profile" data-staff-id="'+safe(p.id)+'" '+(locked?"disabled":"")+'>Удалить</button></div></td></tr>';
     }).join("");
   }
   $("refreshStaffBtn").addEventListener("click",loadAdminStaff);
   $("adminStaffRows").addEventListener("click",async e=>{
+    const deleteBtn=e.target.closest(".delete-staff-profile");
+    if(deleteBtn){
+      const id=deleteBtn.dataset.staffId;
+      if(!confirm("Профили корманд нест карда шавад? Ин аккаунти воридшавиро нест намекунад, танҳо профили системаашро мегирад."))return;
+      deleteBtn.disabled=true;
+      const {error}=await state.db.rpc("admin_delete_profile",{target_user_id:id});
+      deleteBtn.disabled=false;
+      if(error){toast("Профил нест нашуд. SQL-и admin_delete_profile-ро иҷро кунед.");console.error(error);return;}
+      toast("Профили корманд нест шуд.");await loadAdminStaff();return;
+    }
     const btn=e.target.closest(".save-staff-role");if(!btn)return;
     const id=btn.dataset.staffId,select=$("adminStaffRows").querySelector('.staff-role-select[data-staff-id="'+id+'"]');
     if(!select)return;
