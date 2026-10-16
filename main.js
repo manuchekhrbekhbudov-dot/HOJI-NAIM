@@ -92,6 +92,31 @@
   $("shipmentSearch").addEventListener("input",render);$("shipmentFilter").addEventListener("change",render);
   const dialog=$("shipmentDialog"),openDialog=()=>{if(!state.user){toast("Аввал ворид шавед.");return;}if(!["owner","admin","accountant","operator"].includes(state.profile?.role)){toast("Барои сабти бор иҷозати корманд лозим аст.");return;}dialog.showModal();};
   $("addShipmentBtn").addEventListener("click",openDialog);$("addShipmentTop").addEventListener("click",openDialog);$("closeDialog").addEventListener("click",()=>dialog.close());
+  const shipmentForm=$("shipmentForm");
+  const moneyRates={USD:9.2361,TJS:1,CNY:1.3803};
+  const baseUsdPrice=()=>shipmentForm.elements.billing_type.value==="volume"?200:shipmentForm.elements.billing_type.value==="kg"?1:0;
+  function updateShipmentEstimate(){
+    const type=shipmentForm.elements.billing_type.value;
+    const currency=shipmentForm.elements.currency.value;
+    const weight=Number(shipmentForm.elements.weight_kg.value||0);
+    const volume=Number(shipmentForm.elements.volume_m3.value||0);
+    const qty=type==="kg"?weight:type==="volume"?volume:1;
+    const usdPrice=baseUsdPrice();
+    const priceInput=shipmentForm.elements.unit_price;
+    const rateInput=shipmentForm.elements.exchange_rate;
+    const rate=moneyRates[currency]||1;
+    rateInput.value=String(rate);
+    priceInput.value=type==="fixed"?(Number(priceInput.value)||0):((usdPrice*moneyRates.USD)/rate).toFixed(2);
+    const original=qty*Number(priceInput.value||0);
+    const tjs=original*rate;
+    const estimate=$("shipmentEstimate"),estimateTjs=$("shipmentEstimateTjs");
+    if(estimate) estimate.textContent=(currency==="USD"?"$":currency==="CNY"?"¥":"SM ")+original.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+    if(estimateTjs) estimateTjs.textContent=tjs.toLocaleString("tg-TJ",{minimumFractionDigits:2,maximumFractionDigits:2})+" сомонӣ";
+  }
+  ["billing_type","currency","weight_kg","volume_m3","unit_price"].forEach(name=>shipmentForm.elements[name].addEventListener("input",updateShipmentEstimate));
+  shipmentForm.elements.currency.addEventListener("change",updateShipmentEstimate);
+  shipmentForm.elements.billing_type.addEventListener("change",updateShipmentEstimate);
+  updateShipmentEstimate();
   $("shipmentForm").addEventListener("submit",async e=>{
     e.preventDefault();if(!state.db||!state.user)return;
     const f=new FormData(e.currentTarget),name=String(f.get("customer_name")).trim(),phone=String(f.get("customer_phone")).trim(),currency=String(f.get("currency")),rate=Number(f.get("exchange_rate")),price=Number(f.get("unit_price")),type=String(f.get("billing_type")),weight=Number(f.get("weight_kg")||0),volume=Number(f.get("volume_m3")||0);
