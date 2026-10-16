@@ -46,7 +46,7 @@
     $("shipmentEmpty").classList.toggle("hidden",filtered.length>0);
     $("paymentRows").innerHTML=state.payments.map(p=>`<tr><td>${safe(p.payment_date||"—")}</td><td>${safe(state.shipments.find(s=>s.id===p.shipment_id)?.tracking_no||p.shipment_id||"—")}</td><td>${fmt(p.amount_tjs)}</td><td>${safe(p.currency||"TJS")}</td><td>${safe(p.method||"—")}</td><td>${safe(p.notes||"—")}</td></tr>`).join("");$("paymentEmpty").classList.toggle("hidden",state.payments.length>0);
     const canDeleteExpense=["owner","admin"].includes(state.profile?.role);
-    $("expenseRows").innerHTML=state.expenses.map(e=>`<tr><td>${safe(e.expense_date||"—")}</td><td>${safe(e.category||"—")}</td><td>${fmt(e.amount_tjs)}</td><td>${safe(e.description||e.notes||"—")}</td>${canDeleteExpense?`<td><button class="button danger delete-expense" data-expense-id="${safe(e.id)}">Удалить</button></td>`:""}</tr>`).join("");
+    $("expenseRows").innerHTML=state.expenses.map(e=>`<tr><td>${safe(e.expense_date||"—")}</td><td>${safe(e.category||"—")}</td><td>${fmt(e.amount_tjs)}</td><td>${safe(e.description||e.notes||"—")}</td>${canDeleteExpense?`<td><button class="button secondary edit-expense" data-expense-id="${safe(e.id)}">Таҳрир</button> <button class="button danger delete-expense" data-expense-id="${safe(e.id)}">Удалить</button></td>`:""}</tr>`).join("");
     const expenseActionHead=$("expenseActionHead");
     if(expenseActionHead) expenseActionHead.classList.toggle("hidden",!canDeleteExpense);
     $("expenseEmpty").classList.toggle("hidden",state.expenses.length>0);
@@ -223,19 +223,31 @@
   $("addExpenseBtn").addEventListener("click",()=>{
     if(!state.user){toast("Аввал ворид шавед.");return;}
     if(!["owner","admin","accountant"].includes(state.profile?.role)){toast("Барои сабти хароҷот иҷозати муҳосиб лозим аст.");return;}
+    delete expenseForm.dataset.editId;
     expenseForm.reset();expenseForm.elements.expense_date.value=new Date().toISOString().slice(0,10);expenseForm.elements.currency.value="TJS";expenseForm.elements.fx_rate.value="1";$("expenseMessage").textContent="";expenseDialog.showModal();
   });
   $("closeExpenseDialog").addEventListener("click",()=>expenseDialog.close());
-  // Танҳо админ/соҳиб метавонад хароҷотро нест кунад.
+  // Админ/соҳиб метавонад хароҷотро таҳрир ё нест кунад.
   $("expenseRows").addEventListener("click",async e=>{
+    const editButton=e.target.closest(".edit-expense");
     const button=e.target.closest(".delete-expense");
-    if(!button)return;
-    if(!["owner","admin"].includes(state.profile?.role)){
-      toast("Барои нест кардани хароҷот танҳо админ иҷозат дорад.");
+    if(!editButton&&!button)return;
+    if(!["owner","admin"].includes(state.profile?.role)){toast("Ин амал танҳо барои админ иҷозат аст.");return;}
+    const expenseId=(editButton||button).dataset.expenseId;
+    const expense=state.expenses.find(item=>String(item.id)===expenseId);
+    if(!expense){toast("Хароҷот ёфт нашуд. Рӯйхатро нав кунед.");return;}
+    if(editButton){
+      expenseForm.dataset.editId=String(expense.id);
+      expenseForm.elements.category.value=expense.category||"";
+      expenseForm.elements.amount.value=expense.amount_original??expense.amount??"";
+      expenseForm.elements.currency.value=expense.currency||"TJS";
+      expenseForm.elements.fx_rate.value=String(expense.fx_rate??expense.exchange_rate??1);
+      expenseForm.elements.expense_date.value=expense.expense_date||new Date().toISOString().slice(0,10);
+      expenseForm.elements.description.value=expense.description||expense.notes||"";
+      $("expenseMessage").textContent="Ҳолати таҳрир: маълумотро ислоҳ карда, сабт кунед.";
+      expenseDialog.showModal();
       return;
     }
-    const expense=state.expenses.find(item=>String(item.id)===button.dataset.expenseId);
-    if(!expense){toast("Хароҷот ёфт нашуд. Рӯйхатро нав кунед.");return;}
     if(!window.confirm(`Хароҷоти «${expense.category||"бе категория"}» ба маблағи ${fmt(expense.amount_tjs)} сомонӣ нест карда шавад? Ин амал баргардонида намешавад.`))return;
     button.disabled=true;
     const result=await state.db.from("expenses").delete().eq("id",expense.id);
@@ -255,9 +267,12 @@
     const f=new FormData(expenseForm),category=String(f.get("category")).trim(),amount=Number(f.get("amount")),currency=String(f.get("currency")),rate=Number(f.get("fx_rate")),expenseDate=String(f.get("expense_date")),description=String(f.get("description")||"").trim();
     if(!category||amount<=0||rate<=0){$("expenseMessage").textContent="Категория, маблағ ва қурбро дуруст ворид кунед.";return;}
     $("expenseMessage").textContent="Сабт шуда истодааст…";
-    const result=await state.db.from("expenses").insert({category,currency,amount_original:amount,fx_rate:rate,amount_tjs:Number((amount*rate).toFixed(2)),expense_date:expenseDate,description,created_by:state.user.id});
+    const editId=expenseForm.dataset.editId;
+    const payload={category,currency,amount_original:amount,fx_rate:rate,amount_tjs:Number((amount*rate).toFixed(2)),expense_date:expenseDate,description};
+    const result=editId?await state.db.from("expenses").update(payload).eq("id",editId):await state.db.from("expenses").insert({...payload,created_by:state.user.id});
     if(result.error){$("expenseMessage").textContent=result.error.message;return;}
-    expenseDialog.close();toast("Хароҷот сабт шуд.");await loadData();
+    delete expenseForm.dataset.editId;
+    expenseDialog.close();toast(editId?"Хароҷот нав карда шуд.":"Хароҷот сабт шуд.");await loadData();
   });
   $("shipmentForm").addEventListener("submit",async e=>{
     e.preventDefault();if(!state.db||!state.user)return;
