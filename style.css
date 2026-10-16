@@ -10,3 +10,23 @@
 .calculation-preview span{font-size:.88rem;color:#557060}
 .calculation-preview strong{font-size:1.65rem;line-height:1.2;font-weight:750}
 .calculation-preview span:last-child{font-size:1rem;font-weight:650;color:#173d2b}
+
+
+/* Clear action hierarchy and refined cargo-office UI */
+:root{--green:#12643d;--dark:#0c2d1e;--bg:#f3f7f4;--line:#dce7df;--shadow:0 10px 30px rgba(17,58,34,.07)}
+.button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;border-radius:10px;padding:11px 16px;transition:transform .15s ease,box-shadow .15s ease,background .15s ease}
+.button:hover{transform:translateY(-1px);box-shadow:0 5px 14px rgba(18,70,42,.12)}
+.button:focus-visible,.nav:focus-visible,.text-button:focus-visible{outline:3px solid #9ed9b3;outline-offset:2px}
+.button.secondary{background:#edf6f0;border-color:#d4e8da;color:#145b36}
+.button.ghost{background:#fff;border-color:#dce7df;color:#33483a}
+.section-head .button{min-width:150px}
+#addPaymentBtn,#addExpenseBtn{box-shadow:0 4px 12px rgba(18,100,61,.12)}
+.stat{transition:transform .18s ease,box-shadow .18s ease}
+.stat:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(17,58,34,.1)}
+.panel{box-shadow:0 7px 24px rgba(17,58,34,.045)}
+th{letter-spacing:.15px}
+td .button{min-height:34px;padding:8px 12px;font-size:11px}
+.calculation-preview{background:linear-gradient(135deg,#eef8f1,#f8fbf8);border-color:#cfe3d5}
+.dialog-form{background:#fff}
+.dialog-form .button.full{margin-top:8px}
+@media(max-width:720px){.section-head{flex-wrap:wrap}.section-head .button{width:100%}.top-actions .button{min-height:40px}.top-actions .primary{margin-left:0}}
