@@ -228,7 +228,8 @@
     if(weight<=0){$("formMessage").textContent="Вазни борро аз сифр зиёд ворид кунед.";return;}
     if(volume<=0){$("formMessage").textContent="Барои муайян кардани зичӣ ҳаҷми бор (м³)-ро низ ворид кунед. Танҳо вазн кофӣ нест.";return;}
     if(!type){$("formMessage").textContent="Вазн ва ҳаҷмро санҷед.";return;}
-    if(!arrivalDate){$("formMessage").textContent="Санаи воридшавии борро интихоб кунед.";return;}\n    if(!Number.isFinite(rate)||rate<=0){$("formMessage").textContent="Қурби асъор бояд дуруст бошад.";return;}
+    if(!arrivalDate){$("formMessage").textContent="Санаи воридшавии борро интихоб кунед.";return;}
+    if(!Number.isFinite(rate)||rate<=0){$("formMessage").textContent="Қурби асъор бояд дуруст бошад.";return;}
     const price=currency==="USD"?(type==="kg"?1:200):currency==="TJS"?(type==="kg"?moneyRates.USD:200*moneyRates.USD):(type==="kg"?moneyRates.USD/moneyRates.CNY:200*moneyRates.USD/moneyRates.CNY);
     const qty=type==="kg"?weight:volume,totalTjs=Number((qty*price*rate).toFixed(2));
     $("formMessage").textContent="Сабт шуда истодааст…";
