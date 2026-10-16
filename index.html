@@ -1,588 +1,71 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="tg">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#123d2a">
   <title>HOJI-NAIM CARGO</title>
-
   <link rel="stylesheet" href="style.css">
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="main.js" defer></script>
 </head>
 <body>
-
-  <!-- Танзими базаи маълумот -->
-  <section id="setupScreen" class="setup-screen hidden">
-    <div class="setup-card">
-      <div class="logo">H</div>
-      <h1>HOJI-NAIM CARGO</h1>
-      <h2>Пайваст кардани базаи маълумот</h2>
-      <p>
-        Барои истифода аввал Supabase-ро танзим кунед.
-        URL ва калиди public-и база бояд дар main.js ворид шаванд.
-      </p>
-      <p>
-        Калиди махфии service_role-ро ба коди сайт нагузоред.
-      </p>
-    </div>
-  </section>
-
-  <!-- Воридшавӣ ба аккаунт -->
-  <section id="authScreen" class="auth-screen hidden">
-    <form id="authForm" class="auth-card">
-      <div class="logo">H</div>
-      <p class="eyebrow">HOJI-NAIM CARGO</p>
-
-      <h1 id="authTitle">Воридшавӣ</h1>
-      <p>Ба ҳисоби кории худ ворид шавед.</p>
-
-      <label>
-        Почтаи электронӣ
-        <input
-          id="authEmail"
-          type="email"
-          autocomplete="username"
-          required
-          placeholder="name@company.com"
-        >
-      </label>
-
-      <label>
-        Парол
-        <input
-          id="authPassword"
-          type="password"
-          autocomplete="current-password"
-          minlength="8"
-          required
-          placeholder="Ҳадди ақал 8 аломат"
-        >
-      </label>
-
-      <button id="authSubmit" class="btn primary full" type="submit">
-        Ворид шудан
-      </button>
-
-      <button id="toggleAuth" class="link-button" type="button">
-        Ҳисоби нав сабт кардан
-      </button>
-
-      <p id="authError" class="error" role="alert"></p>
-    </form>
-  </section>
-
-  <!-- Саҳифаи асосӣ -->
-  <div id="app" class="app-shell hidden">
-
+  <div class="app">
     <aside class="sidebar">
-      <div class="brand">
-        <div class="logo small">H</div>
-        <div>
-          <b>HOJI-NAIM</b>
-          <small>CARGO ACCOUNTING</small>
-        </div>
-      </div>
-
-      <nav>
-        <button class="nav-btn active" data-view="dashboard">
-          ▦ <span>Асосӣ</span>
-        </button>
-
-        <button class="nav-btn" data-view="shipments">
-          ▣ <span>Борҳо / Клиентҳо</span>
-        </button>
-
-        <button class="nav-btn" data-view="expenses">
-          ↘ <span>Расходҳо</span>
-        </button>
-
-        <button class="nav-btn" data-view="reports">
-          ▤ <span>Ҳисобот</span>
-        </button>
+      <a class="brand" href="#"><span class="brand-mark">H</span><span><b>HOJI-NAIM</b><small>CARGO SYSTEM</small></span></a>
+      <nav id="navigation">
+        <button class="nav active" data-view="dashboard">▦ <span data-i18n="dashboard">Асосӣ</span></button>
+        <button class="nav" data-view="shipments">▣ <span data-i18n="shipments">Борҳо</span></button>
+        <button class="nav" data-view="payments">↔ <span data-i18n="payments">Пардохтҳо</span></button>
+        <button class="nav" data-view="expenses">↘ <span data-i18n="expenses">Расходҳо</span></button>
+        <button class="nav" data-view="reports">▤ <span data-i18n="reports">Ҳисобот</span></button>
       </nav>
-
-      <div class="user-box">
-        <div class="avatar" id="userAvatar">U</div>
-        <div class="user-meta">
-          <b id="userEmail">Корбар</b>
-          <small id="userRole">Корманд</small>
-        </div>
-        <button id="logoutBtn" class="logout" type="button">
-          ↪
-        </button>
-      </div>
+      <div class="side-bottom"><span class="status-dot"></span><span id="connectionStatus">Танзими база лозим</span></div>
     </aside>
-
     <main class="main">
-
       <header class="topbar">
-        <div>
-          <p class="eyebrow">СИСТЕМАИ ИДОРАКУНИИ КАРГО</p>
-          <h1 id="pageTitle">Ҳисоботи умумӣ</h1>
-        </div>
-
-        <div class="top-actions">
-          <span id="syncStatus" class="sync">Онлайн</span>
-          <button id="addShipmentBtn" class="btn primary">
-            + Иловаи бор
-          </button>
-        </div>
+        <div><p class="eyebrow">CARGO MANAGEMENT</p><h1 id="pageTitle">Ҳисоботи умумӣ</h1></div>
+        <div class="top-actions"><select id="language" aria-label="Language"><option value="tg">Тоҷикӣ</option><option value="ru">Русский</option><option value="en">English</option></select><button class="button primary" id="addShipmentTop">+ Иловаи бор</button><button class="button ghost hidden" id="logoutBtn">Баромадан</button></div>
       </header>
-
-      <!-- Dashboard -->
-      <section class="view active" id="view-dashboard">
-
-        <div class="hero">
-          <div>
-            <p class="eyebrow light">ХУЛОСАИ ФАЪОЛИЯТ</p>
-            <h2>Ҳамаи ҳисобҳо дар як ҷо.</h2>
-            <p>Ҳисобот аз маълумоти базаи фирма гирифта мешавад.</p>
-          </div>
-          <div class="hero-mark">H</div>
-        </div>
-
-        <div class="stats">
-          <article class="stat">
-            <span>Пули воқеан гирифташуда</span>
-            <strong id="statRevenue">—</strong>
-            <small>Ба сомонӣ</small>
-          </article>
-
-          <article class="stat">
-            <span>Ҳамаи расходҳо</span>
-            <strong id="statExpenses">—</strong>
-            <small>Хароҷоти сабтшуда</small>
-          </article>
-
-          <article class="stat">
-            <span>Фоидаи соф</span>
-            <strong id="statProfit">—</strong>
-            <small>Пардохти гирифташуда − расход</small>
-          </article>
-
-          <article class="stat">
-            <span>Қарзи клиентҳо</span>
-            <strong id="statDebt">—</strong>
-            <small id="statShipmentCount">Борҳо: —</small>
-          </article>
-        </div>
-
-        <div class="panel">
-          <div class="panel-head">
-            <div>
-              <h3>Борҳои охирин</h3>
-              <p>Маълумоти базаи фирма</p>
-            </div>
-            <button class="link-button" data-goto="shipments">
-              Ҳамаи борҳо →
-            </button>
-          </div>
-
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Клиент</th>
-                  <th>Трек / бор</th>
-                  <th>Ҳисоб</th>
-                  <th>Пардохт</th>
-                  <th>Статус</th>
-                </tr>
-              </thead>
-              <tbody id="recentRows"></tbody>
-            </table>
-          </div>
-
-          <p class="empty hidden" id="recentEmpty">
-            Ҳоло бор нест.
-          </p>
+      <section id="configNotice" class="notice hidden"><b>Пайвастшавӣ ба база танзим нашудааст.</b><p>Дар аввали <code>main.js</code> URL ва publishable key-и Supabase-ро гузоред, баъд SQL-и <code>supabase/schema.sql</code>-ро дар SQL Editor иҷро кунед. Калиди service_role-ро ба браузер нагузоред.</p></section>
+      <section id="authPanel" class="auth-panel hidden">
+        <div class="auth-card"><span class="brand-mark">H</span><p class="eyebrow">HOJI-NAIM CARGO</p><h2 id="authHeading">Воридшавӣ бо телефон</h2><p>Рақами телефонро бо рамзи кишвар ворид кунед. Барои гирифтани SMS, Phone Auth бояд дар Supabase фаъол бошад.</p>
+          <form id="phoneForm"><label for="phone">Рақами телефон</label><input id="phone" type="tel" placeholder="+992900000000" autocomplete="tel" required><button class="button primary full" type="submit">Фиристодани SMS-код</button></form>
+          <form id="otpForm" class="hidden"><label for="otp">SMS-код</label><input id="otp" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" required><button class="button primary full" type="submit">Тасдиқ ва воридшавӣ</button></form>
+          <p id="authMessage" class="message" role="status"></p>
         </div>
       </section>
-
-      <!-- Борҳо ва клиентҳо -->
-      <section class="view" id="view-shipments">
-        <div class="section-head">
-          <div>
-            <h2>Борҳо ва клиентҳо</h2>
-            <p>Вазн, куб, нарх ва пардохти клиентҳоро идора кунед.</p>
+      <section id="appContent">
+        <section class="view active" id="view-dashboard">
+          <div class="hero"><div><p class="eyebrow light">ИДОРАКУНИИ КАРГО</p><h2>Ҳамаи ҳисобҳо дар як ҷо.</h2><p>Борҳо, пардохтҳо, қарзҳо ва хароҷот — бо назорати дастрасӣ.</p></div><div class="hero-icon">H</div></div>
+          <div class="stats">
+            <article class="stat"><span>Пардохтҳои сабтшуда</span><strong id="statPaid">—</strong><small>сомонӣ (TJS)</small></article>
+            <article class="stat"><span>Хароҷот</span><strong id="statExpenses">—</strong><small>сомонӣ (TJS)</small></article>
+            <article class="stat"><span>Фарқи даромад ва хароҷот</span><strong id="statProfit">—</strong><small>пардохтҳои гирифташуда − хароҷот</small></article>
+            <article class="stat"><span>Қарзи умумӣ</span><strong id="statDebt">—</strong><small id="statCargoCount">Борҳо: —</small></article>
           </div>
-
-          <button id="addShipmentBtn2" class="btn primary">
-            + Иловаи бор
-          </button>
-        </div>
-
-        <div class="toolbar">
-          <input
-            id="searchShipments"
-            type="search"
-            placeholder="Ҷустуҷӯи клиент ё трек..."
-          >
-
-          <select id="filterStatus">
-            <option value="all">Ҳамаи статусҳо</option>
-            <option value="paid">Пардохт шуд</option>
-            <option value="partial">Қисман</option>
-            <option value="unpaid">Қарздор</option>
-          </select>
-        </div>
-
-        <div class="panel">
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Клиент</th>
-                  <th>Трек</th>
-                  <th>Ҳисоб</th>
-                  <th>Вазн / куб</th>
-                  <th>Ҷамъ (TJS)</th>
-                  <th>Пардохт (TJS)</th>
-                  <th>Статус</th>
-                  <th>Амал</th>
-                </tr>
-              </thead>
-              <tbody id="shipmentsRows"></tbody>
-            </table>
-          </div>
-
-          <p class="empty hidden" id="shipmentsEmpty">
-            Бор ёфт нашуд.
-          </p>
-        </div>
+          <div class="panel"><div class="panel-head"><div><h3>Борҳои охирин</h3><p>Маълумоти сабтшуда</p></div><button class="text-button" data-goto="shipments">Ҳамаи борҳо →</button></div><div class="table-wrap"><table><thead><tr><th>Муштарӣ</th><th>Рақами бор</th><th>Вазн / ҳаҷм</th><th>Арзиш</th><th>Қарз (TJS)</th><th>Ҳолат</th></tr></thead><tbody id="recentRows"></tbody></table></div><p class="empty" id="recentEmpty">Барои оғози кор базаи маълумотро пайваст кунед.</p></div>
+        </section>
+        <section class="view" id="view-shipments"><div class="section-head"><div><h2>Борҳо</h2><p>Рӯйхат ва сабти борҳои муштариён</p></div><button class="button primary" id="addShipmentBtn">+ Иловаи бор</button></div>
+          <div class="toolbar"><input id="shipmentSearch" placeholder="Ҷустуҷӯи муштарӣ ё рақами бор…"><select id="shipmentFilter"><option value="">Ҳамаи ҳолатҳо</option><option value="unpaid">Қарздор</option><option value="partial">Қисман пардохт</option><option value="paid">Пардохт шуд</option></select></div>
+          <div class="panel"><div class="table-wrap"><table><thead><tr><th>Муштарӣ</th><th>Телефон</th><th>Рақами бор</th><th>Вазн</th><th>Ҳаҷм</th><th>Ҳисоб (TJS)</th><th>Пардохт (TJS)</th><th>Қарз (TJS)</th><th>Ҳолат</th></tr></thead><tbody id="shipmentRows"></tbody></table></div><p class="empty" id="shipmentEmpty">Ҳоло маълумот нест.</p></div>
+        </section>
+        <section class="view" id="view-payments"><div class="section-head"><div><h2>Пардохтҳо</h2><p>Таърихи пардохтҳо</p></div></div><div class="panel"><div class="table-wrap"><table><thead><tr><th>Сана</th><th>Рақами бор</th><th>Маблағ</th><th>Асъор</th><th>Усул</th><th>Эзоҳ</th></tr></thead><tbody id="paymentRows"></tbody></table></div><p class="empty" id="paymentEmpty">Ҳоло пардохт нест.</p></div></section>
+        <section class="view" id="view-expenses"><div class="section-head"><div><h2>Хароҷот</h2><p>Назорати хароҷоти ширкат</p></div></div><div class="panel"><div class="table-wrap"><table><thead><tr><th>Сана</th><th>Категория</th><th>Маблағ (TJS)</th><th>Эзоҳ</th></tr></thead><tbody id="expenseRows"></tbody></table></div><p class="empty" id="expenseEmpty">Ҳоло хароҷот нест.</p></div></section>
+        <section class="view" id="view-reports"><div class="section-head"><div><h2>Ҳисобот</h2><p>Хулосаи маълумоти борҳо ва молия</p></div><button class="button secondary" id="exportCsv">Содирот ба CSV</button></div><div class="stats"><article class="stat"><span>Шумораи борҳо</span><strong id="reportShipments">—</strong></article><article class="stat"><span>Пардохт (TJS)</span><strong id="reportPaid">—</strong></article><article class="stat"><span>Қарз (TJS)</span><strong id="reportDebt">—</strong></article><article class="stat"><span>Хароҷот (TJS)</span><strong id="reportExpenses">—</strong></article></div><p class="muted">Ҳисобҳои автоматӣ танҳо баъди пайваст шудани база ва дуруст ворид кардани маълумот ҳисоб мешаванд.</p></section>
       </section>
-
-      <!-- Расходҳо -->
-      <section class="view" id="view-expenses">
-        <div class="section-head">
-          <div>
-            <h2>Расходҳо</h2>
-            <p>Ҳамаи хароҷоти фирмаро сабт кунед.</p>
-          </div>
-
-          <button id="addExpenseBtn" class="btn primary">
-            + Расход илова кардан
-          </button>
-        </div>
-
-        <div class="panel">
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Сана</th>
-                  <th>Категория</th>
-                  <th>Тавсиф</th>
-                  <th>Асъори аслӣ</th>
-                  <th>Баробар ба TJS</th>
-                  <th>Амал</th>
-                </tr>
-              </thead>
-              <tbody id="expenseRows"></tbody>
-            </table>
-          </div>
-
-          <p class="empty hidden" id="expensesEmpty">
-            Расход сабт нашудааст.
-          </p>
-        </div>
-      </section>
-
-      <!-- Ҳисоботи молиявӣ -->
-      <section class="view" id="view-reports">
-        <div class="section-head">
-          <div>
-            <h2>Ҳисоботи молиявӣ</h2>
-            <p>Ҳисобҳо ба сомонӣ нишон дода мешаванд.</p>
-          </div>
-
-          <button id="refreshBtn" class="btn secondary">
-            Навсозӣ
-          </button>
-        </div>
-
-        <div class="stats">
-          <article class="stat">
-            <span>Маблағи умумии борҳо</span>
-            <strong id="reportBilled">—</strong>
-          </article>
-
-          <article class="stat">
-            <span>Пули гирифташуда</span>
-            <strong id="reportPaid">—</strong>
-          </article>
-
-          <article class="stat">
-            <span>Қарзи боқимонда</span>
-            <strong id="reportDebt">—</strong>
-          </article>
-
-          <article class="stat">
-            <span>Фоидаи соф</span>
-            <strong id="reportProfit">—</strong>
-          </article>
-        </div>
-
-        <div class="panel info-panel">
-          <h3>Қоидаи ҳисоб</h3>
-          <p>
-            Фоидаи ҳисобшуда = маблағи воқеан гирифташуда
-            − расходҳои сабтшуда. Пардохтҳо бо қурби асъори
-            худ ба сомонӣ табдил дода мешаванд.
-          </p>
-        </div>
-
-        <div class="panel export-panel">
-          <div>
-            <h3>Ҳисобот</h3>
-            <p>Маълумотро ба CSV содир кунед.</p>
-          </div>
-          <button id="exportBtn" class="btn secondary">
-            Экспорт CSV
-          </button>
-        </div>
-      </section>
-
-      <footer>
-        HOJI-NAIM CARGO · Системаи ҳисоби борҳо
-      </footer>
     </main>
   </div>
-
-  <!-- Формаи иловаи бор -->
-  <dialog id="shipmentDialog" class="modal">
-    <form id="shipmentForm" class="modal-form">
-      <div class="modal-head">
-        <div>
-          <p class="eyebrow">САБТИ БОР</p>
-          <h2>Иловаи бор</h2>
-        </div>
-        <button type="button" class="close" data-close="shipmentDialog">×</button>
-      </div>
-
-      <div class="form-grid">
-        <label>
-          Номи клиент *
-          <input id="clientName" required maxlength="120">
-        </label>
-
-        <label>
-          Телефон
-          <input id="clientPhone" maxlength="40">
-        </label>
-
-        <label>
-          Рақами трек / бор *
-          <input id="tracking" required maxlength="100">
-        </label>
-
-        <label>
-          Сана *
-          <input id="shipmentDate" type="date" required>
-        </label>
-
-        <label>
-          Навъи ҳисоб
-          <select id="billingType">
-            <option value="kg">Аз рӯи кг</option>
-            <option value="cube">Аз рӯи куб (м³)</option>
-            <option value="fixed">Нархи муайян</option>
-          </select>
-        </label>
-
-        <label>
-          Асъори нарх
-          <select id="currency">
-            <option value="TJS">Сомонӣ (TJS)</option>
-            <option value="CNY">Юан (CNY)</option>
-            <option value="USD">Доллар (USD)</option>
-          </select>
-        </label>
-
-        <label>
-          Вазн (кг)
-          <input id="weight" type="number" min="0" step="0.001">
-        </label>
-
-        <label>
-          Ҳаҷм (м³)
-          <input id="volume" type="number" min="0" step="0.001">
-        </label>
-
-        <label>
-          Нарх барои кг / куб / бор *
-          <input id="unitPrice" type="number" min="0" step="0.0001" required>
-        </label>
-
-        <label>
-          Қурб ба сомонӣ *
-          <input id="fxRate" type="number" min="0.000001" step="0.000001" required value="1">
-          <small>1 воҳиди асъор = чанд сомонӣ</small>
-        </label>
-
-        <label>
-          Пардохти аввал
-          <input id="paidAmount" type="number" min="0" step="0.0001" value="0" required>
-        </label>
-
-        <label>
-          Тавсифи бор
-          <input id="shipmentNotes" maxlength="400">
-        </label>
-      </div>
-
-      <div class="calc">
-        <span>Маблағи умумӣ (TJS)</span>
-        <b id="calcTotal">0.00 сомонӣ</b>
-        <span>
-          Пардохт: <strong id="calcPaid">0.00</strong>
-          · Қарз: <strong id="calcDebt">0.00</strong>
-        </span>
-      </div>
-
-      <p id="shipmentError" class="error" role="alert"></p>
-
-      <div class="modal-actions">
-        <button type="button" class="btn secondary" data-close="shipmentDialog">
-          Бекор кардан
-        </button>
-        <button type="submit" class="btn primary">
-          Сабт кардан
-        </button>
-      </div>
-    </form>
-  </dialog>
-
-  <!-- Формаи пардохт -->
-  <dialog id="paymentDialog" class="modal">
-    <form id="paymentForm" class="modal-form">
-      <div class="modal-head">
-        <div>
-          <p class="eyebrow">ПАРДОХТИ КЛИЕНТ</p>
-          <h2>Сабти пардохт</h2>
-        </div>
-        <button type="button" class="close" data-close="paymentDialog">×</button>
-      </div>
-
-      <input type="hidden" id="paymentShipmentId">
-      <p id="paymentContext" class="muted"></p>
-
-      <div class="form-grid">
-        <label>
-          Асъори гирифташуда
-          <select id="paymentCurrency">
-            <option value="TJS">TJS — сомонӣ</option>
-            <option value="CNY">CNY — юан</option>
-            <option value="USD">USD — доллар</option>
-          </select>
-        </label>
-
-        <label>
-          Маблағи гирифташуда *
-          <input id="paymentAmount" type="number" min="0.0001" step="0.0001" required>
-        </label>
-
-        <label>
-          Қурб ба сомонӣ *
-          <input id="paymentFx" type="number" min="0.000001" step="0.000001" value="1" required>
-        </label>
-
-        <label>
-          Сана *
-          <input id="paymentDate" type="date" required>
-        </label>
-
-        <label>
-          Эзоҳ
-          <input id="paymentNotes" maxlength="250">
-        </label>
-      </div>
-
-      <p id="paymentError" class="error" role="alert"></p>
-
-      <div class="modal-actions">
-        <button type="button" class="btn secondary" data-close="paymentDialog">
-          Бекор кардан
-        </button>
-        <button type="submit" class="btn primary">
-          Сабти пардохт
-        </button>
-      </div>
-    </form>
-  </dialog>
-
-  <!-- Формаи расход -->
-  <dialog id="expenseDialog" class="modal">
-    <form id="expenseForm" class="modal-form">
-      <div class="modal-head">
-        <div>
-          <p class="eyebrow">ХАРОҶОТ</p>
-          <h2>Иловаи расход</h2>
-        </div>
-        <button type="button" class="close" data-close="expenseDialog">×</button>
-      </div>
-
-      <div class="form-grid">
-        <label>
-          Сана *
-          <input id="expenseDate" type="date" required>
-        </label>
-
-        <label>
-          Категория *
-          <select id="expenseCategory">
-            <option>Нақлиёт</option>
-            <option>Анбор</option>
-            <option>Маош</option>
-            <option>Борбандӣ</option>
-            <option>Андоз</option>
-            <option>Гумрук</option>
-            <option>Алоқа / интернет</option>
-            <option>Дигар</option>
-          </select>
-        </label>
-
-        <label>
-          Асъор *
-          <select id="expenseCurrency">
-            <option value="TJS">TJS — сомонӣ</option>
-            <option value="CNY">CNY — юан</option>
-            <option value="USD">USD — доллар</option>
-          </select>
-        </label>
-
-        <label>
-          Маблағ *
-          <input id="expenseAmount" type="number" min="0.0001" step="0.0001" required>
-        </label>
-
-        <label>
-          Қурб ба сомонӣ *
-          <input id="expenseFx" type="number" min="0.000001" step="0.000001" value="1" required>
-        </label>
-
-        <label>
-          Тавсиф
-          <input id="expenseDescription" maxlength="250">
-        </label>
-      </div>
-
-      <p id="expenseError" class="error" role="alert"></p>
-
-      <div class="modal-actions">
-        <button type="button" class="btn secondary" data-close="expenseDialog">
-          Бекор кардан
-        </button>
-        <button type="submit" class="btn primary">
-          Сабт кардан
-        </button>
-      </div>
-    </form>
-  </dialog>
-
-  <div id="toast" class="toast" role="status"></div>
-
-  <script src="main.js"></script>
+  <dialog id="shipmentDialog"><form id="shipmentForm" class="dialog-form"><div class="dialog-head"><div><p class="eyebrow">САБТИ НАВ</p><h2>Иловаи бор</h2></div><button type="button" class="icon-button" id="closeDialog" aria-label="Пӯшидан">×</button></div>
+    <label>Номи муштарӣ<input name="customer_name" required maxlength="120"></label>
+    <label>Телефони муштарӣ<input name="customer_phone" type="tel" placeholder="+992…" required></label>
+    <label>Рақами бор / трек<input name="tracking_number" required maxlength="100"></label>
+    <div class="form-grid"><label>Вазн (кг)<input name="weight_kg" type="number" min="0" step="0.001" value="0"></label><label>Ҳаҷм (м³)<input name="volume_m3" type="number" min="0" step="0.001" value="0"></label></div>
+    <div class="form-grid"><label>Навъи ҳисоб<select name="billing_type"><option value="kg">Аз рӯи вазн</option><option value="volume">Аз рӯи ҳаҷм</option><option value="fixed">Нархи муайян</option></select></label><label>Нархи воҳид<input name="unit_price" type="number" min="0" step="0.01" required></label></div>
+    <div class="form-grid"><label>Асъор<select name="currency"><option value="TJS">TJS — сомонӣ</option><option value="USD">USD — доллар</option><option value="CNY">CNY — юан</option></select></label><label>Қурб ба TJS<input name="exchange_rate" type="number" min="0.000001" step="0.000001" value="1" required></label></div>
+    <label>Ёддошт<textarea name="notes" rows="2" maxlength="1000"></textarea></label>
+    <p class="muted">Сабти бор қарзро эҷод мекунад; пардохт бояд ҳамчун амалиёти алоҳида сабт шавад.</p><p id="formMessage" class="message" role="status"></p><button class="button primary full" type="submit">Сабт кардани бор</button>
+  </form></dialog>
+  <div id="toast" role="status" aria-live="polite"></div>
 </body>
 </html>
