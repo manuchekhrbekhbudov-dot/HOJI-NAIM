@@ -13,7 +13,7 @@
   const status = s => debt(s)<=0.005?"paid":paid(s)>0?"partial":"unpaid";
   const statusText = s => ({paid:"Пардохт шуд",partial:"Қисман пардохт",unpaid:"Қарздор"}[s]);
   function showAuth(show){$("authPanel").classList.toggle("hidden",!show);$("appContent").classList.toggle("hidden",show);$("logoutBtn").classList.toggle("hidden",!state.user);}
-  function showView(name){document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id==="view-"+name));document.querySelectorAll(".nav").forEach(v=>v.classList.toggle("active",v.dataset.view===name));const t={dashboard:"Ҳисоботи умумӣ",shipments:"Борҳо",payments:"Пардохтҳо",expenses:"Хароҷот",reports:"Ҳисобот"};$("pageTitle").textContent=t[name]||t.dashboard;}
+  function showView(name){document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id==="view-"+name));document.querySelectorAll(".nav").forEach(v=>v.classList.toggle("active",v.dataset.view===name));const t={dashboard:"Ҳисоботи умумӣ",shipments:"Борҳо",payments:"Пардохтҳо",expenses:"Хароҷот",reports:"Ҳисобот",admin:"Админ-панел"};$("pageTitle").textContent=t[name]||t.dashboard;}
   async function loadData(){
     $("connectionStatus").textContent="Маълумот бор шуда истодааст…";
     const results=await Promise.all([
@@ -29,6 +29,8 @@
     if(results[3].error) console.warn("Profile could not be read",results[3].error);
     if(state.profile?.active===false){toast("Ҳисоби шумо ғайрифаъол аст.");await state.db.auth.signOut();return;}
     $("connectionStatus").textContent="Пайваст шуд"+(state.profile?.role?" · "+state.profile.role:"");
+    const isAdmin=["owner","admin"].includes(state.profile?.role);
+    $("adminNav").classList.toggle("hidden",!isAdmin);
     render();
   }
   function render(){
@@ -36,6 +38,11 @@
     const costs=state.expenses.reduce((n,e)=>n+Number(e.amount_tjs||0),0);
     const debts=state.shipments.reduce((n,s)=>n+debt(s),0);
     $("statPaid").textContent=fmt(revenue);$("statExpenses").textContent=fmt(costs);$("statProfit").textContent=fmt(revenue-costs);$("statDebt").textContent=fmt(debts);$("statCargoCount").textContent="Борҳо: "+state.shipments.length;
+    $("adminShipments").textContent=state.shipments.length;
+    $("adminPayments").textContent=state.payments.length;
+    $("adminExpenses").textContent=state.expenses.length;
+    $("adminDebt").textContent=fmt(debts);
+    $("adminRoleBadge").textContent=String(state.profile?.role||"").toUpperCase();
     $("reportShipments").textContent=state.shipments.length;$("reportPaid").textContent=fmt(revenue);$("reportDebt").textContent=fmt(debts);$("reportExpenses").textContent=fmt(costs);
     const payButton=s=>debt(s)>0.005?`<button class="button secondary pay-shipment" data-shipment-id="${safe(s.id)}">Пардохт</button>`:`<span class="pill paid">Пардохт шуд</span>`;
     const row=s=>`<tr><td>${safe(s.client_name||"—")}</td><td>${safe(s.tracking_no||"—")}</td><td>${fmt(s.weight_kg)} кг / ${fmt(s.volume_m3)} м³</td><td>${fmt(total(s))}</td><td>${fmt(debt(s))}</td><td><span class="pill ${status(s)}">${statusText(status(s))}</span></td><td>${payButton(s)}</td></tr>`;
