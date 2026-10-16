@@ -272,3 +272,41 @@ dialog{border-radius:22px;box-shadow:0 28px 100px #071d1260}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}
 }
+
+
+/* Admin shortcut in the lower sidebar area */
+.sidebar-bottom-area{
+  margin-top:auto;
+  padding:0 0 16px;
+}
+.admin-nav-button{
+  width:100%;
+  display:flex;
+  align-items:center;
+  gap:11px;
+  padding:13px 12px;
+  color:#e9f8ee;
+  background:linear-gradient(110deg,rgba(33,116,73,.95),rgba(19,82,51,.95));
+  border:1px solid rgba(174,231,192,.24);
+  border-radius:12px;
+  text-align:left;
+  font-weight:750;
+  box-shadow:0 8px 20px rgba(0,0,0,.12),inset 0 1px rgba(255,255,255,.08);
+}
+.admin-nav-button:hover,.admin-nav-button.active{
+  background:linear-gradient(110deg,#278552,#17653e);
+  color:#fff;
+  box-shadow:inset 3px 0 #b5e7c4,0 8px 22px rgba(0,0,0,.16);
+}
+.admin-nav-icon{
+  width:29px;height:29px;display:grid;place-items:center;
+  flex:0 0 29px;border-radius:9px;
+  background:rgba(226,248,233,.13);font-size:17px;
+}
+.admin-nav-arrow{margin-left:auto;color:#bce9ca;font-size:18px}
+.sidebar .side-bottom{margin-top:0}
+@media(max-width:720px){
+  .sidebar-bottom-area{padding:8px 0 10px}
+  .admin-nav-button{flex-direction:row;justify-content:flex-start;padding:9px 12px}
+  .admin-nav-arrow{margin-left:auto}
+}
