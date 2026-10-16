@@ -88,7 +88,7 @@
     }
   });
   $("logoutBtn").addEventListener("click",async()=>{if(state.db)await state.db.auth.signOut();});
-  document.querySelectorAll(".nav").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.view)));
+  document.querySelectorAll(".nav").forEach(b=>{b.addEventListener("click",e=>{e.preventDefault();showView(b.dataset.view);});b.addEventListener("touchend",()=>showView(b.dataset.view),{passive:true});});
   document.querySelectorAll("[data-goto]").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.goto)));
   $("shipmentSearch").addEventListener("input",render);$("shipmentFilter").addEventListener("change",render);
   const dialog=$("shipmentDialog");
