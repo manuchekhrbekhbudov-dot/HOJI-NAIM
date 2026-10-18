@@ -14,19 +14,37 @@
   const statusText = s => ({paid:"Пардохт шуд",partial:"Қисман пардохт",unpaid:"Қарздор"}[s]);
   function showAuth(show){$("authPanel").classList.toggle("hidden",!show);$("appContent").classList.toggle("hidden",show);document.querySelector(".topbar")?.classList.toggle("hidden",show);$("configNotice")?.classList.toggle("hidden",show||!$("configNotice").dataset.visible);document.body.classList.toggle("auth-mode",show);$("logoutBtn").classList.toggle("hidden",!state.user);}
   function showView(name){document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id==="view-"+name));document.querySelectorAll(".nav").forEach(v=>v.classList.toggle("active",v.dataset.view===name));const t={dashboard:"Ҳисоботи умумӣ",shipments:"Борҳо",payments:"Пардохтҳо",expenses:"Хароҷот",reports:"Ҳисобот",admin:"Админ-панел"};$("pageTitle").textContent=t[name]||t.dashboard;}
+  async function fetchAllRows(table,orderColumn,pageSize=1000){
+    const all=[];
+    for(let from=0;;from+=pageSize){
+      const result=await state.db.from(table).select("*").order(orderColumn,{ascending:false}).range(from,from+pageSize-1);
+      if(result.error)throw result.error;
+      const page=result.data||[];
+      all.push(...page);
+      if(page.length<pageSize)break;
+    }
+    return all;
+  }
   async function loadData(){
     $("connectionStatus").textContent="Маълумот бор шуда истодааст…";
-    const results=await Promise.all([
-      state.db.from("shipments").select("*").order("created_at",{ascending:false}).limit(1000),
-      state.db.from("payments").select("*").order("payment_date",{ascending:false}).limit(5000),
-      state.db.from("expenses").select("*").order("expense_date",{ascending:false}).limit(2000),
-      state.db.from("profiles").select("role").eq("id",state.user.id).maybeSingle()
-    ]);
-    const err=results.slice(0,3).find(r=>r.error);
-    if(err){console.error(err.error);$("connectionStatus").textContent="Хатои база";toast("Хатои хондани ҷадвалҳо: "+err.error.message);return;}
-    [state.shipments,state.payments,state.expenses]=results.slice(0,3).map(r=>r.data||[]);
-    state.profile=results[3].data||null;
-    if(results[3].error) console.warn("Profile could not be read",results[3].error);
+    try{
+      const [shipments,payments,expenses,profileResult]=await Promise.all([
+        fetchAllRows("shipments","created_at"),
+        fetchAllRows("payments","payment_date"),
+        fetchAllRows("expenses","expense_date"),
+        state.db.from("profiles").select("role").eq("id",state.user.id).maybeSingle()
+      ]);
+      state.shipments=shipments;
+      state.payments=payments;
+      state.expenses=expenses;
+      state.profile=profileResult.data||null;
+      if(profileResult.error)console.warn("Profile could not be read",profileResult.error);
+    }catch(err){
+      console.error(err);
+      $("connectionStatus").textContent="Хатои база";
+      toast("Хатои хондани маълумот: "+(err.message||"хатои номаълум"));
+      return;
+    }
     $("connectionStatus").textContent="Пайваст шуд"+(state.profile?.role?" · "+state.profile.role:"");
     const isAdmin=["owner","admin"].includes(state.profile?.role);
     $("adminNav").classList.toggle("hidden",!isAdmin);
