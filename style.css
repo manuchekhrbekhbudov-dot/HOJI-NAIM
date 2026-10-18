@@ -893,3 +893,5 @@ body.auth-mode #authPanel .auth-layout{width:100%;min-height:500px;grid-template
 @media(max-width:760px){body.auth-mode .main{padding:12px!important;display:block!important}body.auth-mode #authPanel.auth-panel{margin:10px auto!important}body.auth-mode #authPanel .auth-layout{grid-template-columns:1fr;min-height:0}body.auth-mode #authPanel .auth-welcome{padding:24px}body.auth-mode #authPanel .auth-card{padding:24px}}
 
 .cargo-sheet-tools #syncCargoSheet{background:#17613c;color:#fff;border-color:#17613c}.cargo-sheet-tools #syncCargoSheet:disabled{opacity:.6;cursor:wait}
+
+.cargo-sheet-summary{grid-template-columns:repeat(4,minmax(0,1fr))}.cargo-sheet-summary #sheetDebtTotal{color:#a13c22}@media(max-width:900px){.cargo-sheet-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
