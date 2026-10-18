@@ -845,3 +845,9 @@ tbody tr:hover td{background:#eaf3ff}
 .cargo-sheet-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:#f2f5f9;border-top:1px solid #b7c5d5;color:#60758d;font-size:10px}
 .cargo-sheet-foot .button{border-radius:5px;padding:7px 10px}
 @media(max-width:650px){.cargo-sheet-head{align-items:flex-start;flex-direction:column}.cargo-sheet-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.cargo-sheet-summary>div{border-bottom:1px solid #c3d0de}.cargo-sheet-foot{align-items:flex-start;flex-direction:column}}
+
+
+.cargo-sheet-meta{display:grid;grid-template-columns:repeat(3,minmax(150px,1fr));gap:12px;padding:14px 18px;background:#f7f9fc;border-bottom:1px solid #bdc9d7}
+.cargo-sheet-meta label{display:grid;gap:6px;color:#405b78;font-size:11px;font-weight:700}
+.cargo-sheet-meta input{width:100%;box-sizing:border-box;border:1px solid #b7c8dc;border-radius:5px;padding:10px;background:#fff;color:#24364b}
+@media(max-width:650px){.cargo-sheet-meta{grid-template-columns:1fr}}
