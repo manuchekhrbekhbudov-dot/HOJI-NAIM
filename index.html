@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#123d2a">
   <title>HOJI-NAIM CARGO</title>
-  <link rel="stylesheet" href="style.css?v=20261018-signature">
+  <link rel="stylesheet" href="style.css?v=20261018-login-redesign">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="main.js?v=20261018-signature" defer></script>
 </head>
@@ -32,7 +32,7 @@
       </header>
       <section id="configNotice" class="notice hidden"><b>Пайвастшавӣ ба база танзим нашудааст.</b><p>Дар аввали <code>main.js</code> URL ва publishable key-и Supabase-ро гузоред, баъд SQL-и <code>supabase/schema.sql</code>-ро дар SQL Editor иҷро кунед. Калиди service_role-ро ба браузер нагузоред.</p></section>
       <section id="authPanel" class="auth-panel hidden">
-        <div class="auth-card"><span class="brand-mark">H</span><p class="eyebrow">HOJI-NAIM CARGO</p><h2 id="authHeading">Воридшавӣ бо Email</h2><p id="authDescription">Email ва паролро ворид кунед.</p>
+        <div class="auth-layout"><div class="auth-welcome"><span class="auth-brand-mark">H</span><p class="auth-kicker">HOJI-NAIM CARGO SYSTEM</p><h2>Системаи идоракунии карго</h2><p>Борҳо, пардохтҳо ва ҳисоботи муштариён — дар як ҷо.</p><div class="auth-feature-list"><span>✓ Назорати борҳо</span><span>✓ Ҳисоби пардохт ва қарз</span><span>✓ Ҳисоботи равшан</span></div></div><div class="auth-card"><p class="eyebrow">ХУШ ОМАДЕД</p><h2 id="authHeading">Воридшавӣ бо Email</h2><p id="authDescription">Email ва паролро ворид кунед.</p>
           <form id="emailForm">
             <label for="email">Email</label><input id="email" type="email" placeholder="name@example.com" autocomplete="username" required>
             <label for="password">Парол</label><input id="password" type="password" minlength="8" autocomplete="current-password" placeholder="Парол" required>
@@ -40,7 +40,7 @@
           </form>
           <button class="text-button" id="authModeToggle" type="button">Ҳисоб надорӣ? Сабти ном</button>
           <p id="authMessage" class="message" role="status"></p>
-        </div>
+        </div></div>
       </section>
       <section id="appContent">
         <section class="view active" id="view-dashboard">
