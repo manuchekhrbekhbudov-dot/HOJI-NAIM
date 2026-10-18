@@ -557,3 +557,85 @@ input:focus,select:focus,textarea:focus{outline:3px solid #3b82f61c;border-color
  .auth-card form{margin-top:20px}
  .auth-card input{min-height:49px}
 }
+
+
+/* HOJI-NAIM exact blue cargo-login visual direction */
+:root{--green:#1768e8;--dark:#0a1b35;--ink:#13213a;--muted:#63718a;--line:#dce5f1;--bg:#f2f6fc;--white:#fff;--shadow:0 12px 32px rgba(14,42,80,.08)}
+body{background:#f2f6fc;color:#13213a;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
+.sidebar{background:linear-gradient(180deg,#071a33 0%,#102d53 100%);color:#eaf3ff;border-right:1px solid #18375d;box-shadow:none}
+.brand-mark{background:#f4f8ff;color:#173e70;border-radius:7px}
+.brand b{color:#fff}.brand small{color:#a8bfdc}
+.nav{color:#d0deef;border-radius:0;padding:13px 12px}
+.nav:hover{background:#16365f;color:#fff}
+.nav.active{background:#1268e8;color:#fff;box-shadow:inset 0 -4px #75b3ff}
+.main{background:#f2f6fc}
+.topbar h1,.section-head h2{color:#12223c}
+.eyebrow{color:#8394aa}
+.primary{background:linear-gradient(110deg,#1268e8,#0875f9);color:#fff;box-shadow:0 7px 18px #1268e82a}
+.primary:hover{background:#0959d4}
+.secondary,.ghost{background:#fff;border:1px solid #dce5f1;color:#263b59}
+.hero{background:linear-gradient(100deg,#f8fbff 0%,#e5f1ff 55%,#b9d8fb 100%);border:1px solid #dfebf8;border-radius:17px;color:#101e36;box-shadow:0 10px 28px #153c6b0b}
+.hero h2{font-size:clamp(25px,3vw,38px);font-weight:850;letter-spacing:-1.2px;color:#0c1d38}
+.hero h2::first-line{color:#0c1d38}
+.hero p:not(.eyebrow){color:#53647e}
+.hero .eyebrow{color:#5279aa}
+.hero-icon{color:#256bc91a}
+.stat,.panel{background:#fff;border:1px solid #e0e8f2;border-radius:14px;box-shadow:0 8px 22px #153b6808}
+.stat:before{background:#2677ef}
+.stat strong{color:#102340}
+.panel-head{background:#f8fbff;border-bottom:1px solid #e4ebf5}
+th{background:#eaf2fc;color:#405a7b;border-bottom:1px solid #d6e3f3}
+td{color:#283a54;border-bottom:1px solid #e9eff7}
+tbody tr:nth-child(even) td{background:#f8fbff}
+tbody tr:hover td{background:#edf5ff}
+.pill.paid{background:#e5f8ed;color:#167447;border-color:#c9eed9}
+.pill.partial{background:#fff5df;color:#94620b;border-color:#f5e3b4}
+.pill.unpaid{background:#fff0ee;color:#b9382c;border-color:#f4d5d0}
+.text-button{color:#1268e8}
+.button.danger{background:#fff3f1;border:1px solid #f1cbc5;color:#b9382c}
+input:focus,select:focus,textarea:focus{outline:3px solid #2677ef20;border-color:#6ca7f5}
+.auth-panel{min-height:calc(100vh - 100px);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:24px 20px 48px;position:relative;background:#f2f6fc}
+.auth-panel:before{content:"";display:block;position:relative;flex:0 0 auto;width:100%;max-width:940px;height:clamp(180px,24vw,290px);border-radius:17px;background:linear-gradient(90deg,rgba(245,250,255,.96) 0%,rgba(230,241,255,.91) 48%,rgba(195,220,250,.35) 100%),url('https://images.unsplash.com/photo-1494412519320-aa613dfb7738?auto=format&fit=crop&w=1500&q=85') center/cover no-repeat;box-shadow:inset 0 0 0 1px #d7e6f7}
+.auth-panel:after{content:"HOJI-NAIM\A CARGO\A\A Системаи муосири\A ҳисобдории карго";white-space:pre;position:absolute;top:clamp(52px,7vw,86px);left:max(calc((100% - 880px)/2),38px);font-size:clamp(23px,4vw,48px);font-weight:850;line-height:1.06;letter-spacing:-1.3px;color:#101e36;z-index:1;pointer-events:none}
+.auth-card{position:relative;z-index:2;width:min(100%,940px);margin-top:0;padding:30px 34px 34px;background:#fff;border:1px solid #e2eaf5;border-radius:18px;box-shadow:0 14px 36px rgba(16,48,89,.07)}
+.auth-card>.brand-mark,.auth-card>.eyebrow{display:none}
+.auth-card h2{font-size:clamp(24px,3vw,36px);line-height:1.2;letter-spacing:-.9px;color:#101e36;margin:0 0 10px;font-weight:800}
+.auth-card>p:not(.eyebrow){color:#63718a;line-height:1.6}
+.auth-card form{display:grid;gap:9px;margin-top:25px}
+.auth-card label{font-size:14px;font-weight:750;color:#384961;margin-top:7px}
+.auth-card input{width:100%;min-height:54px;border:1px solid #dbe4ef;border-radius:10px;background:#fbfcff;padding:14px 16px;color:#152741;outline:none;box-shadow:none}
+.auth-card input:focus{border-color:#4f91f4;box-shadow:0 0 0 4px #2677ef19}
+.auth-card input::placeholder{color:#9aa6b7}
+.auth-card .button.full{width:100%;min-height:56px;margin-top:15px;border-radius:10px;background:linear-gradient(110deg,#1268e8,#0875f9);font-size:15px;box-shadow:0 8px 20px #1268e82a}
+.auth-card .text-button{margin-top:18px;color:#1268e8;font-weight:650}
+#authMessage{color:#b42318;font-size:13px}
+@media(max-width:900px){
+ .app{display:flex;flex-direction:column}
+ .sidebar{position:relative;inset:auto;width:100%;height:auto;padding:17px 14px 0;border-radius:0;box-shadow:none}
+ .brand{padding:0 5px 17px}.brand-mark{width:45px;height:45px}
+ .sidebar nav{display:flex;gap:0;overflow-x:auto;margin:0 -14px;padding:0 14px;scrollbar-width:none}
+ .sidebar nav::-webkit-scrollbar{display:none}
+ .nav{flex:1 0 76px;min-width:68px;flex-direction:column;justify-content:center;gap:7px;text-align:center;padding:12px 6px 13px;border-radius:0;font-size:12px}
+ .nav.active{box-shadow:inset 0 -4px #75b3ff}
+ .sidebar-bottom-area,.side-bottom{display:none}
+ .main{margin-left:0;width:100%;padding:22px 16px 34px}
+ .topbar{align-items:flex-start;gap:13px;flex-wrap:wrap;margin-bottom:19px}
+ .topbar h1{font-size:24px}
+ .top-actions{display:flex;flex-wrap:wrap}
+ .auth-panel{min-height:calc(100vh - 200px);padding:18px 14px 35px}
+ .auth-panel:before{height:clamp(180px,36vw,245px)}
+ .auth-panel:after{top:clamp(42px,8vw,67px);left:30px;font-size:clamp(27px,5vw,39px)}
+ .auth-card{margin-top:0;padding:27px 25px 29px;border-radius:16px}
+}
+@media(max-width:480px){
+ .main{padding:18px 12px 27px}
+ .topbar h1{font-size:22px}
+ .top-actions select,.top-actions .button{padding:10px 12px}
+ .auth-panel{padding:13px 9px 26px}
+ .auth-panel:before{height:190px;border-radius:13px;background-position:center}
+ .auth-panel:after{top:37px;left:24px;font-size:29px;max-width:210px}
+ .auth-card{padding:23px 19px 25px;border-radius:15px}
+ .auth-card h2{font-size:25px}
+ .auth-card form{margin-top:19px}
+ .auth-card input{min-height:49px}
+}
