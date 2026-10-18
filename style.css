@@ -897,3 +897,30 @@ body.auth-mode #authPanel .auth-layout{width:100%;min-height:500px;grid-template
 .cargo-sheet-summary{grid-template-columns:repeat(4,minmax(0,1fr))}.cargo-sheet-summary #sheetDebtTotal{color:#a13c22}@media(max-width:900px){.cargo-sheet-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 .customer-summary-panel{margin-top:20px}.customer-summary-panel .panel-head{gap:16px;flex-wrap:wrap}.customer-summary-panel .panel-head input{width:min(340px,100%)}.customer-summary-panel td{white-space:nowrap}.customer-summary-total{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap;padding:14px 18px;background:#f2f5f9;border-top:1px solid #c3d0de;color:#304a67;font-size:13px}.customer-summary-total strong{font-variant-numeric:tabular-nums}@media(max-width:700px){.customer-summary-total{align-items:flex-start;flex-direction:column}}
+
+/* Premium welcome screen — chief accountant */
+body.auth-mode{background:radial-gradient(ellipse at 12% 15%,#d8f7e7 0,transparent 33%),radial-gradient(ellipse at 88% 85%,#d8eaff 0,transparent 34%),linear-gradient(135deg,#f8fbff 0%,#edf5f2 50%,#eaf1ff 100%)}
+body.auth-mode:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.24;background-image:radial-gradient(#678b7a 0.7px,transparent .7px);background-size:19px 19px}
+body.auth-mode .main{position:relative;z-index:1}
+body.auth-mode #authPanel .auth-layout{position:relative;grid-template-columns:1.04fr .96fr;min-height:560px;border:1px solid rgba(255,255,255,.85);border-radius:30px;background:rgba(255,255,255,.9);box-shadow:0 35px 100px rgba(24,66,48,.16),0 4px 14px rgba(24,66,48,.06);backdrop-filter:blur(18px)}
+body.auth-mode #authPanel .auth-welcome{position:relative;isolation:isolate;overflow:hidden;gap:0;padding:clamp(36px,5vw,68px);background:radial-gradient(circle at 85% 15%,rgba(255,213,124,.22),transparent 27%),linear-gradient(145deg,#0c3025 0%,#15553a 54%,#247c50 100%)}
+body.auth-mode #authPanel .auth-welcome:after{content:"H";position:absolute;z-index:-1;right:-22px;bottom:-100px;font-size:clamp(250px,35vw,410px);font-weight:900;line-height:1;color:rgba(255,255,255,.045);pointer-events:none}
+body.auth-mode #authPanel .auth-brand-mark{width:66px;height:66px;border-radius:21px;background:linear-gradient(145deg,#ffe4a2,#efb64f);color:#163d2b;font-size:34px;box-shadow:0 12px 28px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.65)}
+body.auth-mode #authPanel .auth-kicker{margin:31px 0 13px;font-size:10px;letter-spacing:2.4px;color:#c5e9d2}
+body.auth-mode #authPanel .auth-welcome h2{max-width:440px;font-size:clamp(34px,4vw,51px);line-height:1.1;letter-spacing:-1.8px;text-wrap:balance;color:#fff}
+body.auth-mode #authPanel .auth-welcome>p:not(.auth-kicker){max-width:390px;font-size:15px;line-height:1.8;color:#d8efe0;margin:21px 0 29px}
+body.auth-mode #authPanel .auth-feature-list{gap:13px;font-size:13px}
+body.auth-mode #authPanel .auth-feature-list span{display:flex;align-items:center;gap:10px}
+body.auth-mode #authPanel .auth-card{position:relative;padding:clamp(32px,4.3vw,60px);background:linear-gradient(160deg,#fff 0%,#fbfdfb 100%)}
+body.auth-mode #authPanel .auth-card .eyebrow{display:inline-flex;align-items:center;gap:7px;padding:8px 11px;border-radius:999px;background:#e9f7ee;color:#17613c;font-size:10px;letter-spacing:1.1px}
+body.auth-mode #authPanel .auth-card .eyebrow:before{content:"";width:7px;height:7px;border-radius:50%;background:#27a363;box-shadow:0 0 0 4px #27a36320}
+body.auth-mode #authPanel .auth-card h2{font-size:clamp(27px,3vw,34px);letter-spacing:-.9px;line-height:1.2;color:#173b2a;margin:17px 0 10px}
+body.auth-mode #authPanel .auth-card>p:not(.eyebrow){font-size:14px;line-height:1.65;color:#75867c;margin-bottom:28px}
+body.auth-mode #authPanel .auth-card label{font-size:12px;font-weight:700;color:#344d3e;gap:8px;margin:19px 0}
+body.auth-mode #authPanel .auth-card input{min-height:51px;border-radius:13px;background:#f7faf8;border:1px solid #dce8df;padding:13px 15px;font-size:14px}
+body.auth-mode #authPanel .auth-card input:focus{background:#fff;border-color:#27915b;box-shadow:0 0 0 4px rgba(39,145,91,.12)}
+body.auth-mode #authPanel #authSubmit{min-height:53px;margin-top:14px;border-radius:14px;background:linear-gradient(100deg,#125332,#20834d);box-shadow:0 10px 24px rgba(18,83,50,.22);font-size:14px;transition:transform .18s,box-shadow .18s}
+body.auth-mode #authPanel #authSubmit:hover{transform:translateY(-2px);box-shadow:0 14px 28px rgba(18,83,50,.28)}
+body.auth-mode #authPanel .text-button{margin-top:20px;font-size:13px}
+body.auth-mode #authPanel #authMessage{font-size:13px}
+@media(max-width:760px){body.auth-mode .main{padding:12px!important}body.auth-mode #authPanel .auth-layout{grid-template-columns:1fr;min-height:0;border-radius:24px}body.auth-mode #authPanel .auth-welcome{padding:28px 25px}body.auth-mode #authPanel .auth-welcome h2{font-size:32px}body.auth-mode #authPanel .auth-welcome>p:not(.auth-kicker){margin:15px 0 20px}body.auth-mode #authPanel .auth-card{padding:30px 25px}}
