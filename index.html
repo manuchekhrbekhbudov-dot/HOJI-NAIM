@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#123d2a">
   <title>HOJI-NAIM CARGO</title>
-  <link rel="stylesheet" href="style.css?v=20261018-login-final-cleanup6">
+  <link rel="stylesheet" href="style.css?v=20261018-premium-login7">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="main.js?v=20261018-auth-banner-fix" defer></script>
 </head>
@@ -32,15 +32,32 @@
       </header>
       <section id="configNotice" class="notice hidden"><b>Пайвастшавӣ ба база танзим нашудааст.</b><p>Дар аввали <code>main.js</code> URL ва publishable key-и Supabase-ро гузоред, баъд SQL-и <code>supabase/schema.sql</code>-ро дар SQL Editor иҷро кунед. Калиди service_role-ро ба браузер нагузоред.</p></section>
       <section id="authPanel" class="auth-panel hidden">
-        <div class="auth-layout"><div class="auth-welcome"><span class="auth-brand-mark">H</span><p class="auth-kicker">HOJI-NAIM CARGO SYSTEM</p><h2>Системаи идоракунии карго</h2><p>Борҳо, пардохтҳо ва ҳисоботи муштариён — дар як ҷо.</p><div class="auth-feature-list"><span>✓ Назорати борҳо</span><span>✓ Ҳисоби пардохт ва қарз</span><span>✓ Ҳисоботи равшан</span></div></div><div class="auth-card"><p class="eyebrow">HOJI-NAIM CARGO · СИСТЕМАИ ИДОРАКУНӢ</p><h2 id="authHeading">Хуш омадед, сармуҳосиб БАХТИЁР!</h2><p id="authDescription">Барои идома Email ва пароли худро ворид кунед.</p>
-          <form id="emailForm">
-            <label for="email">Email</label><input id="email" type="email" placeholder="name@example.com" autocomplete="username" required>
-            <label for="password">Парол</label><input id="password" type="password" minlength="8" autocomplete="current-password" placeholder="Парол" required>
-            <button class="button primary full" id="authSubmit" type="submit">Ворид шудан</button>
-          </form>
-          <button class="text-button" id="authModeToggle" type="button">Ҳисоб надорӣ? Сабти ном</button>
-          <p id="authMessage" class="message" role="status"></p>
-        </div></div>
+        <div class="auth-layout">
+          <div class="auth-welcome">
+            <div class="auth-brand-row"><span class="auth-brand-mark">H</span><span class="auth-brand-name"><b>HOJI-NAIM</b><strong>CARGO</strong><small>CARGO MANAGEMENT SYSTEM</small></span><span class="auth-language">◎ &nbsp; TJ &nbsp; | &nbsp; RU &nbsp; | &nbsp; EN</span></div>
+            <p class="auth-kicker">СИСТЕМАИ ИДОРАКУНИИ КАРГО</p>
+            <h2>Системаи идоракунии <em>карго</em></h2>
+            <p class="auth-welcome-copy">Борҳо, пардохтҳо ва ҳисоботи муштариён — дар як ҷо.</p>
+            <div class="auth-feature-list">
+              <span><i>◇</i><span><b>Назорати борҳо</b><small>Воридот, содирот ва интиқол</small></span></span>
+              <span><i>▥</i><span><b>Ҳисоби пардохт ва қарз</b><small>Дақиқ ва шаффоф</small></span></span>
+              <span><i>▤</i><span><b>Ҳисоботи равшан</b><small>PDF, Excel ва таҳлили муфассал</small></span></span>
+            </div>
+            <div class="auth-trust-stats"><div><b>2,500+</b><small>Бор дар моҳ</small></div><div><b>300+</b><small>Муштарӣ</small></div><div><b>99.9%</b><small>Бехатарӣ</small></div></div>
+          </div>
+          <div class="auth-card">
+            <p class="eyebrow">HOJI-NAIM CARGO · СИСТЕМАИ ИДОРАКУНӢ</p>
+            <h2 id="authHeading">Хуш омадед, сармуҳосиб БАХТИЁР!</h2>
+            <p id="authDescription">Барои идома Email ва пароли худро ворид кунед.</p>
+            <form id="emailForm">
+              <label for="email">Email</label><input id="email" type="email" placeholder="name@example.com" autocomplete="username" required>
+              <label for="password">Парол</label><input id="password" type="password" minlength="8" autocomplete="current-password" placeholder="Парол" required>
+              <button class="button primary full" id="authSubmit" type="submit">Ворид шудан <span aria-hidden="true">→</span></button>
+            </form>
+            <button class="text-button" id="authModeToggle" type="button">Ҳисоб надорӣ? Сабти ном</button>
+            <p id="authMessage" class="message" role="status"></p>
+          </div>
+        </div>
       </section>
       <section id="appContent">
         <section class="view active" id="view-dashboard">
