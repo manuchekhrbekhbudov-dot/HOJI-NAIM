@@ -59,7 +59,25 @@
           <div class="panel"><div class="table-wrap"><table><thead><tr><th>Муштарӣ</th><th>Телефон</th><th>Рақами бор</th><th>Вазн</th><th>Ҳаҷм</th><th>Ҳисоб (TJS)</th><th>Пардохт (TJS)</th><th>Қарз (TJS)</th><th>Ҳолат</th><th>Амалиёт</th></tr></thead><tbody id="shipmentRows"></tbody></table></div><p class="empty" id="shipmentEmpty">Ҳоло маълумот нест.</p></div>
         </section>
         <section class="view" id="view-payments"><div class="section-head"><div><h2>Пардохтҳо</h2><p>Таърихи пардохтҳо</p></div><button class="button primary" id="addPaymentBtn">+ Сабти пардохт</button></div><div class="panel"><div class="table-wrap"><table><thead><tr><th>Сана</th><th>Рақами бор</th><th>Маблағ</th><th>Асъор</th><th>Усул</th><th>Эзоҳ</th></tr></thead><tbody id="paymentRows"></tbody></table></div><p class="empty" id="paymentEmpty">Ҳоло пардохт нест.</p></div></section>
-        <section class="view" id="view-expenses"><div class="section-head"><div><h2>Хароҷот</h2><p>Назорати хароҷоти ширкат</p></div><button class="button primary" id="addExpenseBtn">+ Иловаи хароҷот</button></div><div class="panel"><div class="table-wrap"><table><thead><tr><th>Сана</th><th>Категория</th><th>Маблағ (TJS)</th><th>Эзоҳ</th><th id="expenseActionHead" class="hidden">Амалиёт</th></tr></thead><tbody id="expenseRows"></tbody></table></div><p class="empty" id="expenseEmpty">Ҳоло хароҷот нест.</p></div></section>
+        <section class="view" id="view-expenses">
+          <div class="section-head"><div><h2>Хароҷот</h2><p>Сабти ҳаррӯза — мисли Excel, ҳисоб автоматӣ мешавад</p></div><button class="button secondary" id="addExpenseBtn">Шакли пурра</button></div>
+          <div class="panel expense-sheet-panel">
+            <div class="panel-head expense-sheet-title"><div><h3>📒 Дафтари хароҷоти ҳаррӯза</h3><p>Маълумотро дар сатри холӣ нависед ва «Сабт» пахш кунед.</p></div><span class="pill paid">Автоҳисоб</span></div>
+            <form id="expenseSheetForm" class="expense-sheet-form">
+              <label>Сана<input name="expense_date" type="date" required></label>
+              <label>Категория<input name="category" required maxlength="100" placeholder="Масалан: роҳкиро"></label>
+              <label>Маблағ<input name="amount" type="number" min="0.01" step="0.01" required placeholder="0.00"></label>
+              <label>Асъор<select name="currency"><option value="TJS">TJS</option><option value="USD">USD</option><option value="CNY">CNY</option></select></label>
+              <label>Қурб<input name="fx_rate" type="number" min="0.000001" step="0.000001" value="1" required></label>
+              <label>Шарҳ<input name="description" maxlength="500" placeholder="Иловагӣ"></label>
+              <button class="button primary expense-sheet-save" type="submit">✓ Сабт</button>
+            </form>
+            <p id="expenseSheetMessage" class="message expense-sheet-message" role="status"></p>
+            <div class="expense-sheet-total"><span>Ҳамагӣ хароҷот (сомонӣ)</span><strong id="expenseSheetTotal">0,00</strong></div>
+            <div class="table-wrap expense-sheet-table"><table><thead><tr><th>Сана</th><th>Категория</th><th>Маблағ (TJS)</th><th>Эзоҳ</th><th id="expenseActionHead" class="hidden">Амалиёт</th></tr></thead><tbody id="expenseRows"></tbody></table></div>
+            <p class="empty" id="expenseEmpty">Ҳоло хароҷот нест.</p>
+          </div>
+        </section>
         <section class="view" id="view-admin">
           <div class="section-head"><div><h2>Админ-панел</h2><p>Идоракунии хароҷот ва назорати система</p></div><span class="pill paid" id="adminRoleBadge">ADMIN</span></div>
           <div class="stats">
