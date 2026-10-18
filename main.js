@@ -608,7 +608,7 @@
       window.XLSX.writeFile(workbook,"HOJI-NAIM-CARGO-"+dateStamp+".xlsx");
       return;
     }
-    const csv="\\uFEFF"+[headers,...detailRows].map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(";")).join("\\r\\n");
+    const csv="\uFEFF"+[headers,...detailRows].map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(";")).join("\r\n");
     const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="HOJI-NAIM-CARGO-"+dateStamp+".csv";a.click();URL.revokeObjectURL(url);
   });
   renderCargoSheet();
