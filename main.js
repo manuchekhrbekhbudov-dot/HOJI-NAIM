@@ -51,22 +51,33 @@
     render();
   }
   function customerCodeOf(s){return String(s.client_code||s.clientCode||s.notes?.match(/Коди муштарӣ:\s*([^;]+)/i)?.[1]||"").trim();}
+  function noteNumberOf(s,label){
+    const prefix=label.toLocaleLowerCase()+":";
+    const part=String(s.notes||"").split(";").map(x=>x.trim()).find(x=>x.toLocaleLowerCase().startsWith(prefix));
+    if(!part)return null;
+    const value=Number(part.slice(part.indexOf(":")+1).trim());
+    return Number.isFinite(value)?value:null;
+  }
   function renderCustomerSummary(){
     const search=String($("customerSummarySearch")?.value||"").trim().toLocaleLowerCase();
     const grouped=new Map();
     state.shipments.forEach(s=>{
       const code=customerCodeOf(s),name=String(s.client_name||"").trim(),phone=String(s.client_phone||"").trim();
       const key=code?"code:"+code.toLocaleLowerCase():phone?"phone:"+phone.toLocaleLowerCase():"name:"+(name||"Муштарӣ").toLocaleLowerCase();
-      if(!grouped.has(key))grouped.set(key,{code,name:name||"—",phone,cube:0,kg:0,billed:0,paid:0,debt:0,count:0});
+      if(!grouped.has(key))grouped.set(key,{code,name:name||"—",phone,places:0,cube:0,kg:0,cubeAmount:0,kgAmount:0,billed:0,paid:0,debt:0,count:0});
       const item=grouped.get(key);
       if(!item.code&&code)item.code=code;if((!item.name||item.name==="—")&&name)item.name=name;if(!item.phone&&phone)item.phone=phone;
-      item.cube+=Number(s.volume_m3||0);item.kg+=Number(s.weight_kg||0);item.billed+=total(s);item.paid+=paid(s);item.debt+=debt(s);item.count+=1;
+      item.places+=noteNumberOf(s,"Ҷойҳо")??0;
+      item.cube+=Number(s.volume_m3||0);item.kg+=Number(s.weight_kg||0);
+      item.cubeAmount+=noteNumberOf(s,"Сумма куб")??Number(s.volume_m3||0)*200;
+      item.kgAmount+=noteNumberOf(s,"Сумма кг")??Number(s.weight_kg||0);
+      item.billed+=total(s);item.paid+=paid(s);item.debt+=debt(s);item.count+=1;
     });
     const all=[...grouped.values()].sort((a,b)=>a.name.localeCompare(b.name));
     const rows=all.filter(x=>[x.code,x.name,x.phone].some(v=>String(v||"").toLocaleLowerCase().includes(search)));
-    $("customerSummaryRows").innerHTML=rows.map(x=>`<tr><td>${safe(x.code||"—")}</td><td>${safe(x.name)}</td><td>${safe(x.phone||"—")}</td><td>${fmt(x.cube)}</td><td>${fmt(x.kg)}</td><td>${fmt(x.billed)}</td><td>${fmt(x.paid)}</td><td>${fmt(x.debt)}</td><td>${fmt(x.cube>0?x.kg/x.cube:0)}</td><td>${x.count}</td></tr>`).join("");
+    $("customerSummaryRows").innerHTML=rows.map(x=>`<tr><td>${safe(x.code||"—")}</td><td>${safe(x.name)}</td><td>${safe(x.phone||"—")}</td><td>${fmt(x.places)}</td><td>${fmt(x.cube)}</td><td>${fmt(x.kg)}</td><td>${fmt(x.cubeAmount)}</td><td>${fmt(x.kgAmount)}</td><td>${fmt(x.billed)}</td><td>${fmt(x.paid)}</td><td>${fmt(x.debt)}</td><td>${fmt(x.cube>0?x.kg/x.cube:0)}</td><td>${x.count}</td></tr>`).join("");
     $("customerSummaryEmpty").classList.toggle("hidden",rows.length>0);
-    $("customerSummaryCube").textContent=fmt(rows.reduce((n,x)=>n+x.cube,0));$("customerSummaryKg").textContent=fmt(rows.reduce((n,x)=>n+x.kg,0));$("customerSummaryBilled").textContent=fmt(rows.reduce((n,x)=>n+x.billed,0));$("customerSummaryPaid").textContent=fmt(rows.reduce((n,x)=>n+x.paid,0));$("customerSummaryDebt").textContent=fmt(rows.reduce((n,x)=>n+x.debt,0));
+    $("customerSummaryPlaces").textContent=fmt(rows.reduce((n,x)=>n+x.places,0));$("customerSummaryCube").textContent=fmt(rows.reduce((n,x)=>n+x.cube,0));$("customerSummaryKg").textContent=fmt(rows.reduce((n,x)=>n+x.kg,0));$("customerSummaryCubeAmount").textContent=fmt(rows.reduce((n,x)=>n+x.cubeAmount,0));$("customerSummaryKgAmount").textContent=fmt(rows.reduce((n,x)=>n+x.kgAmount,0));$("customerSummaryBilled").textContent=fmt(rows.reduce((n,x)=>n+x.billed,0));$("customerSummaryPaid").textContent=fmt(rows.reduce((n,x)=>n+x.paid,0));$("customerSummaryDebt").textContent=fmt(rows.reduce((n,x)=>n+x.debt,0));
   }
   function render(){
     const revenue=state.payments.reduce((n,p)=>n+Number(p.amount_tjs||0),0);
@@ -496,17 +507,18 @@
     try{
       for(const r of rows){
         const calc=cargoCalc(r);
-        const {cube,kg,density,billingType,price:original}=calc;
+        const {places,cube,kg,density,billingType,price:original}=calc;
         const unitPrice=billingType==="kg"?sheetNum(r.kgPrice??1):sheetNum(r.cubePrice??200);
         const code=String(r.customerCode||cargoSheetMeta.code||"").trim();
         if(!r.syncTrackingNo){const date=String(r.date||new Date().toISOString().slice(0,10)).replace(/-/g,"");const safeCode=(code||"CLIENT").replace(/[^a-zA-Z0-9]/g,"").slice(0,12)||"CLIENT";r.syncTrackingNo="SHEET-"+date+"-"+safeCode+"-"+stableUuid().slice(0,8).toUpperCase();}
         const customerPhone=String(r.customerPhone||cargoSheetMeta.phone||"").trim();
-        const notes=["Дафтари Excel",code?"Коди муштарӣ: "+code:"",customerPhone?"Телефон: "+customerPhone:"",r.city?"Шаҳр: "+r.city:"",r.item?"Мол: "+r.item:"","Андоза: "+[r.height||0,r.width||0,r.length||0].join(" × ")+" м","Мағоза: "+(r.shop||"—")].filter(Boolean).join("; ");
+        const notes=["Дафтари Excel",code?"Коди муштарӣ: "+code:"",customerPhone?"Телефон: "+customerPhone:"","Ҷойҳо: "+places,"Кг барои ҷой: "+sheetNum(r.kgPerPlace),"Нархи куб: "+sheetNum(r.cubePrice??200),"Сумма куб: "+calc.cubeAmount.toFixed(2),"Нархи кг: "+sheetNum(r.kgPrice??1),"Сумма кг: "+calc.kgAmount.toFixed(2),r.city?"Шаҳр: "+r.city:"",r.item?"Мол: "+r.item:"","Андоза: "+[r.height||0,r.width||0,r.length||0].join(" × ")+" м","Мағоза: "+(r.shop||"—")].filter(Boolean).join("; ");
         saveCargoSheet();
         const payload={client_name:String(code||r.shop||"Муштарӣ"),client_phone:customerPhone,tracking_no:r.syncTrackingNo,shipment_date:r.date||new Date().toISOString().slice(0,10),billing_type:billingType,weight_kg:kg,volume_m3:cube,currency:"USD",unit_price:unitPrice,fx_rate:sheetRateToTjs,total_original:Number(original.toFixed(2)),total_tjs:Number((original*sheetRateToTjs).toFixed(2)),notes,created_by:state.user.id};
         const {data:ship,error}=await state.db.from("shipments").upsert(payload,{onConflict:"tracking_no"}).select("id").single();if(error)throw error;
         if(sheetNum(r.paid)>0){
           if(!r.syncPaymentId)r.syncPaymentId=stableUuid();
+          saveCargoSheet();
           const payment={id:r.syncPaymentId,shipment_id:ship.id,currency:"USD",amount_original:sheetNum(r.paid),fx_rate:sheetRateToTjs,amount_tjs:Number((sheetNum(r.paid)*sheetRateToTjs).toFixed(2)),payment_date:r.date||new Date().toISOString().slice(0,10),notes:"Пардохти аз дафтари Excel · "+(code||r.syncTrackingNo),created_by:state.user.id};
           const {error:payError}=await state.db.from("payments").upsert(payment,{onConflict:"id"});if(payError)throw payError;
         }else if(r.syncPaymentId){
