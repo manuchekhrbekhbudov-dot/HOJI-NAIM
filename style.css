@@ -792,3 +792,26 @@ tbody tr:hover td{background:#eaf3ff}
 .daily-expense-note b{display:block;font-size:12px;margin-bottom:4px}
 .daily-expense-note small{display:block;color:#71849d;font-size:11px}
 @media(max-width:600px){.daily-expense-quick .panel-head{align-items:flex-start;flex-direction:column;padding:16px}.daily-expense-note{padding:14px 16px}}
+
+
+/* Excel-like daily expense ledger */
+.expense-sheet-panel{overflow:hidden;border-radius:16px}
+.expense-sheet-title{display:flex;align-items:center;justify-content:space-between;gap:14px;background:#e7f0fb;border-bottom:1px solid #cfdeef;padding:18px 20px}
+.expense-sheet-title h3{margin:0 0 5px;color:#193b62;font-size:15px}
+.expense-sheet-title p{margin:0;color:#637b97;font-size:11px}
+.expense-sheet-form{display:grid;grid-template-columns:1.05fr 1.35fr .9fr .65fr .75fr 1.25fr auto;gap:0;padding:0;background:#fff;border-bottom:1px solid #d3deea;align-items:stretch}
+.expense-sheet-form label{display:flex;flex-direction:column;gap:7px;padding:12px 10px;border-right:1px solid #d7e1ed;background:#f9fbfe;color:#45617f;font-size:10px;font-weight:750}
+.expense-sheet-form label:nth-child(even){background:#f0f5fb}
+.expense-sheet-form input,.expense-sheet-form select{min-width:0;width:100%;height:38px;border:1px solid #cbd8e7;border-radius:5px;background:#fff;padding:7px 8px;font-size:12px;color:#233a55}
+.expense-sheet-form input:focus,.expense-sheet-form select:focus{outline:2px solid #3d8af122;border-color:#4388dc}
+.expense-sheet-save{align-self:end;margin:0 10px 12px;min-height:38px;padding:0 15px;border-radius:6px;white-space:nowrap}
+.expense-sheet-message{margin:0;padding:8px 14px;min-height:0;color:#476786;font-size:11px}
+.expense-sheet-total{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 18px;background:#edf4fc;border-top:1px solid #d5e2f0;border-bottom:1px solid #d5e2f0;color:#365575;font-size:12px}
+.expense-sheet-total strong{font-size:19px;color:#123e6c;font-variant-numeric:tabular-nums}
+.expense-sheet-table table{min-width:700px;border-collapse:separate;border-spacing:0}
+.expense-sheet-table th{background:#dce8f5;color:#294a70;border:1px solid #c7d5e5;font-size:10px}
+.expense-sheet-table td{border-right:1px solid #e0e7f0;border-bottom:1px solid #e0e7f0}
+.expense-sheet-table tbody tr:nth-child(even) td{background:#edf4fb}
+.expense-sheet-table tbody tr:hover td{background:#e0efff}
+@media(max-width:1100px){.expense-sheet-form{grid-template-columns:repeat(3,minmax(0,1fr))}.expense-sheet-form label{border-bottom:1px solid #d7e1ed}.expense-sheet-save{margin:10px;align-self:center}}
+@media(max-width:560px){.expense-sheet-form{grid-template-columns:repeat(2,minmax(0,1fr))}.expense-sheet-title{align-items:flex-start;flex-direction:column}.expense-sheet-form label{padding:10px 8px}.expense-sheet-form input,.expense-sheet-form select{font-size:12px}.expense-sheet-total{padding:12px}}
