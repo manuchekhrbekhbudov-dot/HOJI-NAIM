@@ -1172,3 +1172,25 @@ html body.auth-mode #authPanel .auth-welcome .auth-kicker {
     font-size: clamp(30px, 8vw, 40px) !important;
   }
 }
+
+
+/* Emergency hard stop: legacy .auth-panel pseudo-banner was creating duplicate dark headings */
+#authPanel.auth-panel::before,
+#authPanel.auth-panel::after,
+.auth-panel::before,
+.auth-panel::after {
+  content: none !important;
+  display: none !important;
+  visibility: hidden !important;
+  background-image: none !important;
+}
+#authPanel .auth-welcome::before {
+  content: "" !important;
+  display: block !important;
+  visibility: visible !important;
+}
+#authPanel .auth-welcome::after {
+  content: "H" !important;
+  display: block !important;
+  visibility: visible !important;
+}
