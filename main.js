@@ -411,7 +411,9 @@
   const cargoSheetMeta=(()=>{try{return JSON.parse(localStorage.getItem(cargoSheetMetaKey)||"{}")}catch{return {}}})();
   $("cargoSheetCode").value=cargoSheetMeta.code||"";
   $("cargoSheetPhone").value=cargoSheetMeta.phone||"";
-  $("cargoSheetCnyRate").value=cargoSheetMeta.cnyRate??1.3803;
+  // The previous page stored 1 as a placeholder; replace that placeholder with the default CNY→TJS rate.
+  if(!cargoSheetMeta.cnyRate||cargoSheetMeta.cnyRate===1)cargoSheetMeta.cnyRate=1.3803;
+  $("cargoSheetCnyRate").value=cargoSheetMeta.cnyRate;
   ["cargoSheetCode","cargoSheetPhone","cargoSheetCnyRate"].forEach(id=>$(id).addEventListener("change",()=>{cargoSheetMeta.code=$("cargoSheetCode").value;cargoSheetMeta.phone=$("cargoSheetPhone").value;cargoSheetMeta.cnyRate=sheetNum($("cargoSheetCnyRate").value);localStorage.setItem(cargoSheetMetaKey,JSON.stringify(cargoSheetMeta));renderCargoSheet();}));
   const saveCargoSheet=()=>{try{localStorage.setItem(cargoSheetKey,JSON.stringify(cargoSheetData));$("cargoSheetStatus").textContent="Сабт шуд • "+new Date().toLocaleTimeString()}catch{$("cargoSheetStatus").textContent="Хато ҳангоми нигоҳдорӣ дар браузер."}};
   // Keep row calculations, totals, sync and export consistent with the workbook formulas.
@@ -420,7 +422,6 @@
     const cube=sheetNum(r.height)*sheetNum(r.width)*sheetNum(r.length)*places;
     const kg=sheetNum(r.kgPerPlace)*places;
     const density=cube>0?kg/cube:0;
-    const billingType=density>200?"kg":"cube";
     const cubeAmount=cube*sheetNum(r.cubePrice??200);
     const kgAmount=kg*sheetNum(r.kgPrice??1);
     // Excel Q column chooses the larger charge: IF(cubeAmount > kgAmount, cubeAmount, kgAmount).
