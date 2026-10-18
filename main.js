@@ -190,11 +190,22 @@
     const btn=e.target.closest(".delete-shipment");
     if(!btn)return;
     if(!["owner","admin"].includes(state.profile?.role)){toast("Ҳазф танҳо барои админ аст.");return;}
-    if(!confirm("Ин бор ҳазф шавад? Агар пардохти вобаста дошта бошад, система иҷозат намедиҳад."))return;
+    const shipmentId=btn.dataset.shipmentId;
+    const shipment=state.shipments.find(s=>String(s.id)===String(shipmentId));
+    if(!shipment){toast("Бор ёфт нашуд. Рӯйхатро нав кунед.");return;}
+    const linkedPayments=state.payments.filter(p=>String(p.shipment_id)===String(shipmentId));
+    const linkedTotal=linkedPayments.reduce((sum,p)=>sum+Number(p.amount_tjs||0),0);
+    const paymentWarning=linkedPayments.length
+      ? "\\n\\nДИҚҚАТ: "+linkedPayments.length+" пардохт ба маблағи "+fmt(linkedTotal)+" сомонӣ низ ҳазф мешавад."
+      : "\\n\\nИн бор пардохти вобаста надорад.";
+    const confirmation="Бори «"+(shipment.tracking_no||shipment.client_name||shipmentId)+"» ҳазф шавад?"+paymentWarning+"\\n\\nИн амал баргардонида намешавад. Барои идома тасдиқ кунед.";
+    if(!confirm(confirmation))return;
     btn.disabled=true;btn.textContent="…";
-    const {error}=await state.db.rpc("admin_delete_shipment",{target_shipment_id:btn.dataset.shipmentId});
+    const {data,error}=await state.db.rpc("admin_delete_shipment",{target_shipment_id:shipmentId});
     if(error){btn.disabled=false;btn.textContent="Удалить";toast("Хатои ҳазф: "+(error.message||"сабаби номаълум"));console.error("Shipment delete error:",error);return;}
-    toast("Бор ҳазф шуд.");await loadData();
+    const deletedCount=Number(data?.deleted_payments??linkedPayments.length);
+    toast("Бор ҳазф шуд. Пардохтҳои ҳазфшуда: "+deletedCount+".");
+    await loadData();
   });
   $("logoutBtn").addEventListener("click",async()=>{if(state.db)await state.db.auth.signOut();});
   document.querySelectorAll(".nav").forEach(b=>{b.addEventListener("click",e=>{e.preventDefault();showView(b.dataset.view);});b.addEventListener("touchend",()=>showView(b.dataset.view),{passive:true});});
