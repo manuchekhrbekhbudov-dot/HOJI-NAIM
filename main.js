@@ -32,6 +32,24 @@
     $("adminNav").classList.toggle("hidden",!isAdmin);
     render();
   }
+  function customerCodeOf(s){return String(s.client_code||s.clientCode||s.notes?.match(/Коди муштарӣ:\s*([^;]+)/i)?.[1]||"").trim();}
+  function renderCustomerSummary(){
+    const search=String($("customerSummarySearch")?.value||"").trim().toLocaleLowerCase();
+    const grouped=new Map();
+    state.shipments.forEach(s=>{
+      const code=customerCodeOf(s),name=String(s.client_name||"").trim(),phone=String(s.client_phone||"").trim();
+      const key=code?"code:"+code.toLocaleLowerCase():phone?"phone:"+phone.toLocaleLowerCase():"name:"+(name||"Муштарӣ").toLocaleLowerCase();
+      if(!grouped.has(key))grouped.set(key,{code,name:name||"—",phone,cube:0,kg:0,debt:0,count:0});
+      const item=grouped.get(key);
+      if(!item.code&&code)item.code=code;if((!item.name||item.name==="—")&&name)item.name=name;if(!item.phone&&phone)item.phone=phone;
+      item.cube+=Number(s.volume_m3||0);item.kg+=Number(s.weight_kg||0);item.debt+=debt(s);item.count+=1;
+    });
+    const all=[...grouped.values()].sort((a,b)=>a.name.localeCompare(b.name));
+    const rows=all.filter(x=>[x.code,x.name,x.phone].some(v=>String(v||"").toLocaleLowerCase().includes(search)));
+    $("customerSummaryRows").innerHTML=rows.map(x=>`<tr><td>${safe(x.code||"—")}</td><td>${safe(x.name)}</td><td>${safe(x.phone||"—")}</td><td>${fmt(x.cube)}</td><td>${fmt(x.kg)}</td><td>${fmt(x.debt)}</td><td>${fmt(x.cube>0?x.kg/x.cube:0)}</td><td>${x.count}</td></tr>`).join("");
+    $("customerSummaryEmpty").classList.toggle("hidden",rows.length>0);
+    $("customerSummaryCube").textContent=fmt(rows.reduce((n,x)=>n+x.cube,0));$("customerSummaryKg").textContent=fmt(rows.reduce((n,x)=>n+x.kg,0));$("customerSummaryDebt").textContent=fmt(rows.reduce((n,x)=>n+x.debt,0));
+  }
   function render(){
     const revenue=state.payments.reduce((n,p)=>n+Number(p.amount_tjs||0),0);
     const costs=state.expenses.reduce((n,e)=>n+Number(e.amount_tjs||0),0);
@@ -43,6 +61,7 @@
     $("adminDebt").textContent=fmt(debts);
     $("adminRoleBadge").textContent=String(state.profile?.role||"").toUpperCase();
     $("reportShipments").textContent=state.shipments.length;$("reportPaid").textContent=fmt(revenue);$("reportDebt").textContent=fmt(debts);$("reportExpenses").textContent=fmt(costs);
+    renderCustomerSummary();
     const payButton=s=>debt(s)>0.005?`<button class="button secondary pay-shipment" data-shipment-id="${safe(s.id)}">Пардохт</button>`:`<span class="pill paid">Пардохт шуд</span>`;
     const row=s=>`<tr><td>${safe(s.client_name||"—")}</td><td>${safe(s.tracking_no||"—")}</td><td>${fmt(s.weight_kg)} кг / ${fmt(s.volume_m3)} м³</td><td>${fmt(total(s))}</td><td>${fmt(debt(s))}</td><td><span class="pill ${status(s)}">${statusText(status(s))}</span></td><td>${payButton(s)}${["owner","admin"].includes(state.profile?.role)?` <button class="button danger delete-shipment" data-shipment-id="${safe(s.id)}">Удалить</button>`:""}</td></tr>`;
     $("recentRows").innerHTML=state.shipments.slice(0,8).map(row).join("");$("recentEmpty").classList.toggle("hidden",state.shipments.length>0);
@@ -150,7 +169,7 @@
   $("logoutBtn").addEventListener("click",async()=>{if(state.db)await state.db.auth.signOut();});
   document.querySelectorAll(".nav").forEach(b=>{b.addEventListener("click",e=>{e.preventDefault();showView(b.dataset.view);});b.addEventListener("touchend",()=>showView(b.dataset.view),{passive:true});});
   document.querySelectorAll("[data-goto]").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.goto)));
-  $("shipmentSearch").addEventListener("input",render);$("shipmentFilter").addEventListener("change",render);
+  $("shipmentSearch").addEventListener("input",render);$("shipmentFilter").addEventListener("change",render);$("customerSummarySearch").addEventListener("input",renderCustomerSummary);
   const dialog=$("shipmentDialog");
   function populateExistingCustomers(){
     const select=$("existingCustomerSelect");
