@@ -105,6 +105,12 @@
             <div class="cargo-sheet-wrap"><table class="cargo-sheet-table"><thead><tr><th>№</th><th>Сана</th><th>Коди клиент</th><th>Мағоза</th><th>Шаҳр</th><th>Номи мол</th><th>Баландӣ (м)</th><th>Паҳноӣ (м)</th><th>Дарозӣ (м)</th><th>Ҷой</th><th>Кг / ҷой</th><th>Ҳамагӣ м³</th><th>Ҳамагӣ кг</th><th>Нархи куб</th><th>Нархи кг</th><th>Нархи ниҳоӣ ($)</th><th>Пардохт ($)</th><th>Зичӣ кг/м³</th><th></th></tr></thead><tbody id="cargoSheetRows"></tbody></table></div>
             <div class="cargo-sheet-foot"><span id="cargoSheetStatus">Маълумот дар ин браузер нигоҳ дошта мешавад.</span><button type="button" class="button danger" id="clearCargoSheet">Тоза кардани ҷадвал</button></div>
           </div>
+          <div class="panel customer-summary-panel" id="customerSummaryPanel">
+            <div class="panel-head"><div><h3>Ҳисоботи муштариён</h3><p>Ҷамъбасти куб, кг, қарз ва зичии ҳар муштарӣ</p></div><input id="customerSummarySearch" type="search" placeholder="Ҷустуҷӯи муштарӣ ё код..." aria-label="Ҷустуҷӯи муштарӣ ё код"></div>
+            <div class="table-wrap"><table><thead><tr><th>Коди клиент</th><th>Муштарӣ</th><th>Телефон</th><th>Ҳамагӣ куб (м³)</th><th>Ҳамагӣ кг</th><th>Қарз (сомонӣ)</th><th>Кг дар 1 куб</th><th>Шумораи бор</th></tr></thead><tbody id="customerSummaryRows"></tbody></table></div>
+            <p class="empty hidden" id="customerSummaryEmpty">Маълумоти муштарӣ ёфт нашуд.</p>
+            <div class="customer-summary-total"><span>Ҳамагӣ аз рӯйи рӯйхати нишоншуда</span><strong>Куб: <span id="customerSummaryCube">0.00</span> м³ · Кг: <span id="customerSummaryKg">0.00</span> · Қарз: <span id="customerSummaryDebt">0.00</span> сомонӣ</strong></div>
+          </div>
         </section>
       </section>
     </main>
