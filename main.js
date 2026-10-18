@@ -404,13 +404,20 @@
       const values=[String(i+1),r.date||"",r.shop||"",r.city||"",r.item||"",r.height||"",r.width||"",r.length||"",r.places||"",r.kgPerPlace||""];
       tr.innerHTML="<td class='sheet-row-no'>"+(i+1)+"</td>"+fields.map(([key,type])=>"<td><input data-key='"+key+"' type='"+type+"' "+(type==="number"?"min='0' step='any'":"")+" value='"+String(r[key]??"").replace(/&/g,"&amp;").replace(/'/g,"&#39;").replace(/</g,"&lt;")+"' aria-label='"+key+"'></td>").join("")+
       "<td class='sheet-calc'>"+sheetMoney(sheetNum(r.height)*sheetNum(r.width)*sheetNum(r.length)*sheetNum(r.places))+"</td><td class='sheet-calc'>"+sheetMoney(sheetNum(r.kgPerPlace)*sheetNum(r.places))+"</td><td><input data-key='cubePrice' type='number' min='0' step='any' value='"+(r.cubePrice??200)+"' aria-label='Нархи куб'></td><td><input data-key='kgPrice' type='number' min='0' step='any' value='"+(r.kgPrice??1)+"' aria-label='Нархи кг'></td><td class='sheet-calc sheet-price'>"+sheetMoney((sheetNum(r.height)*sheetNum(r.width)*sheetNum(r.length)*sheetNum(r.places)>0 && sheetNum(r.kgPerPlace)*sheetNum(r.places)/(sheetNum(r.height)*sheetNum(r.width)*sheetNum(r.length)*sheetNum(r.places))>200 ? sheetNum(r.kgPerPlace)*sheetNum(r.places)*sheetNum(r.kgPrice??1) : sheetNum(r.height)*sheetNum(r.width)*sheetNum(r.length)*sheetNum(r.places)*sheetNum(r.cubePrice??200)))+"</td><td><input data-key='paid' type='number' min='0' step='any' value='"+(r.paid??0)+"' aria-label='Пардохт доллар'></td><td class='sheet-calc'>"+(sheetNum(r.height)*sheetNum(r.width)*sheetNum(r.length)*sheetNum(r.places)>0?sheetMoney(sheetNum(r.kgPerPlace)*sheetNum(r.places)/(sheetNum(r.height)*sheetNum(r.width)*sheetNum(r.length)*sheetNum(r.places))):"—")+"</td><td><button type='button' class='sheet-delete' data-delete='"+i+"' title='Нест кардан'>×</button></td>";
-      tr.querySelectorAll("input").forEach(input=>input.addEventListener("input",()=>{
-        const key=input.dataset.key;cargoSheetData[i][key]=input.value===""?"":(input.type==="number"?sheetNum(input.value):input.value);
-        const activeKey=key,activeRow=i,start=typeof input.selectionStart==="number"?input.selectionStart:null,end=typeof input.selectionEnd==="number"?input.selectionEnd:null;
-        saveCargoSheet();renderCargoSheet();
-        const next=cargoSheetRows.querySelectorAll("tr")[activeRow]?.querySelector("input[data-key='"+activeKey+"']");
-        if(next){next.focus();if(start!==null&&end!==null){try{next.setSelectionRange(start,end)}catch{}}}
-      }));
+      tr.querySelectorAll("input").forEach(input=>{
+        input.addEventListener("input",()=>{
+          const key=input.dataset.key;
+          // Keep the raw text while typing so decimals and digit order are never disrupted by rerendering.
+          cargoSheetData[i][key]=input.value;
+          saveCargoSheet();
+        });
+        input.addEventListener("change",()=>{
+          const key=input.dataset.key;
+          cargoSheetData[i][key]=input.value===""?"":input.value;
+          saveCargoSheet();
+          renderCargoSheet();
+        });
+      });
       tr.querySelector("[data-delete]").addEventListener("click",()=>{cargoSheetData.splice(i,1);saveCargoSheet();renderCargoSheet()});
       cargoSheetRows.appendChild(tr);
     });
