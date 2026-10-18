@@ -275,11 +275,15 @@
   const expenseDialog=$("expenseDialog"),expenseForm=$("expenseForm");
   const expenseRates={TJS:1,USD:9.2361,CNY:1.3803};
   if(expenseForm.elements.expense_date) expenseForm.elements.expense_date.value=new Date().toISOString().slice(0,10);
-  $("addExpenseBtn").addEventListener("click",()=>{
+  const openExpenseForm = () => {
     if(!state.user){toast("Аввал ворид шавед.");return;}
     if(!["owner","admin","accountant"].includes(state.profile?.role)){toast("Барои сабти хароҷот иҷозати муҳосиб лозим аст.");return;}
     delete expenseForm.dataset.editId;
     expenseForm.reset();expenseForm.elements.expense_date.value=new Date().toISOString().slice(0,10);expenseForm.elements.currency.value="TJS";expenseForm.elements.fx_rate.value="1";$("expenseMessage").textContent="";expenseDialog.showModal();
+  };
+  $("quickExpenseBtn").addEventListener("click",openExpenseForm);
+  $("addExpenseBtn").addEventListener("click",()=>{
+    openExpenseForm();
   });
   $("closeExpenseDialog").addEventListener("click",()=>expenseDialog.close());
   // Админ/соҳиб метавонад хароҷотро таҳрир ё нест кунад.
