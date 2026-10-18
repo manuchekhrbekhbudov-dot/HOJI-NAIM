@@ -936,3 +936,8 @@ body.auth-mode #authPanel .auth-welcome h2{display:block!important;margin:0!impo
 body.auth-mode #authPanel .auth-card{min-width:0!important;align-self:stretch!important;display:flex!important;flex-direction:column!important;justify-content:center!important;padding:clamp(30px,4vw,56px)!important}
 body.auth-mode #authPanel .auth-card h2{display:block!important;margin:16px 0 10px!important;max-width:100%!important;font-size:clamp(26px,2.7vw,34px)!important;line-height:1.2!important;overflow-wrap:normal!important;word-break:normal!important}
 @media(max-width:760px){body.auth-mode .main{display:block!important;padding:12px!important;min-height:100vh!important}body.auth-mode #authPanel .auth-layout{grid-template-columns:minmax(0,1fr)!important;min-height:0!important}body.auth-mode #authPanel .auth-welcome{padding:28px 24px!important}body.auth-mode #authPanel .auth-welcome h2{font-size:32px!important}body.auth-mode #authPanel .auth-card{padding:30px 24px!important}}
+
+/* Remove old decorative banner behind the sign-in card */
+body.auth-mode #authPanel:before,body.auth-mode .main:before{display:none!important;content:none!important}
+body.auth-mode #authPanel .auth-layout{margin-top:0!important;transform:none!important}
+body.auth-mode #authPanel .auth-card h2#authHeading{max-width:none!important;overflow-wrap:normal!important}
