@@ -851,3 +851,25 @@ tbody tr:hover td{background:#eaf3ff}
 .cargo-sheet-meta label{display:grid;gap:6px;color:#405b78;font-size:11px;font-weight:700}
 .cargo-sheet-meta input{width:100%;box-sizing:border-box;border:1px solid #b7c8dc;border-radius:5px;padding:10px;background:#fff;color:#24364b}
 @media(max-width:650px){.cargo-sheet-meta{grid-template-columns:1fr}}
+
+/* Refined login layout */
+#authPanel.auth-panel{min-height:calc(100vh - 120px);padding:clamp(20px,5vw,64px);display:grid;place-items:center;background:radial-gradient(ellipse at 12% 12%,#d8eee0 0,transparent 42%),linear-gradient(135deg,#f4f7f5,#edf3ef);border-radius:24px}
+#authPanel .auth-layout{width:min(100%,980px);min-height:490px;display:grid;grid-template-columns:1fr .9fr;overflow:hidden;border:1px solid #dce8df;border-radius:26px;background:#fff;box-shadow:0 24px 70px #173b281c}
+#authPanel .auth-welcome{display:flex;flex-direction:column;justify-content:center;padding:clamp(28px,5vw,60px);color:#f5fff8;background:linear-gradient(145deg,#123b2a,#1d6545)}
+#authPanel .auth-brand-mark{width:58px;height:58px;display:grid;place-items:center;border-radius:17px;background:#f4c66d;color:#153c2b;font-weight:800;font-size:29px;box-shadow:0 8px 24px #061f1530}
+#authPanel .auth-kicker{margin:28px 0 10px;color:#c7e4d0;font-size:11px;font-weight:800;letter-spacing:2px}
+#authPanel .auth-welcome h2{margin:0;max-width:430px;font-size:clamp(27px,3vw,39px);line-height:1.18;letter-spacing:-.8px}
+#authPanel .auth-welcome>p:not(.auth-kicker){max-width:380px;color:#d4e8da;line-height:1.8;font-size:14px;margin:18px 0 24px}
+#authPanel .auth-feature-list{display:grid;gap:12px;color:#e1f1e6;font-size:13px}
+#authPanel .auth-card{width:auto;align-self:center;margin:0;padding:clamp(26px,4vw,48px);border:0;border-radius:0;box-shadow:none;background:#fff}
+#authPanel .auth-card .eyebrow{color:#23704b;font-weight:800;letter-spacing:1.6px;font-size:10px}
+#authPanel .auth-card h2{font-size:26px;line-height:1.25;margin:10px 0}
+#authPanel .auth-card>p:not(.eyebrow){font-size:13px;color:#78877d;margin-bottom:25px}
+#authPanel .auth-card label{font-size:12px;color:#344b3c;margin:18px 0}
+#authPanel .auth-card input{min-height:46px;padding:12px 14px;border:1px solid #d9e4dc;border-radius:11px;background:#f9fbf9;transition:border-color .18s,box-shadow .18s}
+#authPanel .auth-card input:focus{border-color:#34845b;box-shadow:0 0 0 3px #34845b1c;outline:none;background:#fff}
+#authPanel #authSubmit{min-height:47px;margin-top:8px;border-radius:11px;background:linear-gradient(100deg,#17613c,#247c50);box-shadow:0 8px 18px #17613c25;font-weight:700}
+#authPanel .text-button{margin-top:18px;color:#17613c;font-weight:700}
+#authPanel #authMessage{min-height:18px;margin-top:10px}
+@media(max-width:760px){#authPanel.auth-panel{min-height:auto;padding:16px 0;background:transparent;border-radius:0}#authPanel .auth-layout{grid-template-columns:1fr;min-height:0;border-radius:20px}#authPanel .auth-welcome{padding:25px 24px}#authPanel .auth-brand-mark{width:46px;height:46px;font-size:23px;border-radius:13px}#authPanel .auth-kicker{margin-top:18px}#authPanel .auth-welcome h2{font-size:25px}#authPanel .auth-welcome>p:not(.auth-kicker){margin:10px 0 14px;font-size:13px}#authPanel .auth-feature-list{grid-template-columns:1fr;gap:7px;font-size:12px}#authPanel .auth-card{padding:26px 24px}#authPanel .auth-card h2{font-size:23px}}
+@media(min-width:761px) and (max-height:720px){#authPanel.auth-panel{padding:18px;min-height:calc(100vh - 90px)}#authPanel .auth-layout{min-height:420px}#authPanel .auth-welcome{padding:32px}#authPanel .auth-card{padding:28px}}
