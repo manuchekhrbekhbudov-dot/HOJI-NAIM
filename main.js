@@ -17,7 +17,7 @@
   async function fetchAllRows(table,orderColumn,pageSize=1000){
     const all=[];
     for(let from=0;;from+=pageSize){
-      const result=await state.db.from(table).select("*").order(orderColumn,{ascending:false}).range(from,from+pageSize-1);
+      const result=await state.db.from(table).select("*").order(orderColumn,{ascending:false}).order("id",{ascending:true}).range(from,from+pageSize-1);
       if(result.error)throw result.error;
       const page=result.data||[];
       all.push(...page);
