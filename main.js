@@ -88,11 +88,12 @@
     $("shipmentRows").innerHTML=filtered.map(s=>`<tr><td>${safe(s.client_code||s.clientCode||s.notes?.match(/Коди муштарӣ:\s*([^;]+)/i)?.[1]||"—")}</td><td>${safe(s.client_phone||"—")}</td><td>${safe(s.tracking_no||"—")}</td><td>${fmt(s.weight_kg)}</td><td>${fmt(s.volume_m3)}</td><td>${fmt(total(s))}</td><td>${fmt(paid(s))}</td><td>${fmt(debt(s))}</td><td><span class="pill ${status(s)}">${statusText(status(s))}</span></td><td>${payButton(s)}${["owner","admin"].includes(state.profile?.role)?` <button class="button danger delete-shipment" data-shipment-id="${safe(s.id)}">Удалить</button>`:""}</td></tr>`).join("");
     $("shipmentEmpty").classList.toggle("hidden",filtered.length>0);
     $("paymentRows").innerHTML=state.payments.map(p=>`<tr><td>${safe(p.payment_date||"—")}</td><td>${safe(state.shipments.find(s=>s.id===p.shipment_id)?.tracking_no||p.shipment_id||"—")}</td><td>${fmt(p.amount_tjs)}</td><td>${safe(p.currency||"TJS")}</td><td>${safe(p.method||"—")}</td><td>${safe(p.notes||"—")}</td></tr>`).join("");$("paymentEmpty").classList.toggle("hidden",state.payments.length>0);
+    const canEditExpense=["owner","admin","accountant"].includes(state.profile?.role);
     const canDeleteExpense=["owner","admin"].includes(state.profile?.role);
-    $("expenseRows").innerHTML=state.expenses.map(e=>`<tr><td>${safe(e.expense_date||"—")}</td><td>${safe(e.category||"—")}</td><td>${fmt(e.amount_tjs)}</td><td>${safe(e.description||e.notes||"—")}</td>${canDeleteExpense?`<td><button class="button secondary edit-expense" data-expense-id="${safe(e.id)}">Таҳрир</button> <button class="button danger delete-expense" data-expense-id="${safe(e.id)}">Удалить</button></td>`:""}</tr>`).join("");
+    $("expenseRows").innerHTML=state.expenses.map(e=>`<tr><td>${safe(e.expense_date||"—")}</td><td>${safe(e.category||"—")}</td><td>${fmt(e.amount_tjs)}</td><td>${safe(e.description||e.notes||"—")}</td>${canEditExpense?`<td>${canEditExpense?`<button class="button secondary edit-expense" data-expense-id="${safe(e.id)}">Таҳрир</button>`:""} ${canDeleteExpense?`<button class="button danger delete-expense" data-expense-id="${safe(e.id)}">Удалить</button>`:""}</td>`:""}</tr>`).join("");
     const expenseTotal=state.expenses.reduce((sum,item)=>sum+Number(item.amount_tjs||0),0);if($("expenseSheetTotal"))$("expenseSheetTotal").textContent=fmt(expenseTotal);
     const expenseActionHead=$("expenseActionHead");
-    if(expenseActionHead) expenseActionHead.classList.toggle("hidden",!canDeleteExpense);
+    if(expenseActionHead) expenseActionHead.classList.toggle("hidden",!canEditExpense);
     $("expenseEmpty").classList.toggle("hidden",state.expenses.length>0);
   }
   async function start(){
@@ -329,7 +330,8 @@
     const editButton=e.target.closest(".edit-expense");
     const button=e.target.closest(".delete-expense");
     if(!editButton&&!button)return;
-    if(!["owner","admin"].includes(state.profile?.role)){toast("Ин амал танҳо барои админ иҷозат аст.");return;}
+    if(editButton&&!["owner","admin","accountant"].includes(state.profile?.role)){toast("Таҳрири хароҷот танҳо барои муҳосиб ё админ иҷозат аст.");return;}
+    if(button&&!["owner","admin"].includes(state.profile?.role)){toast("Ҳазфи хароҷот танҳо барои админ иҷозат аст.");return;}
     const expenseId=(editButton||button).dataset.expenseId;
     const expense=state.expenses.find(item=>String(item.id)===expenseId);
     if(!expense){toast("Хароҷот ёфт нашуд. Рӯйхатро нав кунед.");return;}
@@ -454,7 +456,7 @@
     cargoSheetData.forEach((r,i)=>{
       const calc=cargoCalc(r);
       const tr=document.createElement("tr");
-      const fields=[["date","date"],["customerCode","text"],["shop","text"],["city","text"],["item","text"],["height","number"],["width","number"],["length","number"],["places","number"],["kgPerPlace","number"]];
+      const fields=[["date","date"],["customerCode","text"],["customerPhone","tel"],["shop","text"],["city","text"],["item","text"],["height","number"],["width","number"],["length","number"],["places","number"],["kgPerPlace","number"]];
       tr.innerHTML="<td class='sheet-row-no'>"+(i+1)+"</td>"+fields.map(([key,type])=>"<td><input data-key='"+key+"' type='"+type+"' "+(type==="number"?"min='0' step='any'":"")+" value='"+String(r[key]??"").replace(/&/g,"&amp;").replace(/'/g,"&#39;").replace(/</g,"&lt;")+"' aria-label='"+key+"'></td>").join("")+
       "<td class='sheet-calc'>"+sheetMoney(calc.cube)+"</td><td class='sheet-calc'>"+sheetMoney(calc.kg)+"</td><td><input data-key='cubePrice' type='number' min='0' step='any' value='"+(r.cubePrice??200)+"' aria-label='Нархи куб'></td><td class='sheet-calc'>"+sheetMoney(calc.cubeAmount)+"</td><td><input data-key='kgPrice' type='number' min='0' step='any' value='"+(r.kgPrice??1)+"' aria-label='Нархи кг'></td><td class='sheet-calc'>"+sheetMoney(calc.kgAmount)+"</td><td class='sheet-calc sheet-price'>"+sheetMoney(calc.price)+"</td><td><input data-key='paid' type='number' min='0' step='any' value='"+(r.paid??0)+"' aria-label='Пардохт доллар'></td><td class='sheet-calc'>"+(calc.cube>0?sheetMoney(calc.density):"—")+"</td><td><button type='button' class='sheet-delete' data-delete='"+i+"' title='Нест кардан'>×</button></td>";
       tr.querySelectorAll("input").forEach(input=>{
@@ -498,8 +500,10 @@
         const unitPrice=billingType==="kg"?sheetNum(r.kgPrice??1):sheetNum(r.cubePrice??200);
         const code=String(r.customerCode||cargoSheetMeta.code||"").trim();
         if(!r.syncTrackingNo){const date=String(r.date||new Date().toISOString().slice(0,10)).replace(/-/g,"");const safeCode=(code||"CLIENT").replace(/[^a-zA-Z0-9]/g,"").slice(0,12)||"CLIENT";r.syncTrackingNo="SHEET-"+date+"-"+safeCode+"-"+stableUuid().slice(0,8).toUpperCase();}
-        const notes=["Дафтари Excel",code?"Коди муштарӣ: "+code:"",r.city?"Шаҳр: "+r.city:"",r.item?"Мол: "+r.item:"","Андоза: "+[r.height||0,r.width||0,r.length||0].join(" × ")+" м","Мағоза: "+(r.shop||"—")].filter(Boolean).join("; ");
-        const payload={client_name:String(r.shop||code||"Муштарӣ"),client_phone:String(cargoSheetMeta.phone||""),tracking_no:r.syncTrackingNo,shipment_date:r.date||new Date().toISOString().slice(0,10),billing_type:billingType,weight_kg:kg,volume_m3:cube,currency:"USD",unit_price:unitPrice,fx_rate:sheetRateToTjs,total_original:Number(original.toFixed(2)),total_tjs:Number((original*sheetRateToTjs).toFixed(2)),notes,created_by:state.user.id};
+        const customerPhone=String(r.customerPhone||cargoSheetMeta.phone||"").trim();
+        const notes=["Дафтари Excel",code?"Коди муштарӣ: "+code:"",customerPhone?"Телефон: "+customerPhone:"",r.city?"Шаҳр: "+r.city:"",r.item?"Мол: "+r.item:"","Андоза: "+[r.height||0,r.width||0,r.length||0].join(" × ")+" м","Мағоза: "+(r.shop||"—")].filter(Boolean).join("; ");
+        saveCargoSheet();
+        const payload={client_name:String(code||r.shop||"Муштарӣ"),client_phone:customerPhone,tracking_no:r.syncTrackingNo,shipment_date:r.date||new Date().toISOString().slice(0,10),billing_type:billingType,weight_kg:kg,volume_m3:cube,currency:"USD",unit_price:unitPrice,fx_rate:sheetRateToTjs,total_original:Number(original.toFixed(2)),total_tjs:Number((original*sheetRateToTjs).toFixed(2)),notes,created_by:state.user.id};
         const {data:ship,error}=await state.db.from("shipments").upsert(payload,{onConflict:"tracking_no"}).select("id").single();if(error)throw error;
         if(sheetNum(r.paid)>0){
           if(!r.syncPaymentId)r.syncPaymentId=stableUuid();
@@ -514,8 +518,8 @@
     finally{btn.disabled=false;btn.textContent="↻ Сабт дар система";}
   });
   $("exportCargoSheet").addEventListener("click",()=>{
-    const headers=["№","Сана","Коди клиент","Мағоза","Шаҳр","Номи мол","Баландӣ","Паҳноӣ","Дарозӣ","Ҷой","Кг барои ҷой","Ҳамагӣ м3","Ҳамагӣ кг","Нархи куб","Сумма за куб USD","Нархи кг","Сумма за кг USD","Нархи ниҳоӣ USD","Пардохт USD","Қарз USD","Зичӣ кг/м3"];
-    const rows=cargoSheetData.map((r,i)=>{const x=cargoCalc(r);return [i+1,r.date,r.customerCode,r.shop,r.city,r.item,r.height,r.width,r.length,x.places,r.kgPerPlace,x.cube,x.kg,r.cubePrice??200,x.cubeAmount,r.kgPrice??1,x.kgAmount,x.price,x.paid,x.debt,x.cube?x.density:""]});
+    const headers=["№","Сана","Коди клиент","Телефони клиент","Мағоза","Шаҳр","Номи мол","Баландӣ","Паҳноӣ","Дарозӣ","Ҷой","Кг барои ҷой","Ҳамагӣ м3","Ҳамагӣ кг","Нархи куб","Сумма за куб USD","Нархи кг","Сумма за кг USD","Нархи ниҳоӣ USD","Пардохт USD","Қарз USD","Зичӣ кг/м3"];
+    const rows=cargoSheetData.map((r,i)=>{const x=cargoCalc(r);return [i+1,r.date,r.customerCode,r.customerPhone||cargoSheetMeta.phone||"",r.shop,r.city,r.item,r.height,r.width,r.length,x.places,r.kgPerPlace,x.cube,x.kg,r.cubePrice??200,x.cubeAmount,r.kgPrice??1,x.kgAmount,x.price,x.paid,x.debt,x.cube?x.density:""]});
     const csv="\uFEFF"+[headers,...rows].map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(";")).join("\r\n");
     const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="HOJI-NAIM-Excel-"+new Date().toISOString().slice(0,10)+".csv";a.click();URL.revokeObjectURL(url);
   });
