@@ -346,3 +346,39 @@ dialog{border-radius:22px;box-shadow:0 28px 100px #071d1260}
 .button.danger{background:#fff0ee;border:1px solid #f1c9c3;color:#a62f25}
 .button.danger:hover{background:#ffe4df;box-shadow:0 5px 14px rgba(166,47,37,.12)}
 .delete-shipment{margin:3px 0}
+
+
+/* Spreadsheet-inspired HOJI-NAIM theme: blue-gray headers, pale blue banded rows, fine grid */
+:root{--green:#315f83;--dark:#263e55;--ink:#202a35;--muted:#6c7885;--line:#b8c5d2;--bg:#eef2f6;--white:#fff;--shadow:0 2px 8px rgba(31,51,71,.06)}
+body{background:#eef2f6;color:#202a35;font-family:Arial,Inter,sans-serif}
+.sidebar{background:#263e55;color:#f2f6fa;border-right:1px solid #9eafbf}
+.brand-mark{background:#e3edf7;color:#274c70;border-radius:4px}
+.nav{border-radius:3px;color:#d2deea}
+.nav.active,.nav:hover{background:#d8e5f1;color:#213f5b;box-shadow:inset 3px 0 #507da3}
+.main{background:#eef2f6}
+.top-actions select,.toolbar input,.toolbar select,input,select,textarea{border:1px solid #aebdca;border-radius:2px;background:#fff;color:#263746}
+.button{border-radius:3px}
+.primary{background:#315f83;color:#fff}
+.primary:hover{background:#254966}
+.secondary,.ghost{border-color:#aebdca;border-radius:3px;background:#f8fafc;color:#283e52}
+.hero{background:linear-gradient(110deg,#315f83,#537f9f);border-radius:3px;box-shadow:none}
+.stat,.panel{border:1px solid #aebdca;border-radius:2px;box-shadow:none;background:#fff}
+.stat{border-left:3px solid #7197b6}
+.panel-head{background:#e0e8f1;border-bottom:1px solid #aebdca}
+.panel-head h3{color:#263f56}
+table{border-collapse:collapse;font-size:12px}
+th{background:#d8e2ee;color:#263f56;border:1px solid #aab8c6;padding:10px 12px;font-weight:700}
+td{border:1px solid #c0ccd7;padding:10px 12px;color:#26313d}
+tbody tr:nth-child(even) td{background:#dfe8f2}
+tbody tr:nth-child(odd) td{background:#fff}
+tbody tr:hover td{background:#cbdced}
+tbody tr:last-child td{border-bottom:1px solid #c0ccd7}
+.pill{border-radius:3px}
+.pill.paid{background:#dceee2;color:#24653b;border:1px solid #b6d8c1}
+.pill.partial{background:#fff0d2;color:#875b13;border:1px solid #ead09a}
+.pill.unpaid{background:#fbe2df;color:#a12e27;border:1px solid #e8b9b4}
+.text-button{color:#315f83}
+.notice{border-radius:3px}
+.admin-row-actions .button,.button.danger{border-radius:3px}
+.button.danger{background:#fff0ee;border:1px solid #e6b5b0;color:#a52d27}
+@media(max-width:760px){.main{padding:18px 12px 28px}.hero{border-radius:3px}.stat,.panel{border-radius:2px}table{font-size:11px}}
