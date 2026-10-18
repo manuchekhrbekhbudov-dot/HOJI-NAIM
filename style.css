@@ -815,3 +815,33 @@ tbody tr:hover td{background:#eaf3ff}
 .expense-sheet-table tbody tr:hover td{background:#e0efff}
 @media(max-width:1100px){.expense-sheet-form{grid-template-columns:repeat(3,minmax(0,1fr))}.expense-sheet-form label{border-bottom:1px solid #d7e1ed}.expense-sheet-save{margin:10px;align-self:center}}
 @media(max-width:560px){.expense-sheet-form{grid-template-columns:repeat(2,minmax(0,1fr))}.expense-sheet-title{align-items:flex-start;flex-direction:column}.expense-sheet-form label{padding:10px 8px}.expense-sheet-form input,.expense-sheet-form select{font-size:12px}.expense-sheet-total{padding:12px}}
+
+
+/* Excel-inspired workbook embedded below Reports */
+.cargo-sheet{margin-top:24px;border:1px solid #aebfd2;border-radius:10px;overflow:hidden;background:#fff;box-shadow:0 8px 24px #173b620d}
+.cargo-sheet-head{display:flex;align-items:center;justify-content:space-between;gap:14px;background:#dce6f2;border-bottom:1px solid #9fb3ca;padding:16px 18px}
+.cargo-sheet-head h3{margin:0 0 5px;color:#233f60;font-size:15px}
+.cargo-sheet-head p{margin:0;color:#5b718a;font-size:11px}
+.cargo-sheet-tools{display:flex;gap:8px;flex-wrap:wrap}
+.cargo-sheet-tools .button{border-radius:5px;padding:9px 12px}
+.cargo-sheet-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:#f2f5f9;border-bottom:1px solid #aebfd2}
+.cargo-sheet-summary>div{padding:12px 15px;border-right:1px solid #c3d0de}
+.cargo-sheet-summary span{display:block;color:#566d87;font-size:10px;margin-bottom:5px}
+.cargo-sheet-summary strong{color:#183a60;font-size:19px;font-variant-numeric:tabular-nums}
+.cargo-sheet-wrap{width:100%;overflow:auto;max-height:560px}
+.cargo-sheet-table{width:100%;min-width:1540px;border-collapse:collapse;font-size:11px}
+.cargo-sheet-table th{position:sticky;top:0;z-index:1;background:#d9e4f1;color:#1d3857;border:1px solid #9eafc3;padding:10px 8px;text-align:center;white-space:nowrap;font-size:10px}
+.cargo-sheet-table td{border:1px solid #bdc9d7;padding:0;min-width:80px}
+.cargo-sheet-table tbody tr:nth-child(even){background:#e9eff7}
+.cargo-sheet-table tbody tr:nth-child(odd){background:#fff}
+.cargo-sheet-table tbody tr:hover{background:#fff4cc}
+.cargo-sheet-table input{width:100%;min-width:75px;height:34px;border:0;border-radius:0;background:transparent;padding:7px 8px;color:#24364b;font-size:11px;outline-offset:-2px}
+.cargo-sheet-table input:focus{outline:2px solid #2876d2;background:#fff}
+.cargo-sheet-table td.sheet-row-no{min-width:35px;text-align:center;padding:7px;color:#6a7f97;background:#edf2f7}
+.cargo-sheet-table td.sheet-calc{background:#f5f8fc;text-align:right;padding:8px 9px;white-space:nowrap;font-variant-numeric:tabular-nums;color:#243e5b}
+.cargo-sheet-table tbody tr:nth-child(even) td.sheet-calc{background:#e4edf7}
+.cargo-sheet-table td.sheet-price{font-weight:800;color:#0a673f;background:#e0f3e9}
+.sheet-delete{border:0;background:#fde8e7;color:#b42318;border-radius:4px;font-size:18px;line-height:1;padding:5px 10px;cursor:pointer}
+.cargo-sheet-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:#f2f5f9;border-top:1px solid #b7c5d5;color:#60758d;font-size:10px}
+.cargo-sheet-foot .button{border-radius:5px;padding:7px 10px}
+@media(max-width:650px){.cargo-sheet-head{align-items:flex-start;flex-direction:column}.cargo-sheet-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.cargo-sheet-summary>div{border-bottom:1px solid #c3d0de}.cargo-sheet-foot{align-items:flex-start;flex-direction:column}}
