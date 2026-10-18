@@ -1194,3 +1194,25 @@ html body.auth-mode #authPanel .auth-welcome .auth-kicker {
   display: block !important;
   visibility: visible !important;
 }
+
+
+/* FINAL login cleanup v6: remove every old decorative banner text layer */
+html body.auth-mode #authPanel.auth-panel::before,
+html body.auth-mode #authPanel.auth-panel::after,
+html body.auth-mode #authPanel.auth-panel:before,
+html body.auth-mode #authPanel.auth-panel:after {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+  background-image: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+html body.auth-mode #authPanel .auth-layout,
+html body.auth-mode #authPanel .auth-welcome { position: relative !important; z-index: 1 !important; }
+html body.auth-mode #authPanel .auth-welcome h2 {
+  position: relative !important; inset: auto !important; transform: none !important;
+  display: block !important; color: #fff !important; text-shadow: none !important;
+  visibility: visible !important; opacity: 1 !important;
+}
