@@ -50,6 +50,12 @@
     $("adminNav").classList.toggle("hidden",!isAdmin);
     render();
   }
+  function showRoleWelcome(){
+    const role=String(state.profile?.role||"").toLowerCase();
+    if(role==="admin"||role==="owner")toast("Хуш омадед, админ!");
+    else if(role==="accountant")toast("Хуш омадед, сармуҳосиб Бахтиёр!");
+    else toast("Хуш омадед!");
+  }
   function customerCodeOf(s){return String(s.client_code||s.clientCode||s.notes?.match(/Коди муштарӣ:\s*([^;]+)/i)?.[1]||"").trim();}
   function noteNumberOf(s,label){
     const prefix=label.toLocaleLowerCase()+":";
@@ -140,7 +146,7 @@
         $("authMessage").textContent="Ҳисоб сохта шуд. Барои фаъол кардан Email-и худро тасдиқ кунед, баъд ворид шавед.";
         return;
       }
-      if(result.data.session){$("authMessage").textContent="Муваффақ шуд.";state.user=result.data.user;showAuth(false);await loadData();}
+      if(result.data.session){$("authMessage").textContent="Муваффақ шуд.";state.user=result.data.user;showAuth(false);await loadData();showRoleWelcome();}
     } catch(err) {
       $("authMessage").textContent=err.message||"Хатои номаълум.";
     } finally {
