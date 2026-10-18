@@ -1114,3 +1114,61 @@ body.auth-mode #authPanel #authMessage{min-height:18px!important;margin-top:12px
  body.auth-mode #authPanel .auth-card{padding:30px 24px!important}
  body.auth-mode #authPanel .auth-card h2#authHeading{font-size:29px!important}
 }
+
+
+/* Definitive login hero cleanup — override all legacy .auth-panel banner rules */
+html body.auth-mode #authPanel.auth-panel::before,
+html body.auth-mode #authPanel.auth-panel::after {
+  content: none !important;
+  display: none !important;
+  visibility: hidden !important;
+  background: none !important;
+}
+html body.auth-mode #authPanel .auth-layout {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.12fr) minmax(390px, .88fr) !important;
+  align-items: stretch !important;
+  gap: 0 !important;
+  width: 100% !important;
+  max-width: 1400px !important;
+  min-height: 680px !important;
+  margin: 0 auto !important;
+  position: relative !important;
+}
+html body.auth-mode #authPanel .auth-welcome {
+  position: relative !important;
+  isolation: isolate !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: flex-start !important;
+}
+html body.auth-mode #authPanel .auth-welcome h2 {
+  position: relative !important;
+  inset: auto !important;
+  transform: none !important;
+  display: block !important;
+  width: 100% !important;
+  color: #fff !important;
+  text-shadow: none !important;
+  font-size: clamp(36px, 4vw, 60px) !important;
+  line-height: 1.06 !important;
+  letter-spacing: -1.5px !important;
+  margin: 0 !important;
+}
+html body.auth-mode #authPanel .auth-welcome .auth-kicker {
+  position: relative !important;
+  inset: auto !important;
+  transform: none !important;
+}
+@media (max-width: 760px) {
+  html body.auth-mode #authPanel .auth-layout {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+  }
+  html body.auth-mode #authPanel .auth-welcome h2 {
+    font-size: clamp(30px, 8vw, 40px) !important;
+  }
+}
