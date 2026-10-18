@@ -941,3 +941,27 @@ body.auth-mode #authPanel .auth-card h2{display:block!important;margin:16px 0 10
 body.auth-mode #authPanel:before,body.auth-mode .main:before{display:none!important;content:none!important}
 body.auth-mode #authPanel .auth-layout{margin-top:0!important;transform:none!important}
 body.auth-mode #authPanel .auth-card h2#authHeading{max-width:none!important;overflow-wrap:normal!important}
+
+
+/* Final responsive login polish: prevent duplicated-looking title and keep the welcome screen tidy */
+body.auth-mode #authPanel .auth-welcome{position:relative;isolation:isolate;overflow:hidden}
+body.auth-mode #authPanel .auth-welcome h2{position:relative;z-index:1;display:block;opacity:1;text-shadow:none;transform:none;white-space:normal}
+body.auth-mode #authPanel .auth-kicker{position:relative;z-index:1;display:block;line-height:1.5}
+body.auth-mode #authPanel .auth-brand-mark{position:relative;z-index:2;flex:0 0 auto}
+body.auth-mode #authPanel .auth-welcome>p:not(.auth-kicker),body.auth-mode #authPanel .auth-feature-list{position:relative;z-index:1}
+body.auth-mode #authPanel .auth-card h2#authHeading{font-weight:850;letter-spacing:-.7px}
+@media(max-width:760px){
+  body.auth-mode .main{padding:12px!important;display:block!important}
+  body.auth-mode #authPanel.auth-panel{width:100%!important;max-width:560px!important;margin:8px auto!important}
+  body.auth-mode #authPanel .auth-layout{display:flex!important;flex-direction:column!important;min-height:0!important;overflow:hidden!important;border-radius:24px!important}
+  body.auth-mode #authPanel .auth-welcome{display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:flex-start!important;gap:0!important;padding:26px 24px 24px!important;min-height:0!important}
+  body.auth-mode #authPanel .auth-brand-mark{width:48px!important;height:48px!important;border-radius:14px!important;font-size:24px!important;margin:0 0 18px!important}
+  body.auth-mode #authPanel .auth-kicker{margin:0 0 12px!important;font-size:9px!important;letter-spacing:1.7px!important}
+  body.auth-mode #authPanel .auth-welcome h2{max-width:100%!important;margin:0!important;font-size:clamp(27px,7vw,34px)!important;line-height:1.12!important;letter-spacing:-.8px!important}
+  body.auth-mode #authPanel .auth-welcome>p:not(.auth-kicker){max-width:100%!important;margin:14px 0 18px!important;font-size:13px!important;line-height:1.65!important}
+  body.auth-mode #authPanel .auth-feature-list{gap:8px!important;font-size:12px!important}
+  body.auth-mode #authPanel .auth-card{display:flex!important;flex-direction:column!important;justify-content:flex-start!important;align-self:stretch!important;padding:27px 24px 30px!important}
+  body.auth-mode #authPanel .auth-card .eyebrow{font-size:9px!important;letter-spacing:.7px!important;line-height:1.5!important}
+  body.auth-mode #authPanel .auth-card h2#authHeading{font-size:clamp(25px,6.5vw,31px)!important;line-height:1.17!important;margin:16px 0 10px!important;overflow-wrap:anywhere!important}
+  body.auth-mode #authPanel .auth-card>p:not(.eyebrow){font-size:13px!important;margin-bottom:20px!important}
+}
