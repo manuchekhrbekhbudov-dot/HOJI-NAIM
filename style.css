@@ -965,3 +965,11 @@ body.auth-mode #authPanel .auth-card h2#authHeading{font-weight:850;letter-spaci
   body.auth-mode #authPanel .auth-card h2#authHeading{font-size:clamp(25px,6.5vw,31px)!important;line-height:1.17!important;margin:16px 0 10px!important;overflow-wrap:anywhere!important}
   body.auth-mode #authPanel .auth-card>p:not(.eyebrow){font-size:13px!important;margin-bottom:20px!important}
 }
+
+
+/* Remove the obsolete pseudo-banner that duplicates the welcome heading */
+body.auth-mode #authPanel.auth-panel::after,
+body.auth-mode #authPanel.auth-panel::before {
+  content: none !important;
+  display: none !important;
+}
