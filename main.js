@@ -601,7 +601,7 @@
           if(R===0){cell.s.fill=whiteFill;cell.s.font={name:"Arial",sz:14,bold:true,color:{rgb:"003366"}};}
           else if(R===1){cell.s.fill=grayFill;cell.s.font={name:"Arial",sz:10,bold:true,color:{rgb:"000000"}};cell.s.alignment={horizontal:"center",vertical:"center",wrapText:true};}
           else if(R===2){cell.s.fill=whiteFill;cell.s.font={name:"Arial",sz:10,bold:true,color:{rgb:"FF0000"}};cell.s.numFmt="#,##0.00";}
-          else if(R>=4){cell.s.fill=(R%2===0)?lavenderFill:whiteFill;cell.s.numFmt=C===0?"General":"#,##0.00";}
+          else if(R>=4){cell.s.fill=(R%2===0)?whiteFill:lavenderFill;cell.s.numFmt=C===0?"General":"#,##0.00";}
         }
       }
       window.XLSX.utils.book_append_sheet(workbook,summary,"Итого Куб");
