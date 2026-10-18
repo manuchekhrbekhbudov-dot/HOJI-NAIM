@@ -414,34 +414,46 @@
   $("cargoSheetCnyRate").value=cargoSheetMeta.cnyRate??1;
   ["cargoSheetCode","cargoSheetPhone","cargoSheetCnyRate"].forEach(id=>$(id).addEventListener("change",()=>{cargoSheetMeta.code=$("cargoSheetCode").value;cargoSheetMeta.phone=$("cargoSheetPhone").value;cargoSheetMeta.cnyRate=sheetNum($("cargoSheetCnyRate").value);localStorage.setItem(cargoSheetMetaKey,JSON.stringify(cargoSheetMeta))}));
   const saveCargoSheet=()=>{try{localStorage.setItem(cargoSheetKey,JSON.stringify(cargoSheetData));$("cargoSheetStatus").textContent="Сабт шуд • "+new Date().toLocaleTimeString()}catch{$("cargoSheetStatus").textContent="Хато ҳангоми нигоҳдорӣ дар браузер."}};
+  // Keep row calculations, totals, sync and export consistent with the workbook formulas.
+  const cargoCalc=(r)=>{
+    const places=sheetNum(r.places);
+    const cube=sheetNum(r.height)*sheetNum(r.width)*sheetNum(r.length)*places;
+    const kg=sheetNum(r.kgPerPlace)*places;
+    const density=cube>0?kg/cube:0;
+    const billingType=density>200?"kg":"cube";
+    const price=billingType==="kg"?kg*sheetNum(r.kgPrice??1):cube*sheetNum(r.cubePrice??200);
+    const paidAmount=sheetNum(r.paid);
+    return {places,cube,kg,density,billingType,price,paid:paidAmount,debt:Math.max(0,price-paidAmount)};
+  };
   const renderCargoSheet=()=>{
     if(!cargoSheetRows)return;
     cargoSheetRows.innerHTML="";
     cargoSheetData.forEach((r,i)=>{
+      const calc=cargoCalc(r);
       const tr=document.createElement("tr");
       const fields=[["date","date"],["customerCode","text"],["shop","text"],["city","text"],["item","text"],["height","number"],["width","number"],["length","number"],["places","number"],["kgPerPlace","number"]];
-      const values=[String(i+1),r.date||"",r.customerCode||"",r.shop||"",r.city||"",r.item||"",r.height||"",r.width||"",r.length||"",r.places||"",r.kgPerPlace||""];
       tr.innerHTML="<td class='sheet-row-no'>"+(i+1)+"</td>"+fields.map(([key,type])=>"<td><input data-key='"+key+"' type='"+type+"' "+(type==="number"?"min='0' step='any'":"")+" value='"+String(r[key]??"").replace(/&/g,"&amp;").replace(/'/g,"&#39;").replace(/</g,"&lt;")+"' aria-label='"+key+"'></td>").join("")+
-      "<td><input data-key='manualCube' type='number' min='0' step='any' value='"+(r.manualCube??"")+"' placeholder='Авто' aria-label='Ҳамагӣ куб (дастӣ)'></td><td class='sheet-calc'>"+sheetMoney(sheetNum(r.kgPerPlace)*sheetNum(r.places))+"</td><td><input data-key='cubePrice' type='number' min='0' step='any' value='"+(r.cubePrice??200)+"' aria-label='Нархи куб'></td><td><input data-key='kgPrice' type='number' min='0' step='any' value='"+(r.kgPrice??1)+"' aria-label='Нархи кг'></td><td class='sheet-calc sheet-price'>"+sheetMoney((sheetNum(r.height)*sheetNum(r.width)*sheetNum(r.length)*sheetNum(r.places)>0 && sheetNum(r.kgPerPlace)*sheetNum(r.places)/(sheetNum(r.height)*sheetNum(r.width)*sheetNum(r.length)*sheetNum(r.places))>200 ? sheetNum(r.kgPerPlace)*sheetNum(r.places)*sheetNum(r.kgPrice??1) : sheetNum(r.height)*sheetNum(r.width)*sheetNum(r.length)*sheetNum(r.places)*sheetNum(r.cubePrice??200)))+"</td><td><input data-key='paid' type='number' min='0' step='any' value='"+(r.paid??0)+"' aria-label='Пардохт доллар'></td><td class='sheet-calc'>"+(sheetNum(r.height)*sheetNum(r.width)*sheetNum(r.length)*sheetNum(r.places)>0?sheetMoney(sheetNum(r.kgPerPlace)*sheetNum(r.places)/(sheetNum(r.height)*sheetNum(r.width)*sheetNum(r.length)*sheetNum(r.places))):"—")+"</td><td><button type='button' class='sheet-delete' data-delete='"+i+"' title='Нест кардан'>×</button></td>";
+      "<td class='sheet-calc'>"+sheetMoney(calc.cube)+"</td><td class='sheet-calc'>"+sheetMoney(calc.kg)+"</td><td><input data-key='cubePrice' type='number' min='0' step='any' value='"+(r.cubePrice??200)+"' aria-label='Нархи куб'></td><td><input data-key='kgPrice' type='number' min='0' step='any' value='"+(r.kgPrice??1)+"' aria-label='Нархи кг'></td><td class='sheet-calc sheet-price'>"+sheetMoney(calc.price)+"</td><td><input data-key='paid' type='number' min='0' step='any' value='"+(r.paid??0)+"' aria-label='Пардохт доллар'></td><td class='sheet-calc'>"+(calc.cube>0?sheetMoney(calc.density):"—")+"</td><td><button type='button' class='sheet-delete' data-delete='"+i+"' title='Нест кардан'>×</button></td>";
       tr.querySelectorAll("input").forEach(input=>{
-        input.addEventListener("input",()=>{
-          const key=input.dataset.key;
-          // Keep the raw text while typing so decimals and digit order are never disrupted by rerendering.
-          cargoSheetData[i][key]=input.value;
-          saveCargoSheet();
-        });
-        input.addEventListener("change",()=>{
-          const key=input.dataset.key;
-          cargoSheetData[i][key]=input.value===""?"":input.value;
-          saveCargoSheet();
-          renderCargoSheet();
-        });
+        input.addEventListener("input",()=>{cargoSheetData[i][input.dataset.key]=input.value;saveCargoSheet();});
+        input.addEventListener("change",()=>{cargoSheetData[i][input.dataset.key]=input.value;saveCargoSheet();renderCargoSheet();});
       });
       tr.querySelector("[data-delete]").addEventListener("click",()=>{cargoSheetData.splice(i,1);saveCargoSheet();renderCargoSheet()});
       cargoSheetRows.appendChild(tr);
     });
-    const totals=cargoSheetData.reduce((a,r)=>{const calculatedCube=sheetNum(r.height)*sheetNum(r.width)*sheetNum(r.length)*sheetNum(r.places),cube=r.manualCube!==undefined&&r.manualCube!==""?sheetNum(r.manualCube):calculatedCube,kg=sheetNum(r.kgPerPlace)*sheetNum(r.places);a.places+=sheetNum(r.places);a.cube+=cube;a.kg+=kg;const density=cube>0?kg/cube:0;const chosen=density>200?kg*sheetNum(r.kgPrice??1):cube*sheetNum(r.cubePrice??200);a.price+=chosen;a.paid+=sheetNum(r.paid);a.debt+=Math.max(0,chosen-sheetNum(r.paid));return a},{places:0,cube:0,kg:0,price:0,paid:0,debt:0});
-    $("sheetPlacesTotal").textContent=totals.places;$("sheetCubeTotal").textContent=sheetMoney(totals.cube);$("sheetKgTotal").textContent=sheetMoney(totals.kg);$("sheetPriceTotal").textContent=sheetMoney(totals.price);$("sheetPaidTotal").textContent=sheetMoney(totals.paid);$("sheetDebtTotal").textContent=sheetMoney(totals.debt);$("sheetYuanTotal").textContent=sheetMoney(totals.price*6.9);$("sheetSomoniTotal").textContent=sheetMoney(totals.price*9.2361);
+    const totals=cargoSheetData.reduce((a,r)=>{
+      const x=cargoCalc(r);
+      a.places+=x.places;a.cube+=x.cube;a.kg+=x.kg;a.price+=x.price;a.paid+=x.paid;a.debt+=x.debt;
+      return a;
+    },{places:0,cube:0,kg:0,price:0,paid:0,debt:0});
+    $("sheetPlacesTotal").textContent=totals.places;
+    $("sheetCubeTotal").textContent=sheetMoney(totals.cube);
+    $("sheetKgTotal").textContent=sheetMoney(totals.kg);
+    $("sheetPriceTotal").textContent=sheetMoney(totals.price);
+    $("sheetPaidTotal").textContent=sheetMoney(totals.paid);
+    $("sheetDebtTotal").textContent=sheetMoney(totals.debt);
+    $("sheetYuanTotal").textContent=sheetMoney(totals.price*6.9);
+    $("sheetSomoniTotal").textContent=sheetMoney(totals.price*9.2361);
   };
   $("addCargoSheetRow").addEventListener("click",()=>{cargoSheetData.push({date:new Date().toISOString().slice(0,10),cubePrice:200,kgPrice:1});saveCargoSheet();renderCargoSheet();const last=cargoSheetRows.lastElementChild;last?.querySelector("input[data-key='shop']")?.focus()});
   $("clearCargoSheet").addEventListener("click",()=>{if(confirm("Ҳамаи сатрҳои дафтари Excel тоза шаванд?")){cargoSheetData=[];saveCargoSheet();renderCargoSheet()}});
@@ -455,12 +467,9 @@
     const btn=$("syncCargoSheet");btn.disabled=true;btn.textContent="Сабт шуда истодааст…";
     try{
       for(const r of rows){
-        const cube=sheetNum(r.height)*sheetNum(r.width)*sheetNum(r.length)*sheetNum(r.places);
-        const kg=sheetNum(r.kgPerPlace)*sheetNum(r.places);
-        const density=cube>0?kg/cube:0;
-        const billingType=density>=200?"kg":"cube";
+        const calc=cargoCalc(r);
+        const {cube,kg,density,billingType,price:original}=calc;
         const unitPrice=billingType==="kg"?sheetNum(r.kgPrice??1):sheetNum(r.cubePrice??200);
-        const original=billingType==="kg"?kg*unitPrice:cube*unitPrice;
         const code=String(r.customerCode||cargoSheetMeta.code||"").trim();
         if(!r.syncTrackingNo){const date=String(r.date||new Date().toISOString().slice(0,10)).replace(/-/g,"");const safeCode=(code||"CLIENT").replace(/[^a-zA-Z0-9]/g,"").slice(0,12)||"CLIENT";r.syncTrackingNo="SHEET-"+date+"-"+safeCode+"-"+stableUuid().slice(0,8).toUpperCase();}
         const notes=["Дафтари Excel",code?"Коди муштарӣ: "+code:"",r.city?"Шаҳр: "+r.city:"",r.item?"Мол: "+r.item:"","Андоза: "+[r.height||0,r.width||0,r.length||0].join(" × ")+" м","Мағоза: "+(r.shop||"—")].filter(Boolean).join("; ");
@@ -480,7 +489,7 @@
   });
   $("exportCargoSheet").addEventListener("click",()=>{
     const headers=["№","Сана","Коди клиент","Мағоза","Шаҳр","Номи мол","Баландӣ","Паҳноӣ","Дарозӣ","Ҷой","Кг барои ҷой","Ҳамагӣ м3","Ҳамагӣ кг","Нархи куб","Нархи кг","Нархи ниҳоӣ USD","Пардохт USD","Қарз USD","Зичӣ кг/м3"];
-    const rows=cargoSheetData.map((r,i)=>{const cube=sheetNum(r.height)*sheetNum(r.width)*sheetNum(r.length)*sheetNum(r.places),kg=sheetNum(r.kgPerPlace)*sheetNum(r.places);return [i+1,r.date,r.customerCode,r.shop,r.city,r.item,r.height,r.width,r.length,r.places,r.kgPerPlace,cube,kg,r.cubePrice??200,r.kgPrice??1,(cube>0 && kg/cube>200 ? kg*sheetNum(r.kgPrice??1) : cube*sheetNum(r.cubePrice??200)),sheetNum(r.paid),Math.max(0,(cube>0 && kg/cube>200 ? kg*sheetNum(r.kgPrice??1) : cube*sheetNum(r.cubePrice??200))-sheetNum(r.paid)),cube?kg/cube:""]});
+    const rows=cargoSheetData.map((r,i)=>{const x=cargoCalc(r);return [i+1,r.date,r.customerCode,r.shop,r.city,r.item,r.height,r.width,r.length,x.places,r.kgPerPlace,x.cube,x.kg,r.cubePrice??200,r.kgPrice??1,x.price,x.paid,x.debt,x.cube?x.density:""]});
     const csv="\uFEFF"+[headers,...rows].map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(";")).join("\r\n");
     const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="HOJI-NAIM-Excel-"+new Date().toISOString().slice(0,10)+".csv";a.click();URL.revokeObjectURL(url);
   });
