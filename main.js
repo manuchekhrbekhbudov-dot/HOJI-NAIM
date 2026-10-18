@@ -12,7 +12,7 @@
   const debt = s => Math.max(0,total(s)-paid(s));
   const status = s => debt(s)<=0.005?"paid":paid(s)>0?"partial":"unpaid";
   const statusText = s => ({paid:"Пардохт шуд",partial:"Қисман пардохт",unpaid:"Қарздор"}[s]);
-  function showAuth(show){$("authPanel").classList.toggle("hidden",!show);$("appContent").classList.toggle("hidden",show);$("logoutBtn").classList.toggle("hidden",!state.user);}
+  function showAuth(show){$("authPanel").classList.toggle("hidden",!show);$("appContent").classList.toggle("hidden",show);document.querySelector(".topbar")?.classList.toggle("hidden",show);$("configNotice")?.classList.toggle("hidden",show||!$("configNotice").dataset.visible);document.body.classList.toggle("auth-mode",show);$("logoutBtn").classList.toggle("hidden",!state.user);}
   function showView(name){document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id==="view-"+name));document.querySelectorAll(".nav").forEach(v=>v.classList.toggle("active",v.dataset.view===name));const t={dashboard:"Ҳисоботи умумӣ",shipments:"Борҳо",payments:"Пардохтҳо",expenses:"Хароҷот",reports:"Ҳисобот",admin:"Админ-панел"};$("pageTitle").textContent=t[name]||t.dashboard;}
   async function loadData(){
     $("connectionStatus").textContent="Маълумот бор шуда истодааст…";
