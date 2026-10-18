@@ -717,3 +717,66 @@ tbody tr:hover td{background:#eaf3ff}
  .auth-card{padding:23px 19px 25px;border-radius:15px}
  .auth-card h2{font-size:25px}
 }
+
+
+/* Signature luxury cargo dashboard — final visual layer */
+:root{--blue:#1769ee;--navy:#07172e;--line:#dfe8f4}
+body{background:#f4f7fc}
+.sidebar{background:linear-gradient(165deg,#07172e 0%,#0b2444 58%,#12345d 100%);border-right:1px solid #19385f}
+.brand-mark{border-radius:13px;background:linear-gradient(145deg,#fff,#dceaff);box-shadow:0 5px 18px #00000018}
+.nav{margin:3px 0;border-radius:11px;font-weight:650}
+.nav.active{background:linear-gradient(120deg,#1769ee,#3789ff);box-shadow:0 7px 18px #1769ee35,inset 0 0 0 1px #ffffff20}
+.topbar{padding-bottom:17px;border-bottom:1px solid #e2eaf4}
+.topbar h1{font-size:clamp(24px,2.3vw,31px);letter-spacing:-1.2px}
+.eyebrow{font-weight:850}
+.hero{min-height:255px;padding:36px 38px;border-radius:22px;background:linear-gradient(90deg,rgba(248,251,255,.99) 0%,rgba(235,244,255,.95) 42%,rgba(214,233,255,.3) 100%),url('https://images.unsplash.com/photo-1494412519320-aa613dfb7738?auto=format&fit=crop&w=1700&q=90') right 48%/cover no-repeat;border:1px solid #dce9f9;box-shadow:0 18px 42px rgba(22,67,128,.10);margin-bottom:20px}
+.hero:before{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(90deg,transparent 40%,rgba(35,108,207,.05));pointer-events:none}
+.hero>div:first-child{max-width:54%}
+.hero .eyebrow{display:inline-flex;align-items:center;gap:8px;color:#2463a7;background:#e5f0ff;border:1px solid #d5e7ff;padding:7px 10px;border-radius:6px;font-size:9px;letter-spacing:1.5px}
+.hero h2{font-size:clamp(30px,3.1vw,43px);line-height:1.03;letter-spacing:-1.8px;margin:15px 0 13px}
+.hero p:not(.eyebrow){font-size:15px;line-height:1.65;max-width:390px}
+.hero-icon{font-size:108px;right:34px;bottom:-17px;color:#1257a70d;text-shadow:0 1px #ffffff40}
+.stats{gap:16px}
+.stat{padding:22px 22px 20px;border-radius:17px;box-shadow:0 8px 24px rgba(19,48,88,.045);transition:transform .18s ease,box-shadow .18s ease}
+.stat:hover{transform:translateY(-2px);box-shadow:0 13px 28px rgba(19,48,88,.08)}
+.stat span{font-size:11px;letter-spacing:.1px;color:#667a95}
+.stat strong{font-size:clamp(22px,2vw,28px);font-weight:850;color:#102544}
+.stat small{font-size:10px;color:#8796aa}
+.panel{border-radius:17px;box-shadow:0 8px 24px rgba(19,48,88,.04);border-color:#e1e9f3}
+.panel-head{padding:21px 23px 17px}
+.panel-head h3{font-size:15px;letter-spacing:-.15px}
+th{background:#eff5fd;color:#4b6484;padding:14px 15px;font-size:9px;letter-spacing:.65px}
+td{padding:14px 15px;font-size:11px}
+tbody tr:hover td{background:#eaf3ff}
+.button{border-radius:10px}
+.primary{background:linear-gradient(110deg,#1769ee,#0879ff);box-shadow:0 7px 18px #1769ee30}
+.primary:hover{box-shadow:0 10px 23px #1769ee3d}
+.secondary,.ghost{border-color:#dce6f2;box-shadow:0 2px 4px #10294a05}
+.auth-panel{background:linear-gradient(140deg,#f6f9ff,#eaf2fc)}
+.auth-panel:before{height:clamp(220px,26vw,300px);border-radius:21px;background-image:linear-gradient(90deg,rgba(248,251,255,.98) 0%,rgba(235,244,255,.92) 43%,rgba(194,221,253,.12) 100%),url('https://images.unsplash.com/photo-1494412519320-aa613dfb7738?auto=format&fit=crop&w=1700&q=90');box-shadow:0 15px 35px #17477c12,inset 0 0 0 1px #d7e7fa}
+.auth-panel:after{font-size:clamp(32px,4.3vw,51px);letter-spacing:-1.8px}
+.auth-card{border-radius:21px;box-shadow:0 20px 50px rgba(16,48,89,.10);border-color:#e0e9f5}
+.auth-card input{background:#fbfdff;border-color:#dce5f1;transition:border-color .16s,box-shadow .16s}
+.auth-card .button.full{background:linear-gradient(110deg,#1769ee,#0879ff);box-shadow:0 9px 23px #1769ee30}
+@media(max-width:900px){
+ .hero{min-height:225px;padding:27px 25px;border-radius:17px}
+ .hero>div:first-child{max-width:65%}
+ .hero h2{font-size:clamp(28px,5vw,37px)}
+ .hero-icon{font-size:78px;right:18px}
+ .stat{border-radius:14px;padding:18px}
+}
+@media(max-width:480px){
+ .topbar{padding-bottom:13px}
+ .hero{min-height:202px;padding:22px 17px;border-radius:15px;background-position:58% center}
+ .hero>div:first-child{max-width:72%}
+ .hero h2{font-size:29px;letter-spacing:-1.1px}
+ .hero p:not(.eyebrow){font-size:12px;line-height:1.5}
+ .hero .eyebrow{font-size:8px;padding:6px 8px;letter-spacing:1px}
+ .hero-icon{font-size:54px;right:9px;bottom:0}
+ .stats{gap:10px}
+ .stat{padding:15px 13px;border-radius:13px}
+ .stat strong{font-size:21px}
+ .panel{border-radius:14px}
+ .auth-panel:before{height:190px}
+ .auth-card{border-radius:16px}
+}
