@@ -895,3 +895,5 @@ body.auth-mode #authPanel .auth-layout{width:100%;min-height:500px;grid-template
 .cargo-sheet-tools #syncCargoSheet{background:#17613c;color:#fff;border-color:#17613c}.cargo-sheet-tools #syncCargoSheet:disabled{opacity:.6;cursor:wait}
 
 .cargo-sheet-summary{grid-template-columns:repeat(4,minmax(0,1fr))}.cargo-sheet-summary #sheetDebtTotal{color:#a13c22}@media(max-width:900px){.cargo-sheet-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.customer-summary-panel{margin-top:20px}.customer-summary-panel .panel-head{gap:16px;flex-wrap:wrap}.customer-summary-panel .panel-head input{width:min(340px,100%)}.customer-summary-panel td{white-space:nowrap}.customer-summary-total{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap;padding:14px 18px;background:#f2f5f9;border-top:1px solid #c3d0de;color:#304a67;font-size:13px}.customer-summary-total strong{font-variant-numeric:tabular-nums}@media(max-width:700px){.customer-summary-total{align-items:flex-start;flex-direction:column}}
