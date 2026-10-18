@@ -403,7 +403,7 @@
       const fields=[["date","date"],["customerCode","text"],["shop","text"],["city","text"],["item","text"],["height","number"],["width","number"],["length","number"],["places","number"],["kgPerPlace","number"]];
       const values=[String(i+1),r.date||"",r.shop||"",r.city||"",r.item||"",r.height||"",r.width||"",r.length||"",r.places||"",r.kgPerPlace||""];
       tr.innerHTML="<td class='sheet-row-no'>"+(i+1)+"</td>"+fields.map(([key,type])=>"<td><input data-key='"+key+"' type='"+type+"' "+(type==="number"?"min='0' step='any'":"")+" value='"+String(r[key]??"").replace(/&/g,"&amp;").replace(/'/g,"&#39;").replace(/</g,"&lt;")+"' aria-label='"+key+"'></td>").join("")+
-      "<td class='sheet-calc'>"+sheetMoney(sheetNum(r.height)*sheetNum(r.width)*sheetNum(r.length)*sheetNum(r.places))+"</td><td class='sheet-calc'>"+sheetMoney(sheetNum(r.kgPerPlace)*sheetNum(r.places))+"</td><td><input data-key='cubePrice' type='number' min='0' step='any' value='"+(r.cubePrice??200)+"' aria-label='Нархи куб'></td><td><input data-key='kgPrice' type='number' min='0' step='any' value='"+(r.kgPrice??1)+"' aria-label='Нархи кг'></td><td class='sheet-calc sheet-price'>"+sheetMoney((sheetNum(r.height)*sheetNum(r.width)*sheetNum(r.length)*sheetNum(r.places)>0 && sheetNum(r.kgPerPlace)*sheetNum(r.places)/(sheetNum(r.height)*sheetNum(r.width)*sheetNum(r.length)*sheetNum(r.places))>200 ? sheetNum(r.kgPerPlace)*sheetNum(r.places)*sheetNum(r.kgPrice??1) : sheetNum(r.height)*sheetNum(r.width)*sheetNum(r.length)*sheetNum(r.places)*sheetNum(r.cubePrice??200)))+"</td><td class='sheet-calc'>"+(sheetNum(r.height)*sheetNum(r.width)*sheetNum(r.length)*sheetNum(r.places)>0?sheetMoney(sheetNum(r.kgPerPlace)*sheetNum(r.places)/(sheetNum(r.height)*sheetNum(r.width)*sheetNum(r.length)*sheetNum(r.places))):"—")+"</td><td><button type='button' class='sheet-delete' data-delete='"+i+"' title='Нест кардан'>×</button></td>";
+      "<td class='sheet-calc'>"+sheetMoney(sheetNum(r.height)*sheetNum(r.width)*sheetNum(r.length)*sheetNum(r.places))+"</td><td class='sheet-calc'>"+sheetMoney(sheetNum(r.kgPerPlace)*sheetNum(r.places))+"</td><td><input data-key='cubePrice' type='number' min='0' step='any' value='"+(r.cubePrice??200)+"' aria-label='Нархи куб'></td><td><input data-key='kgPrice' type='number' min='0' step='any' value='"+(r.kgPrice??1)+"' aria-label='Нархи кг'></td><td class='sheet-calc sheet-price'>"+sheetMoney((sheetNum(r.height)*sheetNum(r.width)*sheetNum(r.length)*sheetNum(r.places)>0 && sheetNum(r.kgPerPlace)*sheetNum(r.places)/(sheetNum(r.height)*sheetNum(r.width)*sheetNum(r.length)*sheetNum(r.places))>200 ? sheetNum(r.kgPerPlace)*sheetNum(r.places)*sheetNum(r.kgPrice??1) : sheetNum(r.height)*sheetNum(r.width)*sheetNum(r.length)*sheetNum(r.places)*sheetNum(r.cubePrice??200)))+"</td><td><input data-key='paid' type='number' min='0' step='any' value='"+(r.paid??0)+"' aria-label='Пардохт доллар'></td><td class='sheet-calc'>"+"</td><td class='sheet-calc'>"+(sheetNum(r.height)*sheetNum(r.width)*sheetNum(r.length)*sheetNum(r.places)>0?sheetMoney(sheetNum(r.kgPerPlace)*sheetNum(r.places)/(sheetNum(r.height)*sheetNum(r.width)*sheetNum(r.length)*sheetNum(r.places))):"—")+"</td><td><button type='button' class='sheet-delete' data-delete='"+i+"' title='Нест кардан'>×</button></td>";
       tr.querySelectorAll("input").forEach(input=>input.addEventListener("input",()=>{
         const key=input.dataset.key;cargoSheetData[i][key]=input.value===""?"":(input.type==="number"?sheetNum(input.value):input.value);
         const activeKey=key,activeRow=i,start=typeof input.selectionStart==="number"?input.selectionStart:null,end=typeof input.selectionEnd==="number"?input.selectionEnd:null;
@@ -414,14 +414,40 @@
       tr.querySelector("[data-delete]").addEventListener("click",()=>{cargoSheetData.splice(i,1);saveCargoSheet();renderCargoSheet()});
       cargoSheetRows.appendChild(tr);
     });
-    const totals=cargoSheetData.reduce((a,r)=>{const cube=sheetNum(r.height)*sheetNum(r.width)*sheetNum(r.length)*sheetNum(r.places),kg=sheetNum(r.kgPerPlace)*sheetNum(r.places);a.places+=sheetNum(r.places);a.cube+=cube;a.kg+=kg;const density=cube>0?kg/cube:0;const chosen=density>200?kg*sheetNum(r.kgPrice??1):cube*sheetNum(r.cubePrice??200);a.price+=chosen;return a},{places:0,cube:0,kg:0,price:0});
-    $("sheetPlacesTotal").textContent=totals.places;$("sheetCubeTotal").textContent=sheetMoney(totals.cube);$("sheetKgTotal").textContent=sheetMoney(totals.kg);$("sheetPriceTotal").textContent=sheetMoney(totals.price);$("sheetYuanTotal").textContent=sheetMoney(totals.price*6.9);$("sheetSomoniTotal").textContent=sheetMoney(totals.price*sheetNum($("cargoSheetCnyRate").value));
+    const totals=cargoSheetData.reduce((a,r)=>{const cube=sheetNum(r.height)*sheetNum(r.width)*sheetNum(r.length)*sheetNum(r.places),kg=sheetNum(r.kgPerPlace)*sheetNum(r.places);a.places+=sheetNum(r.places);a.cube+=cube;a.kg+=kg;const density=cube>0?kg/cube:0;const chosen=density>200?kg*sheetNum(r.kgPrice??1):cube*sheetNum(r.cubePrice??200);a.price+=chosen;a.paid+=sheetNum(r.paid);a.debt+=Math.max(0,chosen-sheetNum(r.paid));return a},{places:0,cube:0,kg:0,price:0,paid:0,debt:0});
+    $("sheetPlacesTotal").textContent=totals.places;$("sheetCubeTotal").textContent=sheetMoney(totals.cube);$("sheetKgTotal").textContent=sheetMoney(totals.kg);$("sheetPriceTotal").textContent=sheetMoney(totals.price);$("sheetYuanTotal").textContent=sheetMoney(totals.price*6.9);$("sheetSomoniTotal").textContent=sheetMoney(totals.price*9.2361);
   };
   $("addCargoSheetRow").addEventListener("click",()=>{cargoSheetData.push({date:new Date().toISOString().slice(0,10),cubePrice:200,kgPrice:1});saveCargoSheet();renderCargoSheet();const last=cargoSheetRows.lastElementChild;last?.querySelector("input[data-key='shop']")?.focus()});
   $("clearCargoSheet").addEventListener("click",()=>{if(confirm("Ҳамаи сатрҳои дафтари Excel тоза шаванд?")){cargoSheetData=[];saveCargoSheet();renderCargoSheet()}});
+  const sheetRateToTjs=9.2361;
+  const stableUuid=()=>crypto.randomUUID();
+  $("syncCargoSheet").addEventListener("click",async()=>{
+    if(!state.db||!state.user){toast("Аввал ба система ворид шавед.");return;}
+    if(!["owner","admin","accountant","operator"].includes(state.profile?.role)){toast("Барои синхронсозӣ иҷозати корманд лозим аст.");return;}
+    const rows=cargoSheetData.filter(r=>r.customerCode||r.shop||r.item||sheetNum(r.places)||sheetNum(r.kgPerPlace));
+    if(!rows.length){toast("Аввал дар дафтар ҳадди ақал як борро пур кунед.");return;}
+    const btn=$("syncCargoSheet");btn.disabled=true;btn.textContent="Сабт шуда истодааст…";
+    try{
+      for(const r of rows){
+        const cube=sheetNum(r.height)*sheetNum(r.width)*sheetNum(r.length)*sheetNum(r.places);
+        const kg=sheetNum(r.kgPerPlace)*sheetNum(r.places);
+        const density=cube>0?kg/cube:0;
+        const billingType=density>=200?"kg":"cube";
+        const unitPrice=billingType==="kg"?sheetNum(r.kgPrice??1):sheetNum(r.cubePrice??200);
+        const original=billingType==="kg"?kg*unitPrice:cube*unitPrice;
+        const code=String(r.customerCode||cargoSheetMeta.code||"").trim();
+        if(!r.syncTrackingNo){const date=String(r.date||new Date().toISOString().slice(0,10)).replace(/-/g,"");const safeCode=(code||"CLIENT").replace(/[^a-zA-Z0-9]/g,"").slice(0,12)||"CLIENT";r.syncTrackingNo="SHEET-"+date+"-"+safeCode+"-"+stableUuid().slice(0,8).toUpperCase();}
+        const notes=["Дафтари Excel",code?"Коди муштарӣ: "+code:"",r.city?"Шаҳр: "+r.city:"",r.item?"Мол: "+r.item:"","Андоза: "+[r.height||0,r.width||0,r.length||0].join(" × ")+" м","Мағоза: "+(r.shop||"—")].filter(Boolean).join("; ");
+        const payload={client_name:String(r.shop||code||"Муштарӣ"),client_phone:String(cargoSheetMeta.phone||""),tracking_no:r.syncTrackingNo,shipment_date:r.date||new Date().toISOString().slice(0,10),billing_type:billingType,weight_kg:kg,volume_m3:cube,currency:"USD",unit_price:unitPrice,fx_rate:sheetRateToTjs,total_original:Number(original.toFixed(2)),total_tjs:Number((original*sheetRateToTjs).toFixed(2)),notes,created_by:state.user.id};
+        const {error}=await state.db.from("shipments").upsert(payload,{onConflict:"tracking_no"});if(error)throw error;
+      }
+      saveCargoSheet();await loadData();$("cargoSheetStatus").textContent="Дафтар бо система синхрон шуд · "+new Date().toLocaleTimeString();toast("Борҳои дафтар ба саҳифаҳои сайт гузаштанд.");
+    }catch(err){console.error("Cargo sheet sync error:",err);$("cargoSheetStatus").textContent="Хатои синхронсозӣ: "+(err.message||"хатои база");toast("Синхронсозӣ ноком шуд: "+(err.message||"ҷадвал ё иҷозати база санҷида шавад."));}
+    finally{btn.disabled=false;btn.textContent="↻ Сабт дар система";}
+  });
   $("exportCargoSheet").addEventListener("click",()=>{
-    const headers=["№","Сана","Коди клиент","Мағоза","Шаҳр","Номи мол","Баландӣ","Паҳноӣ","Дарозӣ","Ҷой","Кг барои ҷой","Ҳамагӣ м3","Ҳамагӣ кг","Нархи куб","Нархи кг","Нархи ниҳоӣ USD","Зичӣ кг/м3"];
-    const rows=cargoSheetData.map((r,i)=>{const cube=sheetNum(r.height)*sheetNum(r.width)*sheetNum(r.length)*sheetNum(r.places),kg=sheetNum(r.kgPerPlace)*sheetNum(r.places);return [i+1,r.date,r.customerCode,r.shop,r.city,r.item,r.height,r.width,r.length,r.places,r.kgPerPlace,cube,kg,r.cubePrice??200,r.kgPrice??1,(cube>0 && kg/cube>200 ? kg*sheetNum(r.kgPrice??1) : cube*sheetNum(r.cubePrice??200)),cube?kg/cube:""]});
+    const headers=["№","Сана","Коди клиент","Мағоза","Шаҳр","Номи мол","Баландӣ","Паҳноӣ","Дарозӣ","Ҷой","Кг барои ҷой","Ҳамагӣ м3","Ҳамагӣ кг","Нархи куб","Нархи кг","Нархи ниҳоӣ USD","Пардохт USD","Қарз USD","Зичӣ кг/м3"];
+    const rows=cargoSheetData.map((r,i)=>{const cube=sheetNum(r.height)*sheetNum(r.width)*sheetNum(r.length)*sheetNum(r.places),kg=sheetNum(r.kgPerPlace)*sheetNum(r.places);return [i+1,r.date,r.customerCode,r.shop,r.city,r.item,r.height,r.width,r.length,r.places,r.kgPerPlace,cube,kg,r.cubePrice??200,r.kgPrice??1,(cube>0 && kg/cube>200 ? kg*sheetNum(r.kgPrice??1) : cube*sheetNum(r.cubePrice??200)),sheetNum(r.paid),Math.max(0,(cube>0 && kg/cube>200 ? kg*sheetNum(r.kgPrice??1) : cube*sheetNum(r.cubePrice??200))-sheetNum(r.paid)),cube?kg/cube:""]});
     const csv="\uFEFF"+[headers,...rows].map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(";")).join("\r\n");
     const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="HOJI-NAIM-Excel-"+new Date().toISOString().slice(0,10)+".csv";a.click();URL.revokeObjectURL(url);
   });
