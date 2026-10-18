@@ -439,7 +439,14 @@
         if(!r.syncTrackingNo){const date=String(r.date||new Date().toISOString().slice(0,10)).replace(/-/g,"");const safeCode=(code||"CLIENT").replace(/[^a-zA-Z0-9]/g,"").slice(0,12)||"CLIENT";r.syncTrackingNo="SHEET-"+date+"-"+safeCode+"-"+stableUuid().slice(0,8).toUpperCase();}
         const notes=["Дафтари Excel",code?"Коди муштарӣ: "+code:"",r.city?"Шаҳр: "+r.city:"",r.item?"Мол: "+r.item:"","Андоза: "+[r.height||0,r.width||0,r.length||0].join(" × ")+" м","Мағоза: "+(r.shop||"—")].filter(Boolean).join("; ");
         const payload={client_name:String(r.shop||code||"Муштарӣ"),client_phone:String(cargoSheetMeta.phone||""),tracking_no:r.syncTrackingNo,shipment_date:r.date||new Date().toISOString().slice(0,10),billing_type:billingType,weight_kg:kg,volume_m3:cube,currency:"USD",unit_price:unitPrice,fx_rate:sheetRateToTjs,total_original:Number(original.toFixed(2)),total_tjs:Number((original*sheetRateToTjs).toFixed(2)),notes,created_by:state.user.id};
-        const {error}=await state.db.from("shipments").upsert(payload,{onConflict:"tracking_no"});if(error)throw error;
+        const {data:ship,error}=await state.db.from("shipments").upsert(payload,{onConflict:"tracking_no"}).select("id").single();if(error)throw error;
+        if(sheetNum(r.paid)>0){
+          if(!r.syncPaymentId)r.syncPaymentId=stableUuid();
+          const payment={id:r.syncPaymentId,shipment_id:ship.id,currency:"USD",amount_original:sheetNum(r.paid),fx_rate:sheetRateToTjs,amount_tjs:Number((sheetNum(r.paid)*sheetRateToTjs).toFixed(2)),payment_date:r.date||new Date().toISOString().slice(0,10),notes:"Пардохти аз дафтари Excel · "+(code||r.syncTrackingNo),created_by:state.user.id};
+          const {error:payError}=await state.db.from("payments").upsert(payment,{onConflict:"id"});if(payError)throw payError;
+        }else if(r.syncPaymentId){
+          const {error:delError}=await state.db.from("payments").delete().eq("id",r.syncPaymentId);if(delError)throw delError;delete r.syncPaymentId;
+        }
       }
       saveCargoSheet();await loadData();$("cargoSheetStatus").textContent="Дафтар бо система синхрон шуд · "+new Date().toLocaleTimeString();toast("Борҳои дафтар ба саҳифаҳои сайт гузаштанд.");
     }catch(err){console.error("Cargo sheet sync error:",err);$("cargoSheetStatus").textContent="Хатои синхронсозӣ: "+(err.message||"хатои база");toast("Синхронсозӣ ноком шуд: "+(err.message||"ҷадвал ё иҷозати база санҷида шавад."));}
