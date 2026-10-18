@@ -88,8 +88,8 @@
   const authModeToggle=$("authModeToggle");
   if(authModeToggle) authModeToggle.addEventListener("click",()=>{
     authMode=authMode==="signin"?"signup":"signin";
-    $("authHeading").textContent=authMode==="signin"?"Воридшавӣ бо Email":"Сохтани ҳисоб";
-    $("authDescription").textContent=authMode==="signin"?"Email ва паролро ворид кунед.":"Email ва пароли нав ворид кунед. Барои тасдиқи Email паёмро дар почта санҷед.";
+    $("authHeading").textContent=authMode==="signin"?"Хуш омадед, сармуҳосиб!":"Сохтани ҳисоб";
+    $("authDescription").textContent=authMode==="signin"?"Барои идома Email ва пароли худро ворид кунед.":"Email ва пароли нав ворид кунед. Барои тасдиқи Email паёмро дар почта санҷед.";
     $("authSubmit").textContent=authMode==="signin"?"Ворид шудан":"Сабти ном";
     $("password").autocomplete=authMode==="signin"?"current-password":"new-password";
     authModeToggle.textContent=authMode==="signin"?"Ҳисоб надорӣ? Сабти ном":"Аллакай ҳисоб дорӣ? Воридшавӣ";
