@@ -1,3 +1,9 @@
+-- LEGACY SCHEMA WARNING:
+-- This original schema uses older column names and does not match the current main.js.
+-- Do NOT use it to set up the current frontend. For a new Supabase project use
+-- supabase/schema_app_v2.sql. For the existing live database, review/run only the
+-- explicit migration files; never re-create or replace tables containing live cargo data.
+-- Original schema retained below for historical reference.
 -- HOJI-NAIM CARGO initial schema
 -- Run this file in Supabase SQL Editor. Review policies before production use.
 create extension if not exists pgcrypto;
