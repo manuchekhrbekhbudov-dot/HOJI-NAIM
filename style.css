@@ -882,3 +882,12 @@ body.auth-mode .main{padding-top:24px;min-height:100vh;display:flex;flex-directi
 body.auth-mode #authPanel.auth-panel{width:100%;min-height:0;margin:auto;padding:20px 0;background:transparent}
 body.auth-mode #authPanel .auth-layout{min-height:470px}
 @media(max-width:760px){body.auth-mode .main{padding:16px 12px;justify-content:flex-start}body.auth-mode #authPanel.auth-panel{padding:8px 0}body.auth-mode #authPanel .auth-layout{min-height:0}}
+
+/* Login screen must replace the whole app shell */
+body.auth-mode{min-height:100vh;background:radial-gradient(circle at 15% 15%,#e3f3e8 0,transparent 35%),linear-gradient(135deg,#f4f7f5,#eaf0ec)}
+body.auth-mode .sidebar{display:none!important}
+body.auth-mode .main{margin:0!important;width:100%!important;max-width:none!important;min-height:100vh!important;padding:24px!important;display:grid!important;place-items:center!important;background:transparent!important}
+body.auth-mode .topbar,body.auth-mode #configNotice,body.auth-mode #appContent{display:none!important}
+body.auth-mode #authPanel.auth-panel{display:grid!important;width:100%;max-width:1100px;min-height:0!important;margin:0 auto!important;padding:0!important;background:transparent!important;border-radius:0!important}
+body.auth-mode #authPanel .auth-layout{width:100%;min-height:500px;grid-template-columns:1fr .92fr}
+@media(max-width:760px){body.auth-mode .main{padding:12px!important;display:block!important}body.auth-mode #authPanel.auth-panel{margin:10px auto!important}body.auth-mode #authPanel .auth-layout{grid-template-columns:1fr;min-height:0}body.auth-mode #authPanel .auth-welcome{padding:24px}body.auth-mode #authPanel .auth-card{padding:24px}}
