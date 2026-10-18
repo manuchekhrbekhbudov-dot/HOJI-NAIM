@@ -53,6 +53,7 @@
     $("paymentRows").innerHTML=state.payments.map(p=>`<tr><td>${safe(p.payment_date||"—")}</td><td>${safe(state.shipments.find(s=>s.id===p.shipment_id)?.tracking_no||p.shipment_id||"—")}</td><td>${fmt(p.amount_tjs)}</td><td>${safe(p.currency||"TJS")}</td><td>${safe(p.method||"—")}</td><td>${safe(p.notes||"—")}</td></tr>`).join("");$("paymentEmpty").classList.toggle("hidden",state.payments.length>0);
     const canDeleteExpense=["owner","admin"].includes(state.profile?.role);
     $("expenseRows").innerHTML=state.expenses.map(e=>`<tr><td>${safe(e.expense_date||"—")}</td><td>${safe(e.category||"—")}</td><td>${fmt(e.amount_tjs)}</td><td>${safe(e.description||e.notes||"—")}</td>${canDeleteExpense?`<td><button class="button secondary edit-expense" data-expense-id="${safe(e.id)}">Таҳрир</button> <button class="button danger delete-expense" data-expense-id="${safe(e.id)}">Удалить</button></td>`:""}</tr>`).join("");
+    const expenseTotal=state.expenses.reduce((sum,item)=>sum+Number(item.amount_tjs||0),0);if($("expenseSheetTotal"))$("expenseSheetTotal").textContent=fmt(expenseTotal);
     const expenseActionHead=$("expenseActionHead");
     if(expenseActionHead) expenseActionHead.classList.toggle("hidden",!canDeleteExpense);
     $("expenseEmpty").classList.toggle("hidden",state.expenses.length>0);
@@ -320,6 +321,30 @@
     await loadData();
   });
   expenseForm.elements.currency.addEventListener("change",()=>{expenseForm.elements.fx_rate.value=String(expenseRates[expenseForm.elements.currency.value]||1);});
+  const expenseSheetForm=$("expenseSheetForm");
+  if(expenseSheetForm){
+    expenseSheetForm.elements.expense_date.value=new Date().toISOString().slice(0,10);
+    expenseSheetForm.elements.currency.addEventListener("change",()=>{
+      const cur=expenseSheetForm.elements.currency.value;
+      const rates={TJS:1,USD:9.2361,CNY:1.3803};
+      expenseSheetForm.elements.fx_rate.value=String(rates[cur]||1);
+    });
+    expenseSheetForm.addEventListener("submit",async e=>{
+      e.preventDefault();
+      if(!state.db||!state.user){$("expenseSheetMessage").textContent="Аввал ба система ворид шавед.";return;}
+      if(!["owner","admin","accountant"].includes(state.profile?.role)){$("expenseSheetMessage").textContent="Барои сабти хароҷот иҷозати муҳосиб лозим аст.";return;}
+      const f=new FormData(expenseSheetForm);
+      const category=String(f.get("category")||"").trim(),amount=Number(f.get("amount")),currency=String(f.get("currency")||"TJS"),rate=Number(f.get("fx_rate")),expenseDate=String(f.get("expense_date")||""),description=String(f.get("description")||"").trim();
+      if(!category||amount<=0||rate<=0||!expenseDate){$("expenseSheetMessage").textContent="Ҳамаи маълумоти заруриро дуруст пур кунед.";return;}
+      const payload={category,currency,amount_original:amount,fx_rate:rate,amount_tjs:Number((amount*rate).toFixed(2)),expense_date:expenseDate,description,created_by:state.user.id};
+      const saveButton=expenseSheetForm.querySelector('button[type="submit"]');saveButton.disabled=true;$("expenseSheetMessage").textContent="Сабт шуда истодааст…";
+      const result=await state.db.from("expenses").insert(payload);
+      saveButton.disabled=false;
+      if(result.error){$("expenseSheetMessage").textContent="Хато: "+result.error.message;return;}
+      expenseSheetForm.reset();expenseSheetForm.elements.expense_date.value=new Date().toISOString().slice(0,10);expenseSheetForm.elements.currency.value="TJS";expenseSheetForm.elements.fx_rate.value="1";
+      $("expenseSheetMessage").textContent="Хароҷот сабт шуд. Ҳисобот худкор нав шуд.";await loadData();
+    });
+  }
   expenseForm.addEventListener("submit",async e=>{
     e.preventDefault();if(!state.db||!state.user)return;
     if(!["owner","admin","accountant"].includes(state.profile?.role)){ $("expenseMessage").textContent="Барои сабти хароҷот иҷозати муҳосиб лозим аст.";return;}
