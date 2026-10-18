@@ -973,3 +973,16 @@ body.auth-mode #authPanel.auth-panel::before {
   content: none !important;
   display: none !important;
 }
+
+
+/* Final fix: older pseudo-elements were drawing a second title over the real heading */
+body.auth-mode .auth-panel::after,
+body.auth-mode .auth-panel::before,
+body.auth-mode #authPanel::after,
+body.auth-mode #authPanel::before,
+body.auth-mode .main::after,
+body.auth-mode .main::before {
+  content: none !important;
+  display: none !important;
+  background-image: none !important;
+}
