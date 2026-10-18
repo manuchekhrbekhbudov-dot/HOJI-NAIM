@@ -520,8 +520,28 @@
   $("exportCargoSheet").addEventListener("click",()=>{
     const headers=["№","Сана","Коди клиент","Телефони клиент","Мағоза","Шаҳр","Номи мол","Баландӣ","Паҳноӣ","Дарозӣ","Ҷой","Кг барои ҷой","Ҳамагӣ м3","Ҳамагӣ кг","Нархи куб","Сумма за куб USD","Нархи кг","Сумма за кг USD","Нархи ниҳоӣ USD","Пардохт USD","Қарз USD","Зичӣ кг/м3"];
     const rows=cargoSheetData.map((r,i)=>{const x=cargoCalc(r);return [i+1,r.date,r.customerCode,r.customerPhone||cargoSheetMeta.phone||"",r.shop,r.city,r.item,r.height,r.width,r.length,x.places,r.kgPerPlace,x.cube,x.kg,r.cubePrice??200,x.cubeAmount,r.kgPrice??1,x.kgAmount,x.price,x.paid,x.debt,x.cube?x.density:""]});
+    const totals=cargoSheetData.reduce((a,r)=>{const x=cargoCalc(r);a.places+=x.places;a.cube+=x.cube;a.kg+=x.kg;a.cubeAmount+=x.cubeAmount;a.kgAmount+=x.kgAmount;a.price+=x.price;a.paid+=x.paid;a.debt+=x.debt;return a;},{places:0,cube:0,kg:0,cubeAmount:0,kgAmount:0,price:0,paid:0,debt:0});
+    const cnyRate=sheetNum($("cargoSheetCnyRate").value);
+    const dateStamp=new Date().toISOString().slice(0,10);
+    if(window.XLSX){
+      const workbook=window.XLSX.utils.book_new();
+      const ledger=window.XLSX.utils.aoa_to_sheet([headers,...rows]);
+      ledger["!autofilter"]={ref:ledger["!ref"]};
+      window.XLSX.utils.book_append_sheet(workbook,ledger,"Карго");
+      const summary=[
+        ["Нишондиҳанда","Қимат"],
+        ["Ҳамагӣ ҷой",totals.places],["Ҳамагӣ куб (м³)",totals.cube],["Ҳамагӣ кг",totals.kg],
+        ["Сумма за куб (USD)",totals.cubeAmount],["Сумма за кг (USD)",totals.kgAmount],
+        ["Нархи ниҳоӣ (USD)",totals.price],["Пардохт (USD)",totals.paid],["Қарз (USD)",totals.debt],
+        ["Нархи юан",cnyRate>0?totals.price*9.2361/cnyRate:0],["Нархи сомонӣ",totals.price*9.2361],
+        ["Қурби юан ба сомонӣ",cnyRate]
+      ];
+      window.XLSX.utils.book_append_sheet(workbook,window.XLSX.utils.aoa_to_sheet(summary),"Итого Куб");
+      window.XLSX.writeFile(workbook,"HOJI-NAIM-CARGO-"+dateStamp+".xlsx");
+      return;
+    }
     const csv="\uFEFF"+[headers,...rows].map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(";")).join("\r\n");
-    const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="HOJI-NAIM-Excel-"+new Date().toISOString().slice(0,10)+".csv";a.click();URL.revokeObjectURL(url);
+    const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="HOJI-NAIM-CARGO-"+dateStamp+".csv";a.click();URL.revokeObjectURL(url);
   });
   renderCargoSheet();
 
