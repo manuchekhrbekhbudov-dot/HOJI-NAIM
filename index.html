@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="style.css?v=20261018-premium-login7">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="main.js?v=20261018-audit-fixes4" defer></script>
+  <script src="main.js?v=20261018-audit-fixes5" defer></script>
 </head>
 <body>
   <div class="app">
@@ -125,9 +125,9 @@
           </div>
           <div class="panel customer-summary-panel" id="customerSummaryPanel">
             <div class="panel-head"><div><h3>Ҳисоботи муштариён</h3><p>Ҷамъбасти куб, кг, қарз ва зичии ҳар муштарӣ</p></div><input id="customerSummarySearch" type="search" placeholder="Ҷустуҷӯи муштарӣ ё код..." aria-label="Ҷустуҷӯи муштарӣ ё код"></div>
-            <div class="table-wrap"><table><thead><tr><th>Коди клиент</th><th>Муштарӣ</th><th>Телефон</th><th>Ҳамагӣ куб (м³)</th><th>Ҳамагӣ кг</th><th>Ҳисоб (TJS)</th><th>Пардохт (TJS)</th><th>Қарз (сомонӣ)</th><th>Кг дар 1 куб</th><th>Шумораи бор</th></tr></thead><tbody id="customerSummaryRows"></tbody></table></div>
+            <div class="table-wrap"><table><thead><tr><th>Коди клиент</th><th>Муштарӣ</th><th>Телефон</th><th>Ҷой</th><th>Ҳамагӣ куб (м³)</th><th>Ҳамагӣ кг</th><th>Сумма куб ($)</th><th>Сумма кг ($)</th><th>Ҳисоб (TJS)</th><th>Пардохт (TJS)</th><th>Қарз (сомонӣ)</th><th>Кг дар 1 куб</th><th>Шумораи бор</th></tr></thead><tbody id="customerSummaryRows"></tbody></table></div>
             <p class="empty hidden" id="customerSummaryEmpty">Маълумоти муштарӣ ёфт нашуд.</p>
-            <div class="customer-summary-total"><span>Ҳамагӣ аз рӯйи рӯйхати нишоншуда</span><strong>Куб: <span id="customerSummaryCube">0.00</span> м³ · Кг: <span id="customerSummaryKg">0.00</span> · Ҳисоб: <span id="customerSummaryBilled">0.00</span> · Пардохт: <span id="customerSummaryPaid">0.00</span> · Қарз: <span id="customerSummaryDebt">0.00</span> сомонӣ</strong></div>
+            <div class="customer-summary-total"><span>Ҳамагӣ аз рӯйи рӯйхати нишоншуда</span><strong>Ҷой: <span id="customerSummaryPlaces">0</span> · Куб: <span id="customerSummaryCube">0.00</span> м³ · Кг: <span id="customerSummaryKg">0.00</span> · Сумма куб: <span id="customerSummaryCubeAmount">0.00</span> $ · Сумма кг: <span id="customerSummaryKgAmount">0.00</span> $ · Ҳисоб: <span id="customerSummaryBilled">0.00</span> · Пардохт: <span id="customerSummaryPaid">0.00</span> · Қарз: <span id="customerSummaryDebt">0.00</span> сомонӣ</strong></div>
           </div>
         </section>
       </section>
