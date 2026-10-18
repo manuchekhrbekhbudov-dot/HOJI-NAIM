@@ -873,3 +873,12 @@ tbody tr:hover td{background:#eaf3ff}
 #authPanel #authMessage{min-height:18px;margin-top:10px}
 @media(max-width:760px){#authPanel.auth-panel{min-height:auto;padding:16px 0;background:transparent;border-radius:0}#authPanel .auth-layout{grid-template-columns:1fr;min-height:0;border-radius:20px}#authPanel .auth-welcome{padding:25px 24px}#authPanel .auth-brand-mark{width:46px;height:46px;font-size:23px;border-radius:13px}#authPanel .auth-kicker{margin-top:18px}#authPanel .auth-welcome h2{font-size:25px}#authPanel .auth-welcome>p:not(.auth-kicker){margin:10px 0 14px;font-size:13px}#authPanel .auth-feature-list{grid-template-columns:1fr;gap:7px;font-size:12px}#authPanel .auth-card{padding:26px 24px}#authPanel .auth-card h2{font-size:23px}}
 @media(min-width:761px) and (max-height:720px){#authPanel.auth-panel{padding:18px;min-height:calc(100vh - 90px)}#authPanel .auth-layout{min-height:420px}#authPanel .auth-welcome{padding:32px}#authPanel .auth-card{padding:28px}}
+
+/* Keep application chrome out of the login screen */
+body.auth-mode .topbar,body.auth-mode #configNotice{display:none!important}
+body.auth-mode #authPanel{display:grid!important}
+body.auth-mode #appContent{display:none!important}
+body.auth-mode .main{padding-top:24px;min-height:100vh;display:flex;flex-direction:column;justify-content:center}
+body.auth-mode #authPanel.auth-panel{width:100%;min-height:0;margin:auto;padding:20px 0;background:transparent}
+body.auth-mode #authPanel .auth-layout{min-height:470px}
+@media(max-width:760px){body.auth-mode .main{padding:16px 12px;justify-content:flex-start}body.auth-mode #authPanel.auth-panel{padding:8px 0}body.auth-mode #authPanel .auth-layout{min-height:0}}
