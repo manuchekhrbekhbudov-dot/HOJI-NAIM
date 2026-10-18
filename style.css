@@ -924,3 +924,15 @@ body.auth-mode #authPanel #authSubmit:hover{transform:translateY(-2px);box-shado
 body.auth-mode #authPanel .text-button{margin-top:20px;font-size:13px}
 body.auth-mode #authPanel #authMessage{font-size:13px}
 @media(max-width:760px){body.auth-mode .main{padding:12px!important}body.auth-mode #authPanel .auth-layout{grid-template-columns:1fr;min-height:0;border-radius:24px}body.auth-mode #authPanel .auth-welcome{padding:28px 25px}body.auth-mode #authPanel .auth-welcome h2{font-size:32px}body.auth-mode #authPanel .auth-welcome>p:not(.auth-kicker){margin:15px 0 20px}body.auth-mode #authPanel .auth-card{padding:30px 25px}}
+
+/* Final login overlap fix: hide app header and keep welcome copy inside the card */
+body.auth-mode .app{min-height:100vh!important;display:block!important}
+body.auth-mode .sidebar,body.auth-mode .topbar,body.auth-mode #configNotice{display:none!important}
+body.auth-mode .main{display:grid!important;grid-template-columns:minmax(0,1fr)!important;align-content:center!important;justify-items:center!important;min-height:100vh!important;margin:0!important;padding:clamp(18px,4vh,42px) clamp(14px,4vw,56px)!important;overflow:visible!important}
+body.auth-mode #authPanel.auth-panel{display:grid!important;align-self:center!important;width:100%!important;max-width:1120px!important;min-height:0!important;margin:0!important;padding:0!important;background:transparent!important}
+body.auth-mode #authPanel .auth-layout{width:100%!important;min-height:540px!important;grid-template-columns:minmax(0,1fr) minmax(360px,.92fr)!important;align-items:stretch!important;overflow:hidden!important}
+body.auth-mode #authPanel .auth-welcome{min-width:0!important;justify-content:center!important;padding:clamp(32px,5vw,64px)!important}
+body.auth-mode #authPanel .auth-welcome h2{display:block!important;margin:0!important;max-width:430px!important;font-size:clamp(32px,3.7vw,48px)!important;line-height:1.12!important;overflow-wrap:normal!important;word-break:normal!important}
+body.auth-mode #authPanel .auth-card{min-width:0!important;align-self:stretch!important;display:flex!important;flex-direction:column!important;justify-content:center!important;padding:clamp(30px,4vw,56px)!important}
+body.auth-mode #authPanel .auth-card h2{display:block!important;margin:16px 0 10px!important;max-width:100%!important;font-size:clamp(26px,2.7vw,34px)!important;line-height:1.2!important;overflow-wrap:normal!important;word-break:normal!important}
+@media(max-width:760px){body.auth-mode .main{display:block!important;padding:12px!important;min-height:100vh!important}body.auth-mode #authPanel .auth-layout{grid-template-columns:minmax(0,1fr)!important;min-height:0!important}body.auth-mode #authPanel .auth-welcome{padding:28px 24px!important}body.auth-mode #authPanel .auth-welcome h2{font-size:32px!important}body.auth-mode #authPanel .auth-card{padding:30px 24px!important}}
