@@ -530,29 +530,85 @@
     finally{btn.disabled=false;btn.textContent="↻ Сабт дар система";}
   });
   $("exportCargoSheet").addEventListener("click",()=>{
-    const headers=["№","Сана","Коди клиент","Телефони клиент","Мағоза","Шаҳр","Номи мол","Баландӣ","Паҳноӣ","Дарозӣ","Ҷой","Кг барои ҷой","Ҳамагӣ м3","Ҳамагӣ кг","Нархи куб","Сумма за куб USD","Нархи кг","Сумма за кг USD","Нархи ниҳоӣ USD","Пардохт USD","Қарз USD","Зичӣ кг/м3"];
-    const rows=cargoSheetData.map((r,i)=>{const x=cargoCalc(r);return [i+1,r.date,r.customerCode,r.customerPhone||cargoSheetMeta.phone||"",r.shop,r.city,r.item,r.height,r.width,r.length,x.places,r.kgPerPlace,x.cube,x.kg,r.cubePrice??200,x.cubeAmount,r.kgPrice??1,x.kgAmount,x.price,x.paid,x.debt,x.cube?x.density:""]});
+    const headers=["№","Дата","Код клиента","Телефон клиента","Магазин","Город","Наименование товара","Высота (м)","Ширина (м)","Длина (м)","Место","Кг / место","Общий объем, куб","Общий объем, кг","Цена куб","Сумма за куб ($)","Цена кг","Сумма за кг ($)","Итоговая цена ($)","Оплата ($)","Долг ($)","Кг в одном кубе"];
+    const detailRows=cargoSheetData.map((r,i)=>{const x=cargoCalc(r);return [i+1,r.date,r.customerCode,r.customerPhone||cargoSheetMeta.phone||"",r.shop,r.city,r.item,r.height,r.width,r.length,x.places,r.kgPerPlace,x.cube,x.kg,r.cubePrice??200,x.cubeAmount,r.kgPrice??1,x.kgAmount,x.price,x.paid,x.debt,x.cube?x.density:""]});
     const totals=cargoSheetData.reduce((a,r)=>{const x=cargoCalc(r);a.places+=x.places;a.cube+=x.cube;a.kg+=x.kg;a.cubeAmount+=x.cubeAmount;a.kgAmount+=x.kgAmount;a.price+=x.price;a.paid+=x.paid;a.debt+=x.debt;return a;},{places:0,cube:0,kg:0,cubeAmount:0,kgAmount:0,price:0,paid:0,debt:0});
     const cnyRate=sheetNum($("cargoSheetCnyRate").value);
     const dateStamp=new Date().toISOString().slice(0,10);
     if(window.XLSX){
       const workbook=window.XLSX.utils.book_new();
-      const ledger=window.XLSX.utils.aoa_to_sheet([headers,...rows]);
-      ledger["!autofilter"]={ref:ledger["!ref"]};
-      window.XLSX.utils.book_append_sheet(workbook,ledger,"Карго");
-      const summary=[
-        ["Нишондиҳанда","Қимат"],
-        ["Ҳамагӣ ҷой",totals.places],["Ҳамагӣ куб (м³)",totals.cube],["Ҳамагӣ кг",totals.kg],
-        ["Сумма за куб (USD)",totals.cubeAmount],["Сумма за кг (USD)",totals.kgAmount],
-        ["Нархи ниҳоӣ (USD)",totals.price],["Пардохт (USD)",totals.paid],["Қарз (USD)",totals.debt],
-        ["Нархи юан",cnyRate>0?totals.price*9.2361/cnyRate:0],["Нархи сомонӣ",totals.price*9.2361],
-        ["Қурби юан ба сомонӣ",cnyRate]
+      const labels=Array(headers.length).fill("");
+      [12,13,15,17,18,19,20].forEach(i=>labels[i]="Итого:");
+      const values=Array(headers.length).fill("");
+      values[12]=totals.cube;values[13]=totals.kg;values[15]=totals.cubeAmount;values[17]=totals.kgAmount;values[18]=totals.price;values[19]=totals.paid;values[20]=totals.debt;
+      const ledgerRows=[
+        ["Код",cargoSheetMeta.code||$("cargoSheetCode").value||"","","Тел",cargoSheetMeta.phone||$("cargoSheetPhone").value||"","","Курс юаня к сомони",cnyRate],
+        [],
+        ["Карго — HOJI-NAIM CARGO"],
+        [],
+        labels,
+        values,
+        headers,
+        ...detailRows
       ];
-      window.XLSX.utils.book_append_sheet(workbook,window.XLSX.utils.aoa_to_sheet(summary),"Итого Куб");
+      const ledger=window.XLSX.utils.aoa_to_sheet(ledgerRows);
+      ledger["!cols"]=[7,13,16,18,14,14,22,12,12,12,10,12,15,15,12,16,12,16,17,14,14,16].map(w=>({wch:w}));
+      ledger["!autofilter"]={ref:"A7:V"+Math.max(7,ledgerRows.length)};
+      ledger["!freeze"]={xSplit:0,ySplit:7,topLeftCell:"A8",activePane:"bottomLeft",state:"frozen"};
+      ledger["!rows"]=[{hpt:25},{hpt:8},{hpt:24},{hpt:8},{hpt:20},{hpt:22},{hpt:38}];
+      const border={top:{style:"thin",color:{rgb:"808080"}},bottom:{style:"thin",color:{rgb:"808080"}},left:{style:"thin",color:{rgb:"808080"}},right:{style:"thin",color:{rgb:"808080"}}};
+      const grayFill={patternType:"solid",fgColor:{rgb:"C0C0C0"}};
+      const lavenderFill={patternType:"solid",fgColor:{rgb:"CCCCFF"}};
+      const whiteFill={patternType:"solid",fgColor:{rgb:"FFFFFF"}};
+      for(let R=0;R<ledgerRows.length;R++){
+        for(let C=0;C<headers.length;C++){
+          const cell=ledger[window.XLSX.utils.encode_cell({r:R,c:C})];
+          if(!cell)continue;
+          cell.s={font:{name:"Arial",sz:10,color:{rgb:"000000"}},alignment:{vertical:"center",wrapText:true},border};
+          if(R===0){cell.s.fill=whiteFill;cell.s.font={name:"Arial",sz:10,bold:true,color:{rgb:"003366"}};}
+          if(R===2){cell.s.fill=grayFill;cell.s.font={name:"Arial",sz:13,bold:true,color:{rgb:"003366"}};}
+          if(R===4){cell.s.fill=grayFill;cell.s.font={name:"Arial",sz:10,bold:true,color:{rgb:"003366"}};}
+          if(R===5){cell.s.fill=whiteFill;cell.s.font={name:"Arial",sz:10,bold:true,color:{rgb:"FF0000"}};cell.s.numFmt="#,##0.00";}
+          if(R===6){cell.s.fill=grayFill;cell.s.font={name:"Arial",sz:10,bold:true,color:{rgb:"000000"}};cell.s.alignment={horizontal:"center",vertical:"center",wrapText:true};}
+          if(R>=7){cell.s.fill=(R%2===0)?lavenderFill:whiteFill;cell.s.numFmt=(C>=7&&C<=20)?"#,##0.00":"General";if([12,13,15,17].includes(C))cell.s.font={name:"Arial",sz:10,color:{rgb:"FF0000"}};}
+        }
+      }
+      window.XLSX.utils.book_append_sheet(workbook,ledger,"Карго");
+
+      const clientMap=new Map();
+      cargoSheetData.forEach((r,i)=>{
+        const code=String(r.customerCode||cargoSheetMeta.code||"").trim();
+        const phone=String(r.customerPhone||cargoSheetMeta.phone||"").trim();
+        const name=String(code||phone||r.shop||("Без кода "+(i+1))).trim();
+        const key=(code?"code:"+code.toLowerCase():phone?"phone:"+phone.toLowerCase():"name:"+name.toLowerCase());
+        if(!clientMap.has(key))clientMap.set(key,{code:code||name,places:0,cube:0,kg:0,cubeAmount:0,kgAmount:0,paid:0,price:0});
+        const t=clientMap.get(key),x=cargoCalc(r);
+        t.places+=x.places;t.cube+=x.cube;t.kg+=x.kg;t.cubeAmount+=x.cubeAmount;t.kgAmount+=x.kgAmount;t.paid+=x.paid;t.price+=x.price;
+      });
+      const summaryHeaders=["Код","Место","Куб","Кг","Сумма куб","Сумма кг","Сумма оплаты","Кг в одном кубе","Сумма карго"];
+      const clientRows=[...clientMap.values()].map(x=>[x.code,x.places,x.cube,x.kg,x.cubeAmount,x.kgAmount,x.paid,x.cube>0?x.kg/x.cube:0,x.price]);
+      const summaryRows=[["Общий итог куб, кг, суммы"],summaryHeaders,["Итого:",totals.places,totals.cube,totals.kg,totals.cubeAmount,totals.kgAmount,totals.paid,totals.cube>0?totals.kg/totals.cube:0,totals.price],[],...clientRows];
+      const summary=window.XLSX.utils.aoa_to_sheet(summaryRows);
+      summary["!cols"]=[{wch:22},{wch:12},{wch:14},{wch:14},{wch:16},{wch:16},{wch:16},{wch:19},{wch:17}];
+      summary["!autofilter"]={ref:"A2:I"+Math.max(2,summaryRows.length)};
+      summary["!freeze"]={xSplit:0,ySplit:2,topLeftCell:"A3",activePane:"bottomLeft",state:"frozen"};
+      summary["!merges"]=[{s:{r:0,c:0},e:{r:0,c:8}}];
+      for(let R=0;R<summaryRows.length;R++){
+        for(let C=0;C<summaryHeaders.length;C++){
+          const cell=summary[window.XLSX.utils.encode_cell({r:R,c:C})];
+          if(!cell)continue;
+          cell.s={font:{name:"Arial",sz:10,color:{rgb:"000000"}},alignment:{vertical:"center",wrapText:true},border};
+          if(R===0){cell.s.fill=whiteFill;cell.s.font={name:"Arial",sz:14,bold:true,color:{rgb:"003366"}};}
+          else if(R===1){cell.s.fill=grayFill;cell.s.font={name:"Arial",sz:10,bold:true,color:{rgb:"000000"}};cell.s.alignment={horizontal:"center",vertical:"center",wrapText:true};}
+          else if(R===2){cell.s.fill=whiteFill;cell.s.font={name:"Arial",sz:10,bold:true,color:{rgb:"FF0000"}};cell.s.numFmt="#,##0.00";}
+          else if(R>=4){cell.s.fill=(R%2===0)?lavenderFill:whiteFill;cell.s.numFmt=C===0?"General":"#,##0.00";}
+        }
+      }
+      window.XLSX.utils.book_append_sheet(workbook,summary,"Итого Куб");
       window.XLSX.writeFile(workbook,"HOJI-NAIM-CARGO-"+dateStamp+".xlsx");
       return;
     }
-    const csv="\uFEFF"+[headers,...rows].map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(";")).join("\r\n");
+    const csv="\\uFEFF"+[headers,...detailRows].map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(";")).join("\\r\\n");
     const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="HOJI-NAIM-CARGO-"+dateStamp+".csv";a.click();URL.revokeObjectURL(url);
   });
   renderCargoSheet();
