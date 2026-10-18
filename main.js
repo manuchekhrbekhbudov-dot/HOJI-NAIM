@@ -39,16 +39,16 @@
     state.shipments.forEach(s=>{
       const code=customerCodeOf(s),name=String(s.client_name||"").trim(),phone=String(s.client_phone||"").trim();
       const key=code?"code:"+code.toLocaleLowerCase():phone?"phone:"+phone.toLocaleLowerCase():"name:"+(name||"Муштарӣ").toLocaleLowerCase();
-      if(!grouped.has(key))grouped.set(key,{code,name:name||"—",phone,cube:0,kg:0,debt:0,count:0});
+      if(!grouped.has(key))grouped.set(key,{code,name:name||"—",phone,cube:0,kg:0,billed:0,paid:0,debt:0,count:0});
       const item=grouped.get(key);
       if(!item.code&&code)item.code=code;if((!item.name||item.name==="—")&&name)item.name=name;if(!item.phone&&phone)item.phone=phone;
-      item.cube+=Number(s.volume_m3||0);item.kg+=Number(s.weight_kg||0);item.debt+=debt(s);item.count+=1;
+      item.cube+=Number(s.volume_m3||0);item.kg+=Number(s.weight_kg||0);item.billed+=total(s);item.paid+=paid(s);item.debt+=debt(s);item.count+=1;
     });
     const all=[...grouped.values()].sort((a,b)=>a.name.localeCompare(b.name));
     const rows=all.filter(x=>[x.code,x.name,x.phone].some(v=>String(v||"").toLocaleLowerCase().includes(search)));
-    $("customerSummaryRows").innerHTML=rows.map(x=>`<tr><td>${safe(x.code||"—")}</td><td>${safe(x.name)}</td><td>${safe(x.phone||"—")}</td><td>${fmt(x.cube)}</td><td>${fmt(x.kg)}</td><td>${fmt(x.debt)}</td><td>${fmt(x.cube>0?x.kg/x.cube:0)}</td><td>${x.count}</td></tr>`).join("");
+    $("customerSummaryRows").innerHTML=rows.map(x=>`<tr><td>${safe(x.code||"—")}</td><td>${safe(x.name)}</td><td>${safe(x.phone||"—")}</td><td>${fmt(x.cube)}</td><td>${fmt(x.kg)}</td><td>${fmt(x.billed)}</td><td>${fmt(x.paid)}</td><td>${fmt(x.debt)}</td><td>${fmt(x.cube>0?x.kg/x.cube:0)}</td><td>${x.count}</td></tr>`).join("");
     $("customerSummaryEmpty").classList.toggle("hidden",rows.length>0);
-    $("customerSummaryCube").textContent=fmt(rows.reduce((n,x)=>n+x.cube,0));$("customerSummaryKg").textContent=fmt(rows.reduce((n,x)=>n+x.kg,0));$("customerSummaryDebt").textContent=fmt(rows.reduce((n,x)=>n+x.debt,0));
+    $("customerSummaryCube").textContent=fmt(rows.reduce((n,x)=>n+x.cube,0));$("customerSummaryKg").textContent=fmt(rows.reduce((n,x)=>n+x.kg,0));$("customerSummaryBilled").textContent=fmt(rows.reduce((n,x)=>n+x.billed,0));$("customerSummaryPaid").textContent=fmt(rows.reduce((n,x)=>n+x.paid,0));$("customerSummaryDebt").textContent=fmt(rows.reduce((n,x)=>n+x.debt,0));
   }
   function render(){
     const revenue=state.payments.reduce((n,p)=>n+Number(p.amount_tjs||0),0);
@@ -411,8 +411,8 @@
   const cargoSheetMeta=(()=>{try{return JSON.parse(localStorage.getItem(cargoSheetMetaKey)||"{}")}catch{return {}}})();
   $("cargoSheetCode").value=cargoSheetMeta.code||"";
   $("cargoSheetPhone").value=cargoSheetMeta.phone||"";
-  $("cargoSheetCnyRate").value=cargoSheetMeta.cnyRate??1;
-  ["cargoSheetCode","cargoSheetPhone","cargoSheetCnyRate"].forEach(id=>$(id).addEventListener("change",()=>{cargoSheetMeta.code=$("cargoSheetCode").value;cargoSheetMeta.phone=$("cargoSheetPhone").value;cargoSheetMeta.cnyRate=sheetNum($("cargoSheetCnyRate").value);localStorage.setItem(cargoSheetMetaKey,JSON.stringify(cargoSheetMeta))}));
+  $("cargoSheetCnyRate").value=cargoSheetMeta.cnyRate??1.3803;
+  ["cargoSheetCode","cargoSheetPhone","cargoSheetCnyRate"].forEach(id=>$(id).addEventListener("change",()=>{cargoSheetMeta.code=$("cargoSheetCode").value;cargoSheetMeta.phone=$("cargoSheetPhone").value;cargoSheetMeta.cnyRate=sheetNum($("cargoSheetCnyRate").value);localStorage.setItem(cargoSheetMetaKey,JSON.stringify(cargoSheetMeta));renderCargoSheet();}));
   const saveCargoSheet=()=>{try{localStorage.setItem(cargoSheetKey,JSON.stringify(cargoSheetData));$("cargoSheetStatus").textContent="Сабт шуд • "+new Date().toLocaleTimeString()}catch{$("cargoSheetStatus").textContent="Хато ҳангоми нигоҳдорӣ дар браузер."}};
   // Keep row calculations, totals, sync and export consistent with the workbook formulas.
   const cargoCalc=(r)=>{
@@ -421,9 +421,13 @@
     const kg=sheetNum(r.kgPerPlace)*places;
     const density=cube>0?kg/cube:0;
     const billingType=density>200?"kg":"cube";
-    const price=billingType==="kg"?kg*sheetNum(r.kgPrice??1):cube*sheetNum(r.cubePrice??200);
+    const cubeAmount=cube*sheetNum(r.cubePrice??200);
+    const kgAmount=kg*sheetNum(r.kgPrice??1);
+    // Excel Q column chooses the larger charge: IF(cubeAmount > kgAmount, cubeAmount, kgAmount).
+    const billingType=cubeAmount>kgAmount?"cube":"kg";
+    const price=Math.max(cubeAmount,kgAmount);
     const paidAmount=sheetNum(r.paid);
-    return {places,cube,kg,density,billingType,price,paid:paidAmount,debt:Math.max(0,price-paidAmount)};
+    return {places,cube,kg,density,cubeAmount,kgAmount,billingType,price,paid:paidAmount,debt:Math.max(0,price-paidAmount)};
   };
   const renderCargoSheet=()=>{
     if(!cargoSheetRows)return;
@@ -433,7 +437,7 @@
       const tr=document.createElement("tr");
       const fields=[["date","date"],["customerCode","text"],["shop","text"],["city","text"],["item","text"],["height","number"],["width","number"],["length","number"],["places","number"],["kgPerPlace","number"]];
       tr.innerHTML="<td class='sheet-row-no'>"+(i+1)+"</td>"+fields.map(([key,type])=>"<td><input data-key='"+key+"' type='"+type+"' "+(type==="number"?"min='0' step='any'":"")+" value='"+String(r[key]??"").replace(/&/g,"&amp;").replace(/'/g,"&#39;").replace(/</g,"&lt;")+"' aria-label='"+key+"'></td>").join("")+
-      "<td class='sheet-calc'>"+sheetMoney(calc.cube)+"</td><td class='sheet-calc'>"+sheetMoney(calc.kg)+"</td><td><input data-key='cubePrice' type='number' min='0' step='any' value='"+(r.cubePrice??200)+"' aria-label='Нархи куб'></td><td><input data-key='kgPrice' type='number' min='0' step='any' value='"+(r.kgPrice??1)+"' aria-label='Нархи кг'></td><td class='sheet-calc sheet-price'>"+sheetMoney(calc.price)+"</td><td><input data-key='paid' type='number' min='0' step='any' value='"+(r.paid??0)+"' aria-label='Пардохт доллар'></td><td class='sheet-calc'>"+(calc.cube>0?sheetMoney(calc.density):"—")+"</td><td><button type='button' class='sheet-delete' data-delete='"+i+"' title='Нест кардан'>×</button></td>";
+      "<td class='sheet-calc'>"+sheetMoney(calc.cube)+"</td><td class='sheet-calc'>"+sheetMoney(calc.kg)+"</td><td><input data-key='cubePrice' type='number' min='0' step='any' value='"+(r.cubePrice??200)+"' aria-label='Нархи куб'></td><td class='sheet-calc'>"+sheetMoney(calc.cubeAmount)+"</td><td><input data-key='kgPrice' type='number' min='0' step='any' value='"+(r.kgPrice??1)+"' aria-label='Нархи кг'></td><td class='sheet-calc'>"+sheetMoney(calc.kgAmount)+"</td><td class='sheet-calc sheet-price'>"+sheetMoney(calc.price)+"</td><td><input data-key='paid' type='number' min='0' step='any' value='"+(r.paid??0)+"' aria-label='Пардохт доллар'></td><td class='sheet-calc'>"+(calc.cube>0?sheetMoney(calc.density):"—")+"</td><td><button type='button' class='sheet-delete' data-delete='"+i+"' title='Нест кардан'>×</button></td>";
       tr.querySelectorAll("input").forEach(input=>{
         input.addEventListener("input",()=>{cargoSheetData[i][input.dataset.key]=input.value;saveCargoSheet();});
         input.addEventListener("change",()=>{cargoSheetData[i][input.dataset.key]=input.value;saveCargoSheet();renderCargoSheet();});
@@ -443,16 +447,19 @@
     });
     const totals=cargoSheetData.reduce((a,r)=>{
       const x=cargoCalc(r);
-      a.places+=x.places;a.cube+=x.cube;a.kg+=x.kg;a.price+=x.price;a.paid+=x.paid;a.debt+=x.debt;
+      a.places+=x.places;a.cube+=x.cube;a.kg+=x.kg;a.cubeAmount+=x.cubeAmount;a.kgAmount+=x.kgAmount;a.price+=x.price;a.paid+=x.paid;a.debt+=x.debt;
       return a;
-    },{places:0,cube:0,kg:0,price:0,paid:0,debt:0});
+    },{places:0,cube:0,kg:0,cubeAmount:0,kgAmount:0,price:0,paid:0,debt:0});
     $("sheetPlacesTotal").textContent=totals.places;
     $("sheetCubeTotal").textContent=sheetMoney(totals.cube);
     $("sheetKgTotal").textContent=sheetMoney(totals.kg);
+    $("sheetCubeChargeTotal").textContent=sheetMoney(totals.cubeAmount);
+    $("sheetKgChargeTotal").textContent=sheetMoney(totals.kgAmount);
     $("sheetPriceTotal").textContent=sheetMoney(totals.price);
     $("sheetPaidTotal").textContent=sheetMoney(totals.paid);
     $("sheetDebtTotal").textContent=sheetMoney(totals.debt);
-    $("sheetYuanTotal").textContent=sheetMoney(totals.price*6.9);
+    const cnyToTjs=sheetNum($("cargoSheetCnyRate").value);
+    $("sheetYuanTotal").textContent=sheetMoney(cnyToTjs>0?totals.price*9.2361/cnyToTjs:0);
     $("sheetSomoniTotal").textContent=sheetMoney(totals.price*9.2361);
   };
   $("addCargoSheetRow").addEventListener("click",()=>{cargoSheetData.push({date:new Date().toISOString().slice(0,10),cubePrice:200,kgPrice:1});saveCargoSheet();renderCargoSheet();const last=cargoSheetRows.lastElementChild;last?.querySelector("input[data-key='shop']")?.focus()});
@@ -488,8 +495,8 @@
     finally{btn.disabled=false;btn.textContent="↻ Сабт дар система";}
   });
   $("exportCargoSheet").addEventListener("click",()=>{
-    const headers=["№","Сана","Коди клиент","Мағоза","Шаҳр","Номи мол","Баландӣ","Паҳноӣ","Дарозӣ","Ҷой","Кг барои ҷой","Ҳамагӣ м3","Ҳамагӣ кг","Нархи куб","Нархи кг","Нархи ниҳоӣ USD","Пардохт USD","Қарз USD","Зичӣ кг/м3"];
-    const rows=cargoSheetData.map((r,i)=>{const x=cargoCalc(r);return [i+1,r.date,r.customerCode,r.shop,r.city,r.item,r.height,r.width,r.length,x.places,r.kgPerPlace,x.cube,x.kg,r.cubePrice??200,r.kgPrice??1,x.price,x.paid,x.debt,x.cube?x.density:""]});
+    const headers=["№","Сана","Коди клиент","Мағоза","Шаҳр","Номи мол","Баландӣ","Паҳноӣ","Дарозӣ","Ҷой","Кг барои ҷой","Ҳамагӣ м3","Ҳамагӣ кг","Нархи куб","Сумма за куб USD","Нархи кг","Сумма за кг USD","Нархи ниҳоӣ USD","Пардохт USD","Қарз USD","Зичӣ кг/м3"];
+    const rows=cargoSheetData.map((r,i)=>{const x=cargoCalc(r);return [i+1,r.date,r.customerCode,r.shop,r.city,r.item,r.height,r.width,r.length,x.places,r.kgPerPlace,x.cube,x.kg,r.cubePrice??200,x.cubeAmount,r.kgPrice??1,x.kgAmount,x.price,x.paid,x.debt,x.cube?x.density:""]});
     const csv="\uFEFF"+[headers,...rows].map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(";")).join("\r\n");
     const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="HOJI-NAIM-Excel-"+new Date().toISOString().slice(0,10)+".csv";a.click();URL.revokeObjectURL(url);
   });
