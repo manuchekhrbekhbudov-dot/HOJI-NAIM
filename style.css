@@ -1297,3 +1297,12 @@ html body.auth-mode #authPanel .auth-card .eyebrow{font-size:9px!important;lette
 .cargo-sheet-foot{background:#fff;border-color:#999;color:#444}
 .cargo-sheet-tools #syncCargoSheet{background:#17613c;color:#fff;border-color:#17613c}
 @media(max-width:650px){.cargo-sheet-head{padding:12px}.cargo-sheet-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.cargo-sheet-meta{grid-template-columns:1fr}}
+
+
+/* Warehouse inventory view */
+#view-inventory .stats{margin-top:12px}
+#view-inventory .section-head{align-items:center}
+#view-inventory .warehouse-status{margin:2px 3px 2px 0}
+#view-inventory .panel{margin-top:16px}
+#inventoryUnknownRows td{white-space:normal;min-width:110px}
+@media(max-width:720px){.sidebar nav{grid-template-columns:repeat(3,minmax(0,1fr))}#view-inventory .section-head{flex-wrap:wrap}#view-inventory .section-head .button{width:auto}}
