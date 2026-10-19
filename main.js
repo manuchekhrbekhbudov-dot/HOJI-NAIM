@@ -13,7 +13,7 @@
   const status = s => debt(s)<=0.005?"paid":paid(s)>0?"partial":"unpaid";
   const statusText = s => ({paid:"Пардохт шуд",partial:"Қисман пардохт",unpaid:"Қарздор"}[s]);
   function showAuth(show){$("authPanel").classList.toggle("hidden",!show);$("appContent").classList.toggle("hidden",show);document.querySelector(".topbar")?.classList.toggle("hidden",show);$("configNotice")?.classList.toggle("hidden",show||!$("configNotice").dataset.visible);document.body.classList.toggle("auth-mode",show);$("logoutBtn").classList.toggle("hidden",!state.user);}
-  function showView(name){document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id==="view-"+name));document.querySelectorAll(".nav").forEach(v=>v.classList.toggle("active",v.dataset.view===name));const t={dashboard:"Ҳисоботи умумӣ",shipments:"Борҳо",payments:"Пардохтҳо",expenses:"Хароҷот",reports:"Ҳисобот",admin:"Админ-панел"};$("pageTitle").textContent=t[name]||t.dashboard;}
+  function showView(name){document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id==="view-"+name));document.querySelectorAll(".nav").forEach(v=>v.classList.toggle("active",v.dataset.view===name));const t={dashboard:"Ҳисоботи умумӣ",shipments:"Борҳо",payments:"Пардохтҳо",expenses:"Хароҷот",reports:"Ҳисобот",inventory:"Анбор",admin:"Админ-панел"};$("pageTitle").textContent=t[name]||t.dashboard;}
   async function fetchAllRows(table,orderColumn,pageSize=1000){
     const all=[];
     for(let from=0;;from+=pageSize){
@@ -85,6 +85,18 @@
     $("customerSummaryEmpty").classList.toggle("hidden",rows.length>0);
     $("customerSummaryPlaces").textContent=fmt(rows.reduce((n,x)=>n+x.places,0));$("customerSummaryCube").textContent=fmt(rows.reduce((n,x)=>n+x.cube,0));$("customerSummaryKg").textContent=fmt(rows.reduce((n,x)=>n+x.kg,0));$("customerSummaryCubeAmount").textContent=fmt(rows.reduce((n,x)=>n+x.cubeAmount,0));$("customerSummaryKgAmount").textContent=fmt(rows.reduce((n,x)=>n+x.kgAmount,0));$("customerSummaryBilled").textContent=fmt(rows.reduce((n,x)=>n+x.billed,0));$("customerSummaryPaid").textContent=fmt(rows.reduce((n,x)=>n+x.paid,0));$("customerSummaryDebt").textContent=fmt(rows.reduce((n,x)=>n+x.debt,0));
   }
+  function warehouseStatusText(s){return ({in_warehouse:"Дар анбор",delivered:"Бароварда шуд",unknown:"Муайян нест"}[s]||"Муайян нест");}
+  function renderInventory(){
+    const inStock=state.shipments.filter(s=>(s.warehouse_status||"unknown")==="in_warehouse");
+    const unknown=state.shipments.filter(s=>!s.warehouse_status||s.warehouse_status==="unknown");
+    const search=String($("inventorySearch")?.value||"").trim().toLocaleLowerCase();
+    const filtered=inStock.filter(s=>[s.client_name,s.client_phone,s.tracking_no].some(v=>String(v||"").toLocaleLowerCase().includes(search)));
+    $("inventoryCount").textContent=String(inStock.length);$("inventoryWeight").textContent=fmt(inStock.reduce((n,s)=>n+Number(s.weight_kg||0),0));$("inventoryVolume").textContent=fmt(inStock.reduce((n,s)=>n+Number(s.volume_m3||0),0));
+    $("inventoryRows").innerHTML=filtered.map(s=>`<tr><td>${safe(s.client_name||"—")}</td><td>${safe(s.client_phone||"—")}</td><td>${safe(s.tracking_no||"—")}</td><td>${safe(s.shipment_date||"—")}</td><td>${fmt(s.weight_kg)} кг</td><td>${fmt(s.volume_m3)} м³</td><td>${fmt(total(s))}</td><td><button class="button secondary warehouse-status" data-shipment-id="${safe(s.id)}" data-next-status="delivered">✓ Борро гирифтанд</button></td></tr>`).join("");
+    $("inventoryEmpty").classList.toggle("hidden",filtered.length>0);
+    $("inventoryUnknownRows").innerHTML=unknown.filter(s=>[s.client_name,s.tracking_no].some(v=>String(v||"").toLocaleLowerCase().includes(search))).map(s=>`<tr><td>${safe(s.client_name||"—")}</td><td>${safe(s.tracking_no||"—")}</td><td>${safe(s.shipment_date||"—")}</td><td><span class="pill unpaid">${warehouseStatusText(s.warehouse_status)}</span></td><td><button class="button primary warehouse-status" data-shipment-id="${safe(s.id)}" data-next-status="in_warehouse">Ба анбор гузоштан</button> <button class="button secondary warehouse-status" data-shipment-id="${safe(s.id)}" data-next-status="delivered">Аллакай гирифтаанд</button></td></tr>`).join("");
+    $("inventoryUnknownEmpty").classList.toggle("hidden",unknown.length>0);
+  }
   function render(){
     const revenue=state.payments.reduce((n,p)=>n+Number(p.amount_tjs||0),0);
     const costs=state.expenses.reduce((n,e)=>n+Number(e.amount_tjs||0),0);
@@ -95,6 +107,7 @@
     $("adminExpenses").textContent=state.expenses.length;
     $("adminDebt").textContent=fmt(debts);
     $("adminRoleBadge").textContent=String(state.profile?.role||"").toUpperCase();
+    renderInventory();
     $("reportShipments").textContent=state.shipments.length;$("reportPaid").textContent=fmt(revenue);$("reportDebt").textContent=fmt(debts);$("reportExpenses").textContent=fmt(costs);
     renderCustomerSummary();
     const payButton=s=>debt(s)>0.005?`<button class="button secondary pay-shipment" data-shipment-id="${safe(s.id)}">Пардохт</button>`:`<span class="pill paid">Пардохт шуд</span>`;
@@ -193,6 +206,19 @@
   });
 
   document.addEventListener("click",async e=>{
+    const warehouseBtn=e.target.closest(".warehouse-status");
+    if(warehouseBtn){
+      if(!state.db||!state.user)return;
+      const shipmentId=warehouseBtn.dataset.shipmentId,nextStatus=warehouseBtn.dataset.nextStatus;
+      const shipment=state.shipments.find(s=>String(s.id)===String(shipmentId));
+      if(!shipment)return;
+      const action=nextStatus==="in_warehouse"?"ба анбор гузоштан":"ҳамчун баровардашуда қайд кардан";
+      if(!confirm("Бори «"+(shipment.tracking_no||shipment.client_name||shipmentId)+"»-ро "+action+"?"))return;
+      warehouseBtn.disabled=true;
+      const {error}=await state.db.from("shipments").update({warehouse_status:nextStatus}).eq("id",shipmentId);
+      if(error){warehouseBtn.disabled=false;toast("Ҳолати анбор нав нашуд. SQL-и мигратсияро иҷро кунед.");console.error("Warehouse status update:",error);return;}
+      toast(nextStatus==="in_warehouse"?"Бор ба анбор илова шуд.":"Бор аз анбор бароварда шуд.");await loadData();return;
+    }
     const btn=e.target.closest(".delete-shipment");
     if(!btn)return;
     if(!["owner","admin"].includes(state.profile?.role)){toast("Ҳазф танҳо барои админ аст.");return;}
@@ -217,6 +243,7 @@
   document.querySelectorAll(".nav").forEach(b=>{b.addEventListener("click",e=>{e.preventDefault();showView(b.dataset.view);});b.addEventListener("touchend",()=>showView(b.dataset.view),{passive:true});});
   document.querySelectorAll("[data-goto]").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.goto)));
   $("shipmentSearch").addEventListener("input",render);$("shipmentFilter").addEventListener("change",render);$("customerSummarySearch").addEventListener("input",renderCustomerSummary);
+  $("inventorySearch").addEventListener("input",renderInventory);$("refreshInventoryBtn").addEventListener("click",loadData);
   const dialog=$("shipmentDialog");
   function populateExistingCustomers(){
     const select=$("existingCustomerSelect");
@@ -440,7 +467,7 @@
     for(let attempt=0;attempt<5;attempt++){
       const trackingNo=String(f.get("tracking_number")||"").trim();
       if(!trackingNo){$("formMessage").textContent="Рақами борро дастӣ ворид кунед.";return;}
-      result=await state.db.from("shipments").insert({client_name:name,client_phone:phone,tracking_no:trackingNo,shipment_date:arrivalDate,billing_type:type,weight_kg:weight,volume_m3:volume,currency,unit_price:price,fx_rate:rate,total_original:Number((qty*price).toFixed(2)),total_tjs:totalTjs,notes:String(f.get("notes")||"").trim(),created_by:state.user.id});
+      result=await state.db.from("shipments").insert({client_name:name,client_phone:phone,tracking_no:trackingNo,shipment_date:arrivalDate,billing_type:type,weight_kg:weight,volume_m3:volume,currency,unit_price:price,fx_rate:rate,total_original:Number((qty*price).toFixed(2)),total_tjs:totalTjs,notes:String(f.get("notes")||"").trim(),warehouse_status:"in_warehouse",created_by:state.user.id});
       if(!result.error)break;
       if(result.error.code!=="23505" || !String(result.error.message||"").includes("tracking_no"))break;
     }
