@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#123d2a">
   <title>HOJI-NAIM CARGO</title>
-  <link rel="stylesheet" href="style.css?v=20261020-customersheets1">
+  <link rel="stylesheet" href="style.css?v=20261020-customersheets2">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
-  <script src="main.js?v=20261020-customersheets1" defer></script>
+  <script src="main.js?v=20261020-customersheets2" defer></script>
 </head>
 <body>
   <div class="app">
@@ -123,8 +123,6 @@
             <div class="panel-head cargo-sheet-head"><div><h3>▦ Дафтари Excel — HOJI-NAIM CARGO</h3><p>Маълумотро дар ҷадвал ворид кунед. Куб, вазн, зичӣ ва нарх худкор ҳисоб мешаванд.</p></div><div class="cargo-sheet-tools"><button type="button" class="button secondary" id="addCargoSheetRow">+ Сатри нав</button><button type="button" class="button primary" id="syncCargoSheet">↻ Сабт дар система</button><button type="button" class="button primary" id="exportCargoSheet">↓ Excel / CSV</button></div></div>
             <div class="cargo-sheet-meta"><label>Коди дафтар<input id="cargoSheetCode" type="text" placeholder="Код"></label><label>Телефон<input id="cargoSheetPhone" type="tel" placeholder="+992..."></label><label>Қурби юан ба сомонӣ<input id="cargoSheetCnyRate" type="number" min="0.000001" step="any" value="1.3803"></label></div><div class="cargo-sheet-summary"><div><span>Ҳамагӣ ҷой</span><strong id="sheetPlacesTotal">0</strong></div><div><span>Ҳамагӣ куб</span><strong id="sheetCubeTotal">0.00</strong></div><div><span>Ҳамагӣ кг</span><strong id="sheetKgTotal">0.00</strong></div><div><span>Сумма за куб ($)</span><strong id="sheetCubeChargeTotal">0.00</strong></div><div><span>Сумма за кг ($)</span><strong id="sheetKgChargeTotal">0.00</strong></div><div><span>Ҳамагӣ нарх ($)</span><strong id="sheetPriceTotal">0.00</strong></div><div><span>Пардохт ($)</span><strong id="sheetPaidTotal">0.00</strong></div><div><span>Қарз ($)</span><strong id="sheetDebtTotal">0.00</strong></div><div><span>Ҳамагӣ нарх (юан)</span><strong id="sheetYuanTotal">0.00</strong></div><div><span>Ҳамагӣ сомонӣ</span><strong id="sheetSomoniTotal">0.00</strong></div></div>
             <div class="cargo-sheet-wrap"><table class="cargo-sheet-table"><thead><tr><th>№</th><th>Сана</th><th>Коди клиент</th><th>Телефони клиент</th><th>Мағоза</th><th>Шаҳр</th><th>Номи мол</th><th>Баландӣ (м)</th><th>Паҳноӣ (м)</th><th>Дарозӣ (м)</th><th>Ҷой</th><th>Кг / ҷой</th><th>Ҳамагӣ м³</th><th>Ҳамагӣ кг</th><th>Нархи куб</th><th>Сумма за куб ($)</th><th>Нархи кг</th><th>Сумма за кг ($)</th><th>Нархи ниҳоӣ ($)</th><th>Пардохт ($)</th><th>Зичӣ кг/м³</th><th></th></tr></thead><tbody id="cargoSheetRows"></tbody></table></div>
-            <div class="cargo-sheet-foot"><span id="cargoSheetStatus">Маълумот дар ин браузер нигоҳ дошта мешавад.</span><button type="button" class="button danger" id="clearCargoSheet">Тоза кардани ҷадвал</button></div>
-          </div>
           <div class="panel" id="customerSheetsPanel">
             <div class="panel-head"><div><h3>Варақҳои алоҳидаи муштариён</h3><p>Барои ҳар муштарӣ варақи ҷудогона. Номи варақро тағйир диҳед ва маълумотро ба Excel бароред.</p></div></div>
             <div class="toolbar">
@@ -137,6 +135,8 @@
             <div class="table-wrap"><table><thead><tr><th>Сана</th><th>Коди муштарӣ</th><th>Муштарӣ</th><th>Телефон</th><th>Рақами бор</th><th>Ҷой</th><th>Вазн (кг)</th><th>Ҳаҷм (м³)</th><th>Ҳисоб (TJS)</th><th>Пардохт (TJS)</th><th>Қарз (TJS)</th></tr></thead><tbody id="customerSheetRows"></tbody></table></div>
             <p class="empty hidden" id="customerSheetEmpty">Барои ин муштарӣ бор ёфт нашуд.</p>
             <p class="muted">Маълумоти борҳо аз база гирифта мешавад. Номи варақ дар ҳамин браузер нигоҳ дошта мешавад.</p>
+          </div>
+            <div class="cargo-sheet-foot"><span id="cargoSheetStatus">Маълумот дар ин браузер нигоҳ дошта мешавад.</span><button type="button" class="button danger" id="clearCargoSheet">Тоза кардани ҷадвал</button></div>
           </div>
           <div class="panel customer-summary-panel" id="customerSummaryPanel">
             <div class="panel-head"><div><h3>Ҳисоботи муштариён</h3><p>Ҷамъбасти куб, кг, қарз ва зичии ҳар муштарӣ</p></div><input id="customerSummarySearch" type="search" placeholder="Ҷустуҷӯи муштарӣ ё код..." aria-label="Ҷустуҷӯи муштарӣ ё код"></div>
