@@ -1387,3 +1387,52 @@ tbody td{border-bottom:1px solid #e8eef4}
   .cargo-sheet-tools .button{flex:1}
   .cargo-sheet-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+
+/* Keep the Excel notebook visually distinct from the rest of the website */
+.cargo-sheet{
+  font-family:Calibri,Arial,sans-serif;
+  color:#202124;
+  background:#fff;
+  border:1px solid #b7c7d8;
+  border-radius:3px;
+  box-shadow:none;
+}
+.cargo-sheet-head{
+  background:#eaf1f8;
+  border-bottom:1px solid #b7c7d8;
+  padding:14px 16px;
+}
+.cargo-sheet-head h3{color:#1f4e78;font-family:Calibri,Arial,sans-serif;font-size:17px}
+.cargo-sheet-head p{color:#5f6b76}
+.cargo-sheet-tools .button{border-radius:3px;font-family:Calibri,Arial,sans-serif}
+.cargo-sheet-summary{
+  background:#f3f6fa;
+  border-bottom:1px solid #c8d4e0;
+}
+.cargo-sheet-summary>div{border-right:1px solid #d4dee8}
+.cargo-sheet-summary span{color:#52677b}
+.cargo-sheet-summary strong{color:#1f2933}
+.cargo-sheet .toolbar{padding:12px;background:#f5f8fb;border-bottom:1px solid #d5dfe9}
+.cargo-sheet .toolbar input,.cargo-sheet .toolbar select{
+  border:1px solid #b8c9d9;border-radius:2px;background:#fff;color:#202124;
+}
+.cargo-sheet table{font-family:Calibri,Arial,sans-serif;font-size:13px;border-collapse:collapse}
+.cargo-sheet thead th{
+  background:#d9e7f5;color:#1f1f1f;font-weight:700;
+  border:1px solid #b7c8da;padding:9px 10px;
+}
+.cargo-sheet tbody td{border:1px solid #d5dee7;padding:9px 10px}
+.cargo-sheet tbody tr:nth-child(even){background:#f6f9fc}
+.cargo-sheet tbody tr:hover{background:#e7f1fb}
+.cargo-sheet .button.primary{background:#217346;border-color:#217346}
+.cargo-sheet .button.primary:hover{background:#185c38}
+.cargo-sheet .button.secondary,.cargo-sheet .button.ghost{
+  background:#fff;border:1px solid #aabccc;color:#263746;
+}
+.cargo-sheet .cargo-sheet-foot{background:#f1f5f9;border-top:1px solid #c7d5e2}
+#customerSheetsPanel{background:#fff;border:1px solid #b7c7d8;border-radius:3px;box-shadow:none}
+#customerSheetsPanel .panel-head{background:#eaf1f8;border-bottom:1px solid #c8d4e0}
+#customerSheetsPanel .panel-head h3{color:#1f4e78}
+#customerSheetsPanel .toolbar{background:#f5f8fb}
+#customerSheetTabs button{border-radius:2px}
