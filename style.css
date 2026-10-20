@@ -1306,3 +1306,84 @@ html body.auth-mode #authPanel .auth-card .eyebrow{font-size:9px!important;lette
 #view-inventory .panel{margin-top:16px}
 #inventoryUnknownRows td{white-space:normal;min-width:110px}
 @media(max-width:720px){.sidebar nav{grid-template-columns:repeat(3,minmax(0,1fr))}#view-inventory .section-head{flex-wrap:wrap}#view-inventory .section-head .button{width:auto}}
+
+
+/* HOJI-NAIM CARGO — consistent, orderly workbook interface */
+:root{
+  --green:#315f86;--dark:#233d56;--ink:#263746;--muted:#718294;
+  --line:#dce5ed;--bg:#f2f5f9;--white:#fff;--shadow:0 6px 22px #243e560d;
+}
+body{background:#f2f5f9;color:#263746}
+.sidebar{background:#24394e;color:#edf4fa;border-right:1px solid #d7e0e9}
+.brand{padding-bottom:26px}
+.brand-mark{background:#dce8f4;color:#244b70;border-radius:10px}
+.brand small{color:#b6c8d9}
+.sidebar nav{gap:5px}
+.nav{color:#c5d3e0;border-radius:8px;padding:12px 13px}
+.nav.active,.nav:hover{background:#365b7d;color:#fff}
+.nav.active{box-shadow:inset 3px 0 #a9cde9}
+.side-bottom{border-top-color:#41586d;color:#c1d0dc}
+.main{padding:28px 30px 44px}
+.topbar{padding-bottom:17px;border-bottom:1px solid #dce5ed;margin-bottom:24px}
+.topbar h1{color:#253d53}
+.eyebrow{color:#7c8fa1}
+.top-actions select,.toolbar input,.toolbar select,.toolbar label input,.toolbar label select{border:1px solid #d3dee8;background:#fff;border-radius:7px}
+.button{border-radius:7px}
+.primary{background:#315f86}
+.primary:hover{background:#254b6c}
+.secondary,.ghost{border-color:#d1dce6;color:#30475c;background:#fff}
+.hero{background:linear-gradient(110deg,#294d6e,#507da3);border-radius:12px;box-shadow:var(--shadow)}
+.stat,.panel,.auth-card{border:1px solid #dce5ed;border-radius:10px;box-shadow:var(--shadow)}
+.panel{margin-bottom:18px}
+.panel-head{padding:16px 18px}
+table{border-collapse:separate;border-spacing:0}
+thead th{background:#e4edf6;color:#334f69;border-bottom:1px solid #cbd8e4}
+tbody tr:nth-child(even){background:#f5f8fb}
+tbody tr:hover{background:#eaf2f9}
+tbody td{border-bottom:1px solid #e8eef4}
+.view{animation:viewFade .16s ease-out}
+@keyframes viewFade{from{opacity:.75;transform:translateY(2px)}to{opacity:1;transform:translateY(0)}}
+.section-head{padding-bottom:12px;border-bottom:1px solid #dce5ed}
+.section-head h2{color:#29445e}
+.toolbar{align-items:end;flex-wrap:wrap}
+.toolbar label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:600;color:#5a6f82}
+#customerSheetsPanel{margin-top:0;border:1px solid #aebfd2;border-radius:8px;overflow:hidden;box-shadow:none}
+#customerSheetsPanel .panel-head{background:#e4edf6;border-bottom:1px solid #cbd8e4}
+#customerSheetsPanel .toolbar{padding:12px 16px 0}
+#customerSheetsPanel .toolbar label{min-width:190px;flex:1}
+#customerSheetsPanel .toolbar input,#customerSheetsPanel .toolbar select{width:100%;min-width:0}
+#customerSheetTabs{padding-bottom:12px;gap:7px}
+.customer-sheet-tab{min-width:100px}
+.cargo-sheet{border-color:#b9c9d8;border-radius:9px;box-shadow:none}
+.cargo-sheet-head{background:#e1eaf4;border-color:#c4d2df}
+.cargo-sheet-head h3{color:#2b4b68}
+.cargo-sheet-head p{color:#5d7286}
+.cargo-sheet-summary{background:#f0f4f8;border-color:#d2dde7}
+.cargo-sheet-summary>div{border-color:#d2dde7}
+.cargo-sheet-table thead th{background:#dce7f2}
+.cargo-sheet-table tbody tr:nth-child(even){background:#f4f7fa}
+.cargo-sheet-table tbody tr:hover{background:#eaf2f8}
+.cargo-sheet-tools .primary{background:#315f86}
+.notice{border-radius:9px}
+@media(max-width:1050px){
+  .main{padding:22px 18px 36px}
+}
+@media(max-width:720px){
+  .sidebar{background:#24394e;padding:12px}
+  .brand{padding:0 5px 12px}
+  .sidebar nav{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+  .nav{padding:9px 4px;min-height:58px;justify-content:center;text-align:center;flex-direction:column;gap:4px}
+  .nav span{font-size:10px;line-height:1.2}
+  .main{padding:16px 10px 30px}
+  .topbar{padding-bottom:14px;margin-bottom:18px}
+  .section-head{align-items:flex-start;flex-direction:column}
+  .section-head>.button,.section-head>button{align-self:flex-start}
+  .toolbar{align-items:stretch}
+  .toolbar input,.toolbar select{min-width:0;width:100%}
+  #customerSheetsPanel .toolbar label{min-width:100%;width:100%}
+  #customerSheetsPanel .toolbar .button{flex:1}
+  .cargo-sheet-head{align-items:flex-start;flex-direction:column}
+  .cargo-sheet-tools{width:100%}
+  .cargo-sheet-tools .button{flex:1}
+  .cargo-sheet-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
