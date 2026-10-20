@@ -1436,3 +1436,30 @@ tbody td{border-bottom:1px solid #e8eef4}
 #customerSheetsPanel .panel-head h3{color:#1f4e78}
 #customerSheetsPanel .toolbar{background:#f5f8fb}
 #customerSheetTabs button{border-radius:2px}
+
+
+/* Customer report tabs sit in the workbook's bottom sheet-tab strip */
+.excel-customer-tabs{
+  display:flex;align-items:flex-end;gap:10px;min-height:46px;
+  padding:8px 12px 0;background:#e8edf2;border-top:1px solid #aebdca;
+  border-bottom:1px solid #b8c6d3;overflow-x:auto;
+}
+.excel-tabs-label{font:12px Calibri,Arial,sans-serif;color:#46596b;white-space:nowrap;padding:0 4px 9px}
+#customerSheetTabs{display:flex;align-items:flex-end;gap:3px;flex-wrap:nowrap;margin:0;min-width:max-content}
+#customerSheetTabs .customer-sheet-tab{
+  font:13px Calibri,Arial,sans-serif;min-width:78px;max-width:180px;
+  border:1px solid #b6c4d1;border-bottom:0;border-radius:5px 5px 0 0;
+  padding:9px 15px 8px;background:#d9e2ea;color:#34495b;white-space:nowrap;
+}
+#customerSheetTabs .customer-sheet-tab.primary{
+  background:#fff;color:#217346;border-color:#8ea9bd;position:relative;
+  font-weight:700;box-shadow:0 -2px 0 #217346 inset;
+}
+#customerSheetsPanel{margin-top:0;border-top:0;border-radius:0 0 4px 4px}
+#customerSheetsPanel .panel-head{display:none}
+#customerSheetsPanel .toolbar{padding:12px;background:#f4f7fa;border-bottom:1px solid #d4dee7}
+@media(max-width:720px){
+ .excel-customer-tabs{align-items:flex-start;flex-direction:column;gap:4px;padding-top:8px}
+ .excel-tabs-label{padding-bottom:0}
+ #customerSheetTabs{max-width:100%;overflow-x:auto;width:100%}
+}
