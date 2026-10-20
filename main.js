@@ -85,6 +85,47 @@
     $("customerSummaryEmpty").classList.toggle("hidden",rows.length>0);
     $("customerSummaryPlaces").textContent=fmt(rows.reduce((n,x)=>n+x.places,0));$("customerSummaryCube").textContent=fmt(rows.reduce((n,x)=>n+x.cube,0));$("customerSummaryKg").textContent=fmt(rows.reduce((n,x)=>n+x.kg,0));$("customerSummaryCubeAmount").textContent=fmt(rows.reduce((n,x)=>n+x.cubeAmount,0));$("customerSummaryKgAmount").textContent=fmt(rows.reduce((n,x)=>n+x.kgAmount,0));$("customerSummaryBilled").textContent=fmt(rows.reduce((n,x)=>n+x.billed,0));$("customerSummaryPaid").textContent=fmt(rows.reduce((n,x)=>n+x.paid,0));$("customerSummaryDebt").textContent=fmt(rows.reduce((n,x)=>n+x.debt,0));
   }
+  const customerSheetNamesKey="hoji-naim-customer-sheet-names-v1";
+  const customerSheetNames=()=>{try{return JSON.parse(localStorage.getItem(customerSheetNamesKey)||"{}");}catch{return {};}};
+  const customerKey=s=>{const code=customerCodeOf(s),phone=String(s.client_phone||"").trim(),name=String(s.client_name||"").trim();return code?"code:"+code.toLocaleLowerCase():phone?"phone:"+phone.toLocaleLowerCase():"name:"+(name||"Муштарӣ").toLocaleLowerCase();};
+  function customerSheetGroups(){
+    const groups=new Map();
+    state.shipments.forEach(s=>{const key=customerKey(s);if(!groups.has(key))groups.set(key,{key,name:String(s.client_name||"Муштарӣ").trim(),code:customerCodeOf(s),phone:String(s.client_phone||"").trim(),shipments:[]});groups.get(key).shipments.push(s);});
+    return [...groups.values()].sort((a,b)=>a.name.localeCompare(b.name));
+  }
+  function currentCustomerSheet(){
+    const key=$("customerSheetSelect")?.value;
+    return customerSheetGroups().find(x=>x.key===key)||null;
+  }
+  function renderCustomerSheets(keepSelection=true){
+    const select=$("customerSheetSelect");if(!select)return;
+    const previous=keepSelection?select.value:"";
+    const names=customerSheetNames(),groups=customerSheetGroups();
+    select.innerHTML='<option value="">Муштариро интихоб кунед</option>'+groups.map((g,index)=>'<option value="'+safe(g.key)+'">'+safe((names[g.key]||("Лист "+(index+1)))+" — "+g.name+(g.code?" ("+g.code+")":""))+'</option>').join("");
+    if(groups.some(g=>g.key===previous))select.value=previous;else if(groups.length)select.value=groups[0].key;
+    const chosen=currentCustomerSheet();
+    $("customerSheetName").value=chosen?(names[chosen.key]||("Лист "+(groups.findIndex(g=>g.key===chosen.key)+1))):"";
+    $("customerSheetTabs").innerHTML=groups.map((g,index)=>'<button type="button" class="button '+(chosen?.key===g.key?"primary":"secondary")+' customer-sheet-tab" data-customer-key="'+safe(g.key)+'">'+safe(names[g.key]||("Лист "+(index+1)))+'</button>').join("");
+    const rows=chosen?chosen.shipments.map(s=>'<tr><td>'+safe(s.shipment_date||s.created_at?.slice(0,10)||"—")+'</td><td>'+safe(customerCodeOf(s)||"—")+'</td><td>'+safe(s.client_name||"—")+'</td><td>'+safe(s.client_phone||"—")+'</td><td>'+safe(s.tracking_no||"—")+'</td><td>'+fmt(noteNumberOf(s,"Ҷойҳо")??1)+'</td><td>'+fmt(s.weight_kg)+'</td><td>'+fmt(s.volume_m3)+'</td><td>'+fmt(total(s))+'</td><td>'+fmt(paid(s))+'</td><td>'+fmt(debt(s))+'</td></tr>').join(""):"";
+    $("customerSheetRows").innerHTML=rows;
+    $("customerSheetEmpty").classList.toggle("hidden",!!rows);
+    $("exportCustomerSheet").disabled=!chosen;
+  }
+  $("customerSheetSelect")?.addEventListener("change",()=>renderCustomerSheets());
+  $("saveCustomerSheetName")?.addEventListener("click",()=>{
+    const customer=currentCustomerSheet();if(!customer){toast("Аввал муштариро интихоб кунед.");return;}
+    const name=$("customerSheetName").value.trim();if(!name){toast("Номи варақро нависед.");return;}
+    if(/[\\/?*\[\]:]/.test(name)){toast("Дар номи варақ аломатҳои \\ / ? * [ ] : истифода нашавад.");return;}
+    const names=customerSheetNames();names[customer.key]=name.slice(0,31);localStorage.setItem(customerSheetNamesKey,JSON.stringify(names));renderCustomerSheets();toast("Номи варақи муштарӣ сабт шуд.");
+  });
+  $("customerSheetTabs")?.addEventListener("click",e=>{const btn=e.target.closest("[data-customer-key]");if(btn){$("customerSheetSelect").value=btn.dataset.customerKey;renderCustomerSheets();}});
+  $("exportCustomerSheet")?.addEventListener("click",()=>{
+    const customer=currentCustomerSheet();if(!customer){toast("Аввал муштариро интихоб кунед.");return;}
+    const names=customerSheetNames(),groups=customerSheetGroups(),defaultName="Лист "+(groups.findIndex(g=>g.key===customer.key)+1),sheetName=(names[customer.key]||defaultName).slice(0,31);
+    const rows=[["Сана","Коди муштарӣ","Муштарӣ","Телефон","Рақами бор","Ҷой","Вазн (кг)","Ҳаҷм (м³)","Ҳисоб (TJS)","Пардохт (TJS)","Қарз (TJS)"],...customer.shipments.map(s=>[s.shipment_date||s.created_at?.slice(0,10)||"",customerCodeOf(s),s.client_name||"",s.client_phone||"",s.tracking_no||"",noteNumberOf(s,"Ҷойҳо")??1,Number(s.weight_kg||0),Number(s.volume_m3||0),total(s),paid(s),debt(s)])];
+    if(window.XLSX){const wb=window.XLSX.utils.book_new();window.XLSX.utils.book_append_sheet(wb,window.XLSX.utils.aoa_to_sheet(rows),sheetName.replace(/[\\/?*\[\]:]/g," ").slice(0,31)||"Муштарӣ");window.XLSX.writeFile(wb,sheetName.replace(/[\\/?*\[\]:]/g,"-")+".xlsx");}
+    else{const csv="\\uFEFF"+rows.map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(";")).join("\\r\\n");const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));const a=document.createElement("a");a.href=url;a.download=sheetName+".csv";a.click();URL.revokeObjectURL(url);}
+  });
   function warehouseStatusText(s){return ({in_warehouse:"Дар анбор",delivered:"Бароварда шуд",unknown:"Муайян нест"}[s]||"Муайян нест");}
   function renderInventory(){
     const inStock=state.shipments.filter(s=>(s.warehouse_status||"unknown")==="in_warehouse");
@@ -110,6 +151,7 @@
     renderInventory();
     $("reportShipments").textContent=state.shipments.length;$("reportPaid").textContent=fmt(revenue);$("reportDebt").textContent=fmt(debts);$("reportExpenses").textContent=fmt(costs);
     renderCustomerSummary();
+    renderCustomerSheets();
     const payButton=s=>debt(s)>0.005?`<button class="button secondary pay-shipment" data-shipment-id="${safe(s.id)}">Пардохт</button>`:`<span class="pill paid">Пардохт шуд</span>`;
     const row=s=>`<tr><td>${safe(s.client_name||"—")}</td><td>${safe(s.tracking_no||"—")}</td><td>${fmt(s.weight_kg)} кг / ${fmt(s.volume_m3)} м³</td><td>${fmt(total(s))}</td><td>${fmt(debt(s))}</td><td><span class="pill ${status(s)}">${statusText(status(s))}</span></td><td>${payButton(s)}${["owner","admin"].includes(state.profile?.role)?` <button class="button danger delete-shipment" data-shipment-id="${safe(s.id)}">Удалить</button>`:""}</td></tr>`;
     $("recentRows").innerHTML=state.shipments.slice(0,8).map(row).join("");$("recentEmpty").classList.toggle("hidden",state.shipments.length>0);
