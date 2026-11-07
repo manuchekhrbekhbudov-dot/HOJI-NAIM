@@ -1,6 +1,9 @@
 -- HOJI-NAIM CARGO: atomically delete a shipment and its linked payments.
 -- Run this migration in Supabase SQL Editor on the EXISTING live database.
 -- PostgreSQL RPC calls run in a transaction: if either DELETE fails, both roll back.
+-- An older version of this function returned a different type; drop it first (no data is touched).
+drop function if exists public.admin_delete_shipment(uuid);
+
 create or replace function public.admin_delete_shipment(target_shipment_id uuid)
 returns jsonb
 language plpgsql
