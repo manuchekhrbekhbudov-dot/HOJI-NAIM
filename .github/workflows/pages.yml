@@ -27,6 +27,10 @@ jobs:
           test -f index.html
           test -f main.js
           test -f style.css
+          test -f js/core.js
+          test -f js/exporter.js
+          test -f js/notebook.js
+          for f in main.js js/*.js; do node --check "$f"; done
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
