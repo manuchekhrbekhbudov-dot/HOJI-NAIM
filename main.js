@@ -839,7 +839,7 @@
       return;
     }
     const tr = e.target.closest("tr[data-ship]");
-    if (tr && !e.target.closest("button,a,input,select")) openDetail(tr.dataset.ship);
+    if (tr && !e.target.closest("button,a,input,select") && !tr.closest("#notebook")) openDetail(tr.dataset.ship); // notebook: double-click opens
   });
   // Click outside a modal closes it.
   document.querySelectorAll("dialog.modal, dialog.drawer").forEach(d => d.addEventListener("click", e => { if (e.target === d && d.id !== "confirmDialog") d.close(); }));

@@ -121,28 +121,41 @@
     const isDraft = !sheet;
     el.innerHTML = `
       <div class="xl" data-active="${esc(active)}">
-        <div class="xl-titlebar"><span class="xl-logo">X</span><b>HOJI-NAIM CARGO — Дафтар.xlsx</b><span class="xl-saved" id="xlSaved">${S.features.sheets ? "Варақҳо дар база" : "Варақҳо дар ҳамин браузер"}</span></div>
-        <div class="xl-ribbon" role="toolbar" aria-label="Амалҳои дафтар">
-          <div class="xl-group"><button class="xl-btn" data-xl="add-row"><svg><use href="#i-plus"/></svg><span>${isDraft ? "Сатри нав" : "Бори нав"}</span></button>
-          <button class="xl-btn" data-xl="add-sheet"><svg><use href="#i-sheet"/></svg><span>Варақи нав</span></button>
-          <button class="xl-btn" data-xl="rename" ${isDraft ? "disabled" : ""}><svg><use href="#i-edit"/></svg><span>Номи варақ</span></button>
-          ${sheet?.empty ? `<button class="xl-btn" data-xl="remove-sheet"><svg><use href="#i-trash"/></svg><span>Нест кардани варақ</span></button>` : ""}</div>
-          <div class="xl-group">${isDraft ? `<button class="xl-btn" data-xl="sync"><svg><use href="#i-refresh"/></svg><span>Сабт дар система</span></button>` : ""}
-          <button class="xl-btn" data-xl="export-sheet"><svg><use href="#i-download"/></svg><span>Ин варақ (.xlsx)</span></button>
-          <button class="xl-btn xl-btn-main" data-xl="export-all"><svg><use href="#i-download"/></svg><span>Ҳамаи дафтар (.xlsx)</span></button>
-          ${isDraft ? `<button class="xl-btn" data-xl="clear"><svg><use href="#i-trash"/></svg><span>Тоза кардан</span></button>` : ""}</div>
+        <div class="xl-titlebar">
+          <span class="xl-logo" aria-hidden="true"><i>X</i></span>
+          <span class="xl-qat" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></svg></span>
+          <b class="xl-docname">Дафтар.xlsx <span>— Excel · HOJI-NAIM CARGO</span></b>
+          <span class="xl-saved" id="xlSaved">${S.features.sheets ? "Дар база сабт мешавад" : "Дар ҳамин браузер"}</span>
         </div>
-        <div class="xl-formula"><span class="xl-namebox" id="xlName">A1</span><span class="xl-fx">fx</span><input id="xlFx" readonly aria-label="Сатри формула" value=""></div>
+        <div class="xl-menutabs" aria-hidden="true"><span>Файл</span><span class="on">Асосӣ</span><span>Ворид</span><span>Формулаҳо</span><span>Маълумот</span><span>Намоиш</span></div>
+        <div class="xl-ribbon" role="toolbar" aria-label="Амалҳои дафтар">
+          <div class="xl-group"><div class="xl-group-btns">
+            <button class="xl-btn xl-btn-lg" data-xl="add-row"><svg><use href="#i-plus"/></svg><span>${isDraft ? "Сатри нав" : "Бори нав"}</span></button>
+            ${isDraft ? `<button class="xl-btn xl-btn-lg" data-xl="sync"><svg><use href="#i-refresh"/></svg><span>Сабт дар система</span></button>` : ""}
+          </div><span class="xl-group-label">${isDraft ? "Сатрҳо" : "Борҳо"}</span></div>
+          <div class="xl-group"><div class="xl-group-btns xl-stack">
+            <button class="xl-btn" data-xl="add-sheet"><svg><use href="#i-sheet"/></svg><span>Варақи нав</span></button>
+            <button class="xl-btn" data-xl="rename" ${isDraft ? "disabled" : ""}><svg><use href="#i-edit"/></svg><span>Номи варақ</span></button>
+            ${sheet?.empty ? `<button class="xl-btn" data-xl="remove-sheet"><svg><use href="#i-trash"/></svg><span>Нест кардани варақ</span></button>` : ""}
+          </div><span class="xl-group-label">Варақҳо</span></div>
+          <div class="xl-group"><div class="xl-group-btns">
+            <button class="xl-btn xl-btn-lg" data-xl="export-all"><svg><use href="#i-download"/></svg><span>Ҳамаи дафтар</span></button>
+            <div class="xl-stack"><button class="xl-btn" data-xl="export-sheet"><svg><use href="#i-download"/></svg><span>Ин варақ (.xlsx)</span></button>
+            ${isDraft ? `<button class="xl-btn" data-xl="clear"><svg><use href="#i-trash"/></svg><span>Тоза кардан</span></button>` : ""}</div>
+          </div><span class="xl-group-label">Содирот</span></div>
+        </div>
+        <div class="xl-formula"><span class="xl-namebox" id="xlName">A1</span><span class="xl-fxicons" aria-hidden="true"><i>✕</i><i>✓</i><em>fx</em></span><input id="xlFx" readonly aria-label="Сатри формула" value=""></div>
         ${isDraft ? draftMeta() : customerMeta(sheet)}
         <div class="xl-gridwrap" id="xlGridWrap">${isDraft ? draftGrid() : customerGrid(sheet)}</div>
         <div class="xl-tabsbar">
+          <button class="xl-tabnav" data-xl="tabs-left" aria-label="Варақҳои пешина">◀</button><button class="xl-tabnav" data-xl="tabs-right" aria-label="Варақҳои баъдина">▶</button>
           <div class="xl-tabs" id="xlTabs" role="tablist" aria-label="Варақҳо">
             <button class="xl-tab${isDraft ? " on" : ""}" data-sheet="${DRAFT_ID}" role="tab" aria-selected="${isDraft}">${DRAFT_NAME}</button>
             ${list.map(x => `<button class="xl-tab${x.id === active ? " on" : ""}" data-sheet="${esc(x.id)}" role="tab" aria-selected="${x.id === active}" title="${esc(x.customer.name)}${x.customer.code ? " · " + esc(x.customer.code) : ""} — барои иваз кардани ном ду бор пахш кунед">${esc(x.name)}</button>`).join("")}
           </div>
-          <button class="xl-addtab" data-xl="add-sheet" title="Варақи нав" aria-label="Варақи нав">+</button>
+          <button class="xl-addtab" data-xl="add-sheet" title="Варақи нав" aria-label="Варақи нав"><span>+</span></button>
         </div>
-        <div class="xl-status"><span id="xlStatus">Омода</span><span id="xlAgg"></span><span class="xl-sheetcount">${list.length + 1} варақ</span></div>
+        <div class="xl-status"><span id="xlStatus">Омода</span><span id="xlAgg"></span><span class="xl-sheetcount">${list.length + 1} варақ</span><span class="xl-zoom" aria-hidden="true"><i class="xl-view on"></i><i class="xl-view v2"></i><i class="xl-view v3"></i><b>−</b><span class="xl-slider"><i></i></span><b>+</b>100%</span></div>
       </div>`;
     defaultAgg(isDraft, sheet);
     if (!isDraft) { setStatus(sheet.customer.shipments.length + " бор · " + esc(sheet.customer.name)); }
@@ -180,7 +193,7 @@
     const body = draft.map((r, i) => {
       const x = calc(r); Object.keys(totals).forEach(k => (totals[k] += x[k] || 0));
       const R = i + HEAD_ROW + 1;
-      return `<tr data-i="${i}"><th class="xl-rh">${R}</th><td class="xl-c xl-num" data-r="${R}" data-c="0">${i + 1}</td>${DRAFT_COLS.map(([key, , type], ci) => {
+      return `<tr data-i="${i}"${i % 2 ? ' class="xl-band"' : ""}><th class="xl-rh">${R}</th><td class="xl-c xl-num" data-r="${R}" data-c="0">${i + 1}</td>${DRAFT_COLS.map(([key, , type], ci) => {
         if (type === "calc") { const k = key.slice(1); const v = k === "density" ? (x.cube > 0 ? fmt(x.density, 2) : "—") : fmt(x[k], k === "cube" ? 3 : 2); return `<td class="xl-c xl-num xl-calc${k === "price" ? " xl-strong" : ""}${k === "debt" && x.debt > 0.005 ? " xl-red" : ""}" data-k="${k}" data-r="${R}" data-c="${ci + 1}" data-f="${esc(FORMULA[key](R))}">${v}</td>`; }
         const val = r[key] ?? (key === "cubePrice" ? D.cubePrice : key === "kgPrice" ? D.kgPrice : key === "paid" ? "" : "");
         return `<td class="xl-c xl-in${type === "number" ? " xl-num" : ""}" data-r="${R}" data-c="${ci + 1}"><input data-row="${i}" data-key="${key}" type="${type}"${type === "number" ? ' min="0" step="any" inputmode="decimal"' : ""} value="${esc(val)}" aria-label="${esc(DRAFT_COLS[ci][1])}, сатри ${i + 1}"></td>`;
@@ -192,7 +205,7 @@
       const map = { places: "places", "=cube": "cube", "=kg": "kg", "=cubeAmount": "cubeAmount", "=kgAmount": "kgAmount", "=price": "price", paid: "paid", "=debt": "debt" };
       return map[key] ? `<td class="xl-c xl-num" data-tk="${map[key]}" data-r="${T}" data-c="${ci + 1}" data-f="${sumF(key)}">${fmt(totals[map[key]], key === "=cube" ? 3 : key === "places" ? 0 : 2)}</td>` : `<td class="xl-c" data-r="${T}" data-c="${ci + 1}"></td>`;
     }).join("")}<td class="xl-c"></td></tr>` : "";
-    const filler = fillerRows(draft.length ? T + 1 : HEAD_ROW + 1, DRAFT_COLS.length + 2, draft.length ? 6 : 12);
+    const filler = fillerRows(draft.length ? T + 1 : HEAD_ROW + 1, DRAFT_COLS.length + 2, Math.max(8, 26 - draft.length));
     return `<table class="xl-grid"><colgroup><col class="xl-rhcol"><col style="width:44px">${DRAFT_COLS.map(c => `<col style="width:${c[3]}px">`).join("")}<col style="width:34px"></colgroup>
       <thead><tr class="xl-letters"><th class="xl-corner"></th>${letters.map(l => `<th>${l}</th>`).join("")}<th></th></tr></thead>
       <tbody><tr class="xl-head"><th class="xl-rh">${HEAD_ROW}</th><td class="xl-c" data-r="1" data-c="0">№</td>${DRAFT_COLS.map((c, ci) => `<td class="xl-c" data-r="1" data-c="${ci + 1}">${c[1]}</td>`).join("")}<td class="xl-c"></td></tr>${body}${totalRow}${filler}</tbody></table>
@@ -214,7 +227,7 @@
         [fmt(s.total_original), "xl-num"], [fmt(HN.total(s)), "xl-num"], [fmt(HN.paid(s)), "xl-num"], [fmt(debt), "xl-num xl-calc" + (debt > 0.005 ? " xl-red" : ""), `=MAX(0,J${R}-K${R})`],
         [S.features.warehouse ? HN.whStatusText[HN.whStatus(s)] : "—", "xl-center wh-" + HN.whStatus(s)], [esc(HN.freeNotes(s)), "xl-text"],
       ];
-      return `<tr class="xl-datarow" data-ship="${esc(s.id)}" title="Барои кушодани бор ду бор пахш кунед"><th class="xl-rh">${R}</th><td class="xl-c xl-num" data-r="${R}" data-c="0">${i + 1}</td>${cells.map(([v, cls, f], ci) => `<td class="xl-c ${cls}" data-r="${R}" data-c="${ci + 1}"${f ? ` data-f="${esc(f)}"` : ""}>${v}</td>`).join("")}</tr>`;
+      return `<tr class="xl-datarow${i % 2 ? " xl-band" : ""}" data-ship="${esc(s.id)}" title="Барои кушодани бор ду бор пахш кунед"><th class="xl-rh">${R}</th><td class="xl-c xl-num" data-r="${R}" data-c="0">${i + 1}</td>${cells.map(([v, cls, f], ci) => `<td class="xl-c ${cls}" data-r="${R}" data-c="${ci + 1}"${f ? ` data-f="${esc(f)}"` : ""}>${v}</td>`).join("")}</tr>`;
     }).join("");
     const sum = (col, k) => `=SUM(${col}${first}:${col}${T - 1})`;
     const tot = (fn, d = 2) => fmt(rows.reduce((n, s) => n + HN.num(fn(s)), 0), d);
@@ -224,7 +237,7 @@
       <td class="xl-c xl-num" data-r="${T}" data-c="10" data-f="${sum("K")}">${tot(HN.paid)}</td><td class="xl-c xl-num xl-red" data-r="${T}" data-c="11" data-f="${sum("L")}">${tot(HN.debt)}</td><td class="xl-c" data-r="${T}" data-c="12"></td><td class="xl-c" data-r="${T}" data-c="13"></td></tr>` : "";
     return `<table class="xl-grid"><colgroup><col class="xl-rhcol"><col style="width:44px">${CUST_COLS.map(c => `<col style="width:${c[1]}px">`).join("")}</colgroup>
       <thead><tr class="xl-letters"><th class="xl-corner"></th>${letters.map(l => `<th>${l}</th>`).join("")}</tr></thead>
-      <tbody><tr class="xl-head"><th class="xl-rh">${HEAD_ROW}</th><td class="xl-c" data-r="1" data-c="0">№</td>${CUST_COLS.map((c, ci) => `<td class="xl-c" data-r="1" data-c="${ci + 1}">${c[0]}</td>`).join("")}</tr>${body}${totalRow}${fillerRows(rows.length ? T + 1 : first, CUST_COLS.length + 1, rows.length ? 6 : 12)}</tbody></table>
+      <tbody><tr class="xl-head"><th class="xl-rh">${HEAD_ROW}</th><td class="xl-c" data-r="1" data-c="0">№</td>${CUST_COLS.map((c, ci) => `<td class="xl-c" data-r="1" data-c="${ci + 1}">${c[0]}</td>`).join("")}</tr>${body}${totalRow}${fillerRows(rows.length ? T + 1 : first, CUST_COLS.length + 1, Math.max(8, 26 - rows.length))}</tbody></table>
       ${rows.length ? "" : `<p class="xl-empty">Барои ин муштарӣ ҳоло бор нест. «Бори нав»-ро пахш кунед — бор дар база сабт мешавад ва дар ҳамин варақ пайдо мешавад.</p>`}`;
   }
   function fillerRows(start, cols, n) {
@@ -366,6 +379,7 @@
       } else HN.openShipment(null, sh.customer);
       return;
     }
+    if (kind === "tabs-left" || kind === "tabs-right") { const bar = root().querySelector(".xl-tabs"); bar?.scrollBy({ left: kind === "tabs-left" ? -200 : 200, behavior: "smooth" }); return; }
     if (kind === "add-sheet") { openSheetDialog(); return; }
     if (kind === "rename") { const t = root().querySelector(".xl-tab.on"); if (t) startRename(t); return; }
     if (kind === "remove-sheet" && sh?.empty) {
