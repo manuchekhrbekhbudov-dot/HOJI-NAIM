@@ -198,6 +198,7 @@
   HN.dbError = err => {
     const m = String(err?.message || "хатои номаълум");
     if (err?.code === "23505") return "Ин рақами бор аллакай вуҷуд дорад. Рақами дигар нависед.";
+    if (/has payments/i.test(m)) return "Ин бор пардохт дорад. Барои нест кардани бор бо пардохтҳояш дар Supabase → SQL Editor файли supabase/admin_delete_shipment.sql-ро иҷро кунед (як бор).";
     if (err?.code === "42501" || /row-level security|permission/i.test(m)) return "Барои ин амал иҷозат надоред.";
     if (/Failed to fetch|NetworkError/i.test(m)) return "Пайваст бо интернет ё база нест. Дубора кӯшиш кунед.";
     return m;
