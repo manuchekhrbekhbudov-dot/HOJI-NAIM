@@ -409,6 +409,7 @@
     try {
       for (const r of rows) {
         const x = calc(r);
+        if (HN.isLocked?.(toISO(r.date) || HN.today())) throw new Error(HN.lockMsg());
         if (!r.syncTrackingNo) { const d = (toISO(r.date) || HN.today()).replace(/-/g, ""); r.syncTrackingNo = "SHEET-" + d + "-" + (code.replace(/[^a-zA-Z0-9]/g, "").slice(0, 12) || "CLIENT") + "-" + uid().toUpperCase(); save(sh); }
         const existing = S.shipments.find(s => s.tracking_no === r.syncTrackingNo);
         const parts = { "Коди муштарӣ": code, "Телефон": phone, "Ҷойҳо": x.places, "Кг барои ҷой": N(r.kgPerPlace), "Нархи куб": x.cubePrice, "Сумма куб": x.cubeAmount.toFixed(2), "Нархи кг": x.kgPrice, "Сумма кг": x.kgAmount.toFixed(2), "Шаҳр": r.city || "", "Мол": r.item || "", "Андоза": N(r.height) && N(r.width) && N(r.length) ? `${r.height} × ${r.width} × ${r.length} м` : "", "Мағоза": r.shop || "" };
