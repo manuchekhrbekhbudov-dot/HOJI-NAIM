@@ -116,21 +116,24 @@
   async function doLoad() {
     setConn("busy", "Маълумот бор шуда истодааст…");
     try {
-      const prof = await S.db.from("profiles").select("*").eq("id", S.user.id).maybeSingle();
+      // All requests go out together (one round trip); rows the role may not read come back empty (RLS).
+      const first = !S.loadedOnce;
+      const [prof, shipments, payments, expenses] = await Promise.all([
+        S.db.from("profiles").select("*").eq("id", S.user.id).maybeSingle(),
+        fetchAll("shipments", "created_at"),
+        fetchAll("payments", "payment_date"),
+        fetchAll("expenses", "expense_date").catch(() => []),
+        first ? detectFeatures() : S.features.sheets ? loadSheets() : null,
+      ]);
       if (prof.error) console.warn("Profile read failed", prof.error);
       S.profile = prof.data || null;
       paintUser();
       if (!HN.can("staff")) { setConn("ok", "Пайваст шуд"); $("noAccess").classList.remove("hidden"); $("views").classList.add("hidden"); applyPermissions(); S.loadedOnce = true; return; }
       $("noAccess").classList.add("hidden"); $("views").classList.remove("hidden");
-      const [shipments, payments, expenses] = await Promise.all([
-        fetchAll("shipments", "created_at"),
-        fetchAll("payments", "payment_date"),
-        HN.can("finance") ? fetchAll("expenses", "expense_date") : Promise.resolve([]),
-      ]);
-      Object.assign(S, { shipments, payments, expenses });
+      Object.assign(S, { shipments, payments, expenses: HN.can("finance") ? expenses : [] });
       HN.reindex();
-      if (!S.loadedOnce) await detectFeatures();
-      else if (S.features.sheets) await loadSheets();
+      if (first && !S.shipments.length) { const r = await S.db.from("shipments").select("warehouse_status").limit(1); S.features.warehouse = !r.error; }
+      if (S.shipments.length) S.features.warehouse = Object.prototype.hasOwnProperty.call(S.shipments[0], "warehouse_status");
       S.loadedOnce = true;
       setConn("ok", "Пайваст шуд");
     } catch (err) {
@@ -144,12 +147,8 @@
   }
   HN.reload = loadData;
   async function detectFeatures() {
-    const f = S.features;
-    if (S.shipments.length) f.warehouse = Object.prototype.hasOwnProperty.call(S.shipments[0], "warehouse_status");
-    else { const r = await S.db.from("shipments").select("warehouse_status").limit(1); f.warehouse = !r.error; }
-    const a = await S.db.from("audit_log").select("id").limit(1);
-    f.audit = !a.error;
-    await loadSheets();
+    const [a] = await Promise.all([S.db.from("audit_log").select("id").limit(1), loadSheets()]);
+    S.features.audit = !a.error;
   }
   async function loadSheets() {
     const r = await S.db.from("customer_sheets").select("*").order("created_at", { ascending: true });
