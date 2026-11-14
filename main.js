@@ -180,7 +180,9 @@
 
   function periodRange(p) {
     const t = HN.today();
-    return { today: [t, t], week: [HN.weekStart(t), t], month: [HN.monthStart(t), t], year: [t.slice(0, 4) + "-01-01", t], all: [null, null] }[p] || [null, null];
+    // Whole period (also counts entries dated later in the same week/month/year).
+    const d = HN.parseDate(t), monthEnd = HN.isoDate(new Date(d.getFullYear(), d.getMonth() + 1, 0));
+    return { today: [t, t], week: [HN.weekStart(t), HN.addDays(HN.weekStart(t), 6)], month: [HN.monthStart(t), monthEnd], year: [t.slice(0, 4) + "-01-01", t.slice(0, 4) + "-12-31"], all: [null, null] }[p] || [null, null];
   }
 
   /* ----- Dashboard ----- */
