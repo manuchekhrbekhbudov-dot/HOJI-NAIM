@@ -14,11 +14,16 @@
   /* ================= Loading & features ================= */
   async function load(first) {
     const q = (t, o) => S.db.from(t).select("*").order(o, { ascending: true });
-    const [rates, batches, settings, method, payMethod] = await Promise.all([
+    const [rates, batches, settings, method, payMethod, tgSubs, tgLog] = await Promise.all([
       q("fx_rates", "rate_date"), S.db.from("batches").select("*").order("created_at", { ascending: false }), q("app_settings", "key"),
       first || S.features.expMethod === undefined ? S.db.from("expenses").select("method").limit(1) : Promise.resolve({ error: S.features.expMethod ? null : {} }),
       first || S.features.payMethod === undefined ? S.db.from("payments").select("method").limit(1) : Promise.resolve({ error: S.features.payMethod ? null : {} }),
+      S.db.from("telegram_subscribers").select("chat_id,phone_key,first_name,username,active,created_at").order("created_at", { ascending: false }),
+      S.db.from("telegram_log").select("*").order("created_at", { ascending: false }).limit(15),
     ]);
+    S.features.telegram = !tgSubs.error;
+    S.tgSubs = tgSubs.error ? [] : (tgSubs.data || []).filter(x => x.active !== false);
+    S.tgLog = tgLog.error ? [] : tgLog.data || [];
     S.features.payMethod = !payMethod.error;
     S.features.rates = !rates.error; S.rates = rates.error ? [] : rates.data || [];
     S.features.batches = !batches.error; S.batches = batches.error ? [] : batches.data || [];
@@ -295,6 +300,52 @@
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(statementText(d))}`, "_blank", "noopener");
   });
 
+  /* ================= Telegram ================= */
+  const phoneKey = p => HN.digits(p).slice(-9);
+  HN.tgSubscribed = phone => { const k = phoneKey(phone); return k.length >= 7 && (S.tgSubs || []).some(x => x.phone_key === k); };
+  const TG_EVENT = { arrived: "Бор расид", paid: "Пардохт", delivered: "Супорида шуд", custom: "Паёми дастӣ" };
+  const randomSecret = () => Array.from(crypto.getRandomValues(new Uint8Array(24)), b => "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"[b % 56]).join("");
+  function telegramCard() {
+    const bot = HN.lsGet("hn-tg-bot", "");
+    const steps = `<ol class="setup-steps">
+      <li>Telegram → <b>@BotFather</b> → <code>/newbot</code> → ном ва username (масалан <code>hoji_naim_cargo_bot</code>) → <b>токен</b>-ро нусха кунед.</li>
+      <li>Supabase → <b>Edge Functions → Deploy a new function → Via Editor</b>, ном: <code>telegram-bot</code>. Матни файли <code>supabase/functions/telegram-bot/index.ts</code>-ро аз GitHub гузоред → <b>Deploy</b>. Баъд дар танзимоти функсия <b>«Verify JWT»</b>-ро <b>хомӯш</b> кунед.</li>
+      <li>Supabase → <b>Edge Functions → Secrets</b>: <code>TELEGRAM_BOT_TOKEN</code> = токен; <code>TELEGRAM_WEBHOOK_SECRET</code> ва <code>HOOK_SECRET</code> = ду калиди тасодуфӣ (тугмаи поён).</li>
+      <li>SQL Editor: файли <code>supabase/telegram.sql</code> → дар он <code>ИВАЗ_КУНЕД_HOOK_SECRET</code>-ро бо ҳамон <code>HOOK_SECRET</code> иваз кунед → <b>Run</b>.</li>
+      <li>Пайвасти бот: дар браузер ин суроғаро кушоед (токен ва калидро гузоред):<br><code class="wrap">https://api.telegram.org/bot&lt;ТОКЕН&gt;/setWebhook?url=${esc(HN.config.supabaseUrl)}/functions/v1/telegram-bot&amp;secret_token=&lt;TELEGRAM_WEBHOOK_SECRET&gt;</code><br>Бояд <code>"ok":true</code> барояд.</li>
+    </ol>
+    <div class="btn-row"><button class="btn btn-ghost" id="tgSecretBtn" type="button">Калиди тасодуфӣ</button><code id="tgSecret" class="secret-out"></code></div>`;
+    if (!S.features.telegram) return `<div class="panel span-all"><div class="panel-head"><div><h3>Telegram бот барои муштариён</h3><p class="muted">Муштарӣ ботро мекушояд, телефонашро мефиристад ва хабарҳоро шахсан мегирад: бор расид, пардохт қабул шуд, бор супорида шуд, қарз.</p></div></div>${steps}</div>`;
+    const log = (S.tgLog || []).slice(0, 8);
+    return `<div class="panel span-all"><div class="panel-head"><div><h3>Telegram бот</h3><p class="muted">Обуначиён: <b>${S.tgSubs.length}</b>. Паёмҳо худкор мераванд: бор расид · пардохт · супоридан.</p></div>
+      <div class="btn-row"><label class="field"><span>Username-и бот</span><input id="tgBot" value="${esc(bot)}" placeholder="hoji_naim_cargo_bot"></label><button class="btn btn-ghost" id="tgInfo" type="button">Санҷиши бот</button></div></div>
+      ${bot ? `<p>Пайванд барои муштариён: <a href="https://t.me/${esc(bot)}" target="_blank" rel="noopener"><b>t.me/${esc(bot)}</b></a> <button class="btn btn-xs btn-soft" id="tgCopy" type="button">Нусха</button></p>` : '<p class="hint">Username-и ботро нависед, то пайванд барои муштариён пайдо шавад.</p>'}
+      <div class="table-wrap"><table class="tbl"><thead><tr><th>Вақт</th><th>Паём</th><th>Бор</th><th>Ҳолат</th></tr></thead><tbody>${log.map(l => `<tr><td class="nowrap">${HN.fmtDateTime(l.created_at)}</td><td>${TG_EVENT[l.event] || esc(l.event)}</td><td>${esc(HN.shipmentById(l.shipment_id)?.tracking_no || "—")}</td><td>${l.ok ? '<span class="pill pay-paid">Фиристода шуд</span>' : `<span class="pill pay-unpaid" title="${esc(l.error)}">Хато</span>`}</td></tr>`).join("") || '<tr><td colspan="4" class="muted">Ҳоло паём нафиристода шудааст.</td></tr>'}</tbody></table></div>
+      <details class="setup"><summary>Дастури насб</summary>${steps}</details></div>`;
+  }
+  function wireTelegramCard() {
+    if ($("tgSecretBtn")) $("tgSecretBtn").onclick = () => { $("tgSecret").textContent = randomSecret(); };
+    if ($("tgBot")) $("tgBot").onchange = e => { HN.lsSet("hn-tg-bot", e.target.value.trim().replace(/^@/, "")); renderAdminExtras(); };
+    if ($("tgCopy")) $("tgCopy").onclick = async () => { try { await navigator.clipboard.writeText("https://t.me/" + HN.lsGet("hn-tg-bot", "")); HN.toast("Пайванд нусха шуд.", "ok"); } catch { HN.toast("Нусха нашуд."); } };
+    if ($("tgInfo")) $("tgInfo").onclick = async () => {
+      const r = await S.db.functions.invoke("telegram-bot", { body: { action: "info" } });
+      if (r.error || !r.data?.ok) { HN.toast("Бот ҷавоб надод. Қадамҳои 2–3-ро санҷед.", "error"); return; }
+      HN.lsSet("hn-tg-bot", r.data.username); HN.toast("Бот кор мекунад: @" + r.data.username, "ok"); renderAdminExtras();
+    };
+  }
+  HN.tgSend = async (shipmentId, event) => {
+    const r = await S.db.functions.invoke("telegram-bot", { body: { action: "send", shipment_id: shipmentId, event } });
+    if (r.error || !r.data?.ok) { HN.toast("Паём нарафт: " + (r.data?.error || r.error?.message || "бот танзим нашудааст"), "error"); return; }
+    HN.toast(r.data.sent ? `Паём ба Telegram рафт (${r.data.sent}).` : "Муштарӣ ҳанӯз ба бот обуна нашудааст.", r.data.sent ? "ok" : "info");
+    await HN.reload();
+  };
+  HN.waArrived = s => {
+    const debt = HN.debt(s);
+    const text = `Ассалому алейкум${s.client_name ? ", " + s.client_name : ""}!\nБори шумо дар Душанбе расид.\nРақам: ${s.tracking_no}\nҶой: ${HN.places(s)} · Вазн: ${HN.fmtQty(s.weight_kg, 1)} кг · Ҳаҷм: ${HN.fmtQty(s.volume_m3, 3)} м³\nМаблағ: ${money(HN.total(s))} сомонӣ${debt > 0.005 ? `\nБарои пардохт: ${money(debt)} сомонӣ` : "\nБор пурра пардохт шудааст."}\n\nHOJI-NAIM CARGO`;
+    let phone = HN.digits(s.client_phone); if (phone.length === 9) phone = "992" + phone;
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, "_blank", "noopener");
+  };
+
   /* ================= Admin cards: rates, period lock, backup ================= */
   function renderAdminExtras() {
     const box = $("adminExtras"); if (!box) return;
@@ -319,7 +370,9 @@
         <div class="panel-head"><div><h3>Нусхаи эҳтиётии худкор</h3><p class="muted">Ҳар шаб GitHub аз база нусхаи рамзгузоришуда (AES-256) мегирад ва 90 рӯз нигоҳ медорад.</p></div></div>
         <ol class="setup-steps"><li>GitHub → репозиторияи HOJI-NAIM → <b>Settings → Secrets and variables → Actions</b>.</li><li><b>New repository secret</b>: <code>SUPABASE_SERVICE_ROLE_KEY</code> — аз Supabase → Project Settings → API (калиди service_role).</li><li>Боз як secret: <code>BACKUP_PASSWORD</code> — пароли дарозе, ки худатон медонед.</li><li>Нусхаҳо дар <b>Actions → Nightly encrypted backup</b> пайдо мешаванд.</li></ol>
         <p class="muted">Нусхаи дастӣ дар ҳамин браузер: ${days === null ? "ҳанӯз гирифта нашудааст" : days === 0 ? "имрӯз" : days + " рӯз пеш"}.${days === null || days > 7 ? ' <b class="neg">Нусха гиред!</b>' : ""}</p>
-      </div>`;
+      </div>
+      ${telegramCard()}`;
+    wireTelegramCard();
     const rf = $("rateForm");
     if (rf) rf.onsubmit = async e => { e.preventDefault(); const f = rf.elements; const usd = HN.num(f.usd.value), cny = HN.num(f.cny.value); if (usd <= 0) return HN.toast("Қурби долларро дуруст нависед.", "error"); try { await saveRate(f.date.value, usd, cny); HN.toast("Қурб сабт шуд: $1 = " + HN.fmtQty(usd, 4), "ok"); renderAdminExtras(); } catch (er) { HN.toast(HN.dbError(er), "error"); } };
     if ($("lockBtn")) $("lockBtn").onclick = async () => {

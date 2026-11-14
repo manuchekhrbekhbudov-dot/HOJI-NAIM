@@ -611,3 +611,11 @@ legend { padding: 0 6px; font-size: 12px; font-weight: 700; letter-spacing: .08e
 .xl-tot .xt-row td { font-size: 15px; height: 28px; }
 .xl-tot .xt-row { cursor: pointer; }
 .xl-tot .xt-row:hover td { background: #E2EFDA; }
+
+/* ---- Telegram card ---- */
+.span-all { grid-column: 1 / -1; }
+.setup-steps code.wrap { display: inline-block; white-space: normal; word-break: break-all; margin-top: 4px; }
+.secret-out { font-family: ui-monospace, Consolas, monospace; background: var(--navy-50); padding: 6px 10px; border-radius: 8px; user-select: all; word-break: break-all; }
+.secret-out:empty { display: none; }
+details.setup { margin-top: 6px; }
+details.setup summary { cursor: pointer; font-weight: 600; color: var(--navy-600); }
