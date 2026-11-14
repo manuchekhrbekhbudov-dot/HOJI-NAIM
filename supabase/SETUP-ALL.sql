@@ -312,3 +312,10 @@ create trigger hn_period_payments before insert or update or delete on public.pa
 drop trigger if exists hn_period_expenses on public.expenses;
 create trigger hn_period_expenses before insert or update or delete on public.expenses
   for each row execute function public.hn_period_guard();
+
+-- ===================== ҳуқуқҳо барои сайт (Data API) =====================
+-- Some Supabase projects do not expose tables created in SQL automatically. RLS still applies.
+grant select, insert, update, delete on
+  public.app_settings, public.audit_log, public.batches, public.customer_sheets, public.fx_rates
+to authenticated;
+notify pgrst, 'reload schema';
