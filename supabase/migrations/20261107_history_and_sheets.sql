@@ -70,6 +70,9 @@ create table if not exists public.customer_sheets (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+-- Sheet contents of «Дафтари Excel» (rows of the template), shared by all staff.
+alter table public.customer_sheets add column if not exists data jsonb not null default '{}'::jsonb;
+alter table public.customer_sheets add column if not exists position integer not null default 0;
 alter table public.customer_sheets enable row level security;
 drop policy if exists "staff read sheets" on public.customer_sheets;
 drop policy if exists "staff insert sheets" on public.customer_sheets;
