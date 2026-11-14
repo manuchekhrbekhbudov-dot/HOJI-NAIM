@@ -18,7 +18,7 @@
       q("fx_rates", "rate_date"), S.db.from("batches").select("*").order("created_at", { ascending: false }), q("app_settings", "key"),
       first || S.features.expMethod === undefined ? S.db.from("expenses").select("method").limit(1) : Promise.resolve({ error: S.features.expMethod ? null : {} }),
       first || S.features.payMethod === undefined ? S.db.from("payments").select("method").limit(1) : Promise.resolve({ error: S.features.payMethod ? null : {} }),
-      S.db.from("telegram_subscribers").select("chat_id,phone_key,first_name,username,active,created_at").order("created_at", { ascending: false }),
+      S.db.from("telegram_subscribers").select("*").order("created_at", { ascending: false }),
       S.db.from("telegram_log").select("*").order("created_at", { ascending: false }).limit(15),
     ]);
     S.features.telegram = !tgSubs.error;
@@ -302,7 +302,14 @@
 
   /* ================= Telegram ================= */
   const phoneKey = p => HN.digits(p).slice(-9);
-  HN.tgSubscribed = phone => { const k = phoneKey(phone); return k.length >= 7 && (S.tgSubs || []).some(x => x.phone_key === k); };
+  // Same normalisation as the bot: "S-50", "s 50", Cyrillic "С-50" → "S50".
+  const LOOK = { А: "A", Б: "B", В: "V", Д: "D", Е: "E", З: "Z", И: "I", К: "K", Л: "L", М: "M", Н: "N", О: "O", П: "P", Р: "R", С: "S", Т: "T", У: "U", Ф: "F" };
+  HN.tgCodeKey = v => String(v || "").toUpperCase().replace(/[АБВДЕЗИКЛМНОПРСТУФ]/g, c => LOOK[c]).replace(/[^0-9A-ZА-ЯЁӢӮҚҒҲҶ]/g, "").slice(0, 30);
+  HN.tgSubscribed = s => {
+    const code = HN.tgCodeKey(HN.customerCode(s)), k = phoneKey(s.client_phone);
+    return (S.tgSubs || []).some(x => (code && x.code_key === code) || (k.length >= 7 && x.phone_key === k));
+  };
+  HN.tgLink = s => { const bot = HN.lsGet("hn-tg-bot", ""), code = HN.customerCode(s); return bot && code ? `https://t.me/${bot}?start=${encodeURIComponent(HN.tgCodeKey(code))}` : ""; };
   const TG_EVENT = { arrived: "Бор расид", paid: "Пардохт", delivered: "Супорида шуд", custom: "Паёми дастӣ" };
   const randomSecret = () => Array.from(crypto.getRandomValues(new Uint8Array(24)), b => "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"[b % 56]).join("");
   function telegramCard() {
@@ -315,9 +322,9 @@
       <li>Пайвасти бот: дар браузер ин суроғаро кушоед (токен ва калидро гузоред):<br><code class="wrap">https://api.telegram.org/bot&lt;ТОКЕН&gt;/setWebhook?url=${esc(HN.config.supabaseUrl)}/functions/v1/${esc(HN.config.tgFunction)}&amp;secret_token=&lt;TELEGRAM_WEBHOOK_SECRET&gt;</code><br>Бояд <code>"ok":true</code> барояд.</li>
     </ol>
     <div class="btn-row"><button class="btn btn-ghost" id="tgSecretBtn" type="button">Калиди тасодуфӣ</button><code id="tgSecret" class="secret-out"></code></div>`;
-    if (!S.features.telegram) return `<div class="panel span-all"><div class="panel-head"><div><h3>Telegram бот барои муштариён</h3><p class="muted">Муштарӣ ботро мекушояд, телефонашро мефиристад ва хабарҳоро шахсан мегирад: бор расид, пардохт қабул шуд, бор супорида шуд, қарз.</p></div></div>${steps}</div>`;
+    if (!S.features.telegram) return `<div class="panel span-all"><div class="panel-head"><div><h3>Telegram бот барои муштариён</h3><p class="muted">Муштарӣ ботро мекушояд, коди худро (масалан S-50) менависад ва хабарҳоро шахсан мегирад: бор расид, пардохт қабул шуд, бор супорида шуд, қарз.</p></div></div>${steps}</div>`;
     const log = (S.tgLog || []).slice(0, 8);
-    return `<div class="panel span-all"><div class="panel-head"><div><h3>Telegram бот</h3><p class="muted">Обуначиён: <b>${S.tgSubs.length}</b>. Паёмҳо худкор мераванд: бор расид · пардохт · супоридан.</p></div>
+    return `<div class="panel span-all"><div class="panel-head"><div><h3>Telegram бот</h3><p class="muted">Обуначиён: <b>${S.tgSubs.length}</b>${S.tgSubs.some(x => x.code_key) ? " (" + esc([...new Set(S.tgSubs.map(x => x.code_key).filter(Boolean))].slice(0, 12).join(", ")) + ")" : ""}. Муштарӣ дар бот коди худро менависад (масалан S-50). Паёмҳо худкор мераванд: бор расид · пардохт · супоридан.</p></div>
       <div class="btn-row"><label class="field"><span>Username-и бот</span><input id="tgBot" value="${esc(bot)}" placeholder="hoji_naim_cargo_bot"></label><button class="btn btn-ghost" id="tgInfo" type="button">Санҷиши бот</button></div></div>
       ${bot ? `<p>Пайванд барои муштариён: <a href="https://t.me/${esc(bot)}" target="_blank" rel="noopener"><b>t.me/${esc(bot)}</b></a> <button class="btn btn-xs btn-soft" id="tgCopy" type="button">Нусха</button></p>` : '<p class="hint">Username-и ботро нависед, то пайванд барои муштариён пайдо шавад.</p>'}
       <div class="table-wrap"><table class="tbl"><thead><tr><th>Вақт</th><th>Паём</th><th>Бор</th><th>Ҳолат</th></tr></thead><tbody>${log.map(l => `<tr><td class="nowrap">${HN.fmtDateTime(l.created_at)}</td><td>${TG_EVENT[l.event] || esc(l.event)}</td><td>${esc(HN.shipmentById(l.shipment_id)?.tracking_no || "—")}</td><td>${l.ok ? '<span class="pill pay-paid">Фиристода шуд</span>' : `<span class="pill pay-unpaid" title="${esc(l.error)}">Хато</span>`}</td></tr>`).join("") || '<tr><td colspan="4" class="muted">Ҳоло паём нафиристода шудааст.</td></tr>'}</tbody></table></div>

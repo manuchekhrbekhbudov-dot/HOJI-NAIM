@@ -16,6 +16,9 @@ create table if not exists public.telegram_subscribers (
   created_at timestamptz not null default now()
 );
 create index if not exists telegram_subscribers_phone_idx on public.telegram_subscribers(phone_key);
+-- Customers subscribe by their customer code (e.g. S-50 → S50).
+alter table public.telegram_subscribers add column if not exists code_key text not null default '';
+create index if not exists telegram_subscribers_code_idx on public.telegram_subscribers(code_key);
 
 -- Every message the bot sent (or failed to send).
 create table if not exists public.telegram_log (
