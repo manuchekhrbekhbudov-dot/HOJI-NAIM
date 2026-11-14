@@ -30,7 +30,7 @@ alter table public.telegram_invites enable row level security;
 drop policy if exists "staff manage tg invites" on public.telegram_invites;
 create policy "staff manage tg invites" on public.telegram_invites for all to authenticated using (public.is_staff()) with check (public.is_staff());
 grant select, insert, update on public.telegram_invites to authenticated;
-grant select on public.telegram_invites to service_role;
+grant select, insert on public.telegram_invites to service_role;
 -- Old subscriptions made by code alone (before keys existed) are switched off.
 update public.telegram_subscribers set active = false where code_key <> '' and active;
 

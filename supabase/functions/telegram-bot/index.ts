@@ -2,7 +2,8 @@
 // One function, three kinds of requests:
 //   1. Telegram webhook (header X-Telegram-Bot-Api-Secret-Token): /start, customer code (e.g. S-50), «Қарзи ман».
 //   2. Database events from pg_net triggers (header x-hook-secret): arrived / paid / delivered.
-//   3. The website (Authorization: Bearer <staff session>): manual send, bot info.
+//   3. Customer page telegram.html (public): code + phone → personal bot link.
+//   4. The website (Authorization: Bearer <staff session>): manual send, bot info.
 // Secrets (Supabase → Edge Functions → Secrets): TELEGRAM_BOT_TOKEN, TELEGRAM_WEBHOOK_SECRET, HOOK_SECRET.
 // SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY and SUPABASE_ANON_KEY are provided by Supabase.
 // Deploy with «Verify JWT» turned OFF (Telegram cannot send a Supabase JWT); this code checks every caller itself.
@@ -205,7 +206,27 @@ export function makeHandler(env, fetchFn = fetch) {
         }
         return json({ ok: true, ...(await notify(body.event, body.shipment_id, body.payment_id)) });
       }
-      // 3. Website (staff only)
+      // 3. Customer page (public): code + phone → personal bot link. The phone must match a shipment of that code.
+      if (body.action === "link") {
+        const code = codeKey(body.code), key = phoneKey(body.phone);
+        const fail = async (error) => { await new Promise(r => setTimeout(r, 800)); return json({ ok: false, error }); };   // slows guessing
+        if (code.length < 2 || key.length < 9) return fail("Код ва рақами телефонро пурра нависед.");
+        const ships = await shipmentsByCode(code);
+        if (!ships.length) return fail("Ин код ёфт нашуд. Кодро санҷед.");
+        if (!ships.some(s => phoneKey(s.client_phone) === key)) {
+          return fail(ships.some(s => phoneKey(s.client_phone).length >= 7) ? "Рақами телефон ба ин код мувофиқ нест." : "Барои ин код телефон сабт нашудааст. Ба корманди HOJI-NAIM CARGO муроҷиат кунед.");
+        }
+        let pin = (await db(`telegram_invites?code_key=eq.${encodeURIComponent(code)}&select=pin`))?.[0]?.pin;
+        if (!pin) {
+          const ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+          pin = Array.from(crypto.getRandomValues(new Uint8Array(8)), b => ABC[b % 32]).join("");
+          await db("telegram_invites?on_conflict=code_key", { method: "POST", headers: { Prefer: "resolution=ignore-duplicates" }, body: JSON.stringify({ code_key: code, pin }) });
+          pin = (await db(`telegram_invites?code_key=eq.${encodeURIComponent(code)}&select=pin`))?.[0]?.pin || pin;
+        }
+        const me = await tg("getMe", {});
+        return json({ ok: true, link: `https://t.me/${me.username}?start=${code}_${pin}`, bot: me.username });
+      }
+      // 4. Website (staff only)
       const user = await staffUser(req);
       if (!user) return json({ ok: false, error: "Иҷозат нест" }, 401);
       if (body.action === "info") { const me = await tg("getMe", {}); return json({ ok: true, username: me.username }); }
