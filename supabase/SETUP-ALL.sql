@@ -200,6 +200,11 @@ alter table public.expenses add column if not exists method text not null defaul
 alter table public.expenses drop constraint if exists expenses_method_check;
 alter table public.expenses add constraint expenses_method_check check (method in ('cash','online','bank_transfer','other'));
 
+-- Payment method (нақд/онлайн/бонк) — older databases do not have this column.
+alter table public.payments add column if not exists method text not null default 'other';
+alter table public.payments drop constraint if exists payments_method_check;
+alter table public.payments add constraint payments_method_check check (method in ('cash','online','bank_transfer','other'));
+
 -- ---------- 2. Daily exchange rates (қурби рӯз) ----------
 create table if not exists public.fx_rates (
   rate_date date primary key,
