@@ -14,10 +14,12 @@
   /* ================= Loading & features ================= */
   async function load(first) {
     const q = (t, o) => S.db.from(t).select("*").order(o, { ascending: true });
-    const [rates, batches, settings, method] = await Promise.all([
+    const [rates, batches, settings, method, payMethod] = await Promise.all([
       q("fx_rates", "rate_date"), S.db.from("batches").select("*").order("created_at", { ascending: false }), q("app_settings", "key"),
       first || S.features.expMethod === undefined ? S.db.from("expenses").select("method").limit(1) : Promise.resolve({ error: S.features.expMethod ? null : {} }),
+      first || S.features.payMethod === undefined ? S.db.from("payments").select("method").limit(1) : Promise.resolve({ error: S.features.payMethod ? null : {} }),
     ]);
+    S.features.payMethod = !payMethod.error;
     S.features.rates = !rates.error; S.rates = rates.error ? [] : rates.data || [];
     S.features.batches = !batches.error; S.batches = batches.error ? [] : batches.data || [];
     S.features.lock = !settings.error;
@@ -27,6 +29,7 @@
   }
   function applyFeatures() {
     document.querySelectorAll(".feat-expmethod").forEach(el => el.classList.toggle("hidden", !S.features.expMethod));
+    document.querySelectorAll(".feat-paymethod").forEach(el => el.classList.toggle("hidden", !S.features.payMethod));
     document.querySelectorAll(".feat-batches").forEach(el => el.classList.toggle("hidden", !S.features.batches));
     document.querySelectorAll("select[name=batch_id]").forEach(sel => {
       const v = sel.value;

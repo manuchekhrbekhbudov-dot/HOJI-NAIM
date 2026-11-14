@@ -8,13 +8,13 @@
   <title>HOJI-NAIM CARGO</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://wfxbgkasstkxzmyrjwpi.supabase.co" crossorigin>
-  <link rel="stylesheet" href="style.css?v=20261115-itogo">
+  <link rel="stylesheet" href="style.css?v=20261115-paymethod">
   <script src="vendor/supabase-js-2.118.0.js" defer></script>
-  <script src="js/core.js?v=20261115-itogo" defer></script>
-  <script src="js/exporter.js?v=20261115-itogo" defer></script>
-  <script src="js/notebook.js?v=20261115-itogo" defer></script>
-  <script src="js/extras.js?v=20261115-itogo" defer></script>
-  <script src="main.js?v=20261115-itogo" defer></script>
+  <script src="js/core.js?v=20261115-paymethod" defer></script>
+  <script src="js/exporter.js?v=20261115-paymethod" defer></script>
+  <script src="js/notebook.js?v=20261115-paymethod" defer></script>
+  <script src="js/extras.js?v=20261115-paymethod" defer></script>
+  <script src="main.js?v=20261115-paymethod" defer></script>
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -375,7 +375,7 @@
         <label class="field"><span>Маблағ *</span><input name="amount" type="number" min="0.01" step="0.01" required inputmode="decimal"></label>
         <label class="field"><span>Асъор</span><select name="currency"><option value="TJS">TJS</option><option value="USD">USD</option><option value="CNY">CNY</option></select></label>
         <label class="field"><span>Қурб ба сомонӣ</span><input name="fx_rate" type="number" min="0.000001" step="any" value="1" required></label>
-        <label class="field"><span>Усул</span><select name="method"><option value="cash">Нақд</option><option value="online">Онлайн</option><option value="bank_transfer">Интиқоли бонкӣ</option><option value="other">Дигар</option></select></label>
+        <label class="field feat-paymethod"><span>Усул</span><select name="method"><option value="cash">Нақд</option><option value="online">Онлайн</option><option value="bank_transfer">Интиқоли бонкӣ</option><option value="other">Дигар</option></select></label>
         <label class="field"><span>Сана</span><input name="payment_date" type="date" required></label>
       </div>
       <button type="button" class="link-btn" id="payFull">Пардохти пурра (тамоми қарз)</button>

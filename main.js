@@ -403,7 +403,10 @@
     }
     msg.dataset.kind = ""; msg.textContent = "Сабт шуда истодааст…";
     const btn = payForm.querySelector('[type="submit"]'); btn.disabled = true;
-    const r = await S.db.from("payments").insert({ shipment_id: s.id, currency: f.currency.value, amount_original: amount, fx_rate: rate, amount_tjs: tjs, payment_date: f.payment_date.value, method: f.method.value, notes: f.notes.value.trim(), created_by: S.user.id });
+    const pay = { shipment_id: s.id, currency: f.currency.value, amount_original: amount, fx_rate: rate, amount_tjs: tjs, payment_date: f.payment_date.value, notes: f.notes.value.trim(), created_by: S.user.id };
+    if (S.features.payMethod !== false) pay.method = f.method.value;
+    let r = await S.db.from("payments").insert(pay);
+    if (r.error && /'method' column/i.test(r.error.message || "")) { S.features.payMethod = false; HN.extras?.applyFeatures(); delete pay.method; r = await S.db.from("payments").insert(pay); }
     btn.disabled = false;
     if (r.error) { msg.dataset.kind = "error"; msg.textContent = HN.dbError(r.error); return; }
     if (f.currency.value === "USD") HN.lsSet(RATE_KEY, rate);
