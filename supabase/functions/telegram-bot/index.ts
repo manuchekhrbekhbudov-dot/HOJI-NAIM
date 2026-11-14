@@ -122,18 +122,23 @@ export function makeHandler(env, fetchFn = fetch) {
   }
 
   const KEYBOARD = { keyboard: [[{ text: "💰 Қарзи ман" }]], resize_keyboard: true };
-  const ASK = "Коди муштарии худро нависед (масалан: S-50).\nКодро аз корманди HOJI-NAIM CARGO гирифтан мумкин аст.";
+  const ASK = "Барои обуна пайванди шахсиро, ки корманди HOJI-NAIM CARGO фиристод, пахш кунед.\nЁ коди муштарӣ ва калидро нависед (масалан: S-50 AB12CD34).";
   async function onTelegram(update) {
     const m = update.message;
     if (!m || !m.chat) return;
     const chat = m.chat.id;
     const say = (text, extra = {}) => tg("sendMessage", { chat_id: chat, text, ...extra });
     const subscribe = async (patch) => db("telegram_subscribers?on_conflict=chat_id", { method: "POST", headers: { Prefer: "resolution=merge-duplicates" }, body: JSON.stringify({ chat_id: chat, first_name: m.from?.first_name || "", username: m.from?.username || "", active: true, ...patch }) });
+    // Subscribing needs the customer's code AND personal key (made on the site): «S-50 AB12CD34» or link t.me/<bot>?start=S50_AB12CD34.
+    // Without the key anyone could read another customer's debt by guessing a code.
     const byCode = async (raw) => {
-      const code = codeKey(raw);
-      if (code.length < 2) return say(ASK, { reply_markup: KEYBOARD });
+      const parts = String(raw || "").trim().split(/[\s_]+/).filter(Boolean);
+      const pin = parts.length > 1 ? parts.pop().toUpperCase() : "";
+      const code = codeKey(parts.join(""));
+      if (code.length < 2 || !/^[A-Z0-9]{6,12}$/.test(pin)) return say(ASK, { reply_markup: KEYBOARD });
+      const inv = (await db(`telegram_invites?code_key=eq.${encodeURIComponent(code)}&select=pin`))?.[0];
+      if (!inv || inv.pin !== pin) return say("Код ё калид нодуруст аст. Пайванди шахсиро аз корманди HOJI-NAIM CARGO гиред.", { reply_markup: KEYBOARD });
       const ships = await shipmentsByCode(code);
-      if (!ships.length) return say(`Код «${String(raw).trim().slice(0, 30)}» ёфт нашуд. Лутфан кодро санҷед ва боз нависед (масалан: S-50).`, { reply_markup: KEYBOARD });
       await subscribe({ code_key: code, phone: "", phone_key: "" });
       return say(`Ташаккур! Шумо обуна шудед ✅\nКод: ${code} · ${ships.length} бор.\nВақте ки бор мерасад, пардохт қабул мешавад ё бор супорида мешавад, ба шумо хабар медиҳем.\n\nБарои дидани қарз «💰 Қарзи ман»-ро пахш кунед.`, { reply_markup: KEYBOARD });
     };

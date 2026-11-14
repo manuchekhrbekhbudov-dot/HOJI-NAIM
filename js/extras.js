@@ -309,7 +309,21 @@
     const code = HN.tgCodeKey(HN.customerCode(s)), k = phoneKey(s.client_phone);
     return (S.tgSubs || []).some(x => (code && x.code_key === code) || (k.length >= 7 && x.phone_key === k));
   };
-  HN.tgLink = s => { const bot = HN.lsGet("hn-tg-bot", ""), code = HN.customerCode(s); return bot && code ? `https://t.me/${bot}?start=${encodeURIComponent(HN.tgCodeKey(code))}` : ""; };
+  // Personal link t.me/<bot>?start=<CODE>_<KEY>. The key is stored in telegram_invites (staff only) and made once per code.
+  const PIN_ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  HN.tgLink = async s => {
+    const bot = HN.lsGet("hn-tg-bot", ""), code = HN.tgCodeKey(HN.customerCode(s));
+    if (!bot || !code) return "";
+    let { data, error } = await S.db.from("telegram_invites").select("pin").eq("code_key", code).maybeSingle();
+    if (error) throw error;
+    let pin = data?.pin;
+    if (!pin) {
+      pin = Array.from(crypto.getRandomValues(new Uint8Array(8)), b => PIN_ABC[b % 32]).join("");
+      const ins = await S.db.from("telegram_invites").insert({ code_key: code, pin });
+      if (ins.error) { const again = await S.db.from("telegram_invites").select("pin").eq("code_key", code).maybeSingle(); if (again.error || !again.data) throw ins.error; pin = again.data.pin; }
+    }
+    return `https://t.me/${bot}?start=${code}_${pin}`;
+  };
   const TG_EVENT = { arrived: "Бор расид", paid: "Пардохт", delivered: "Супорида шуд", custom: "Паёми дастӣ" };
   const randomSecret = () => Array.from(crypto.getRandomValues(new Uint8Array(24)), b => "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"[b % 56]).join("");
   function telegramCard() {
