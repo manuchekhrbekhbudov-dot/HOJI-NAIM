@@ -809,6 +809,8 @@
       HN.debt(s) > 0.005 && HN.can("finance") ? `<button class="btn btn-primary" data-act="pay" data-id="${esc(s.id)}"><svg><use href="#i-wallet"/></svg><span>Сабти пардохт</span></button>` : "",
       HN.can("editShipment") ? `<button class="btn btn-ghost" data-act="edit" data-id="${esc(s.id)}"><svg><use href="#i-edit"/></svg><span>Таҳрир</span></button>` : "",
       S.features.warehouse && HN.can("staff") ? (HN.whStatus(s) === "in_warehouse" ? `<button class="btn btn-ghost" data-act="wh" data-to="delivered" data-id="${esc(s.id)}"><svg><use href="#i-check"/></svg><span>Супоридан</span></button>` : `<button class="btn btn-ghost" data-act="wh" data-to="in_warehouse" data-id="${esc(s.id)}"><svg><use href="#i-warehouse"/></svg><span>Ба анбор</span></button>`) : "",
+      `<button class="btn btn-ghost" data-act="wa" data-id="${esc(s.id)}"><svg><use href="#i-arrow"/></svg><span>WhatsApp</span></button>`,
+      S.features.telegram ? `<button class="btn btn-ghost" data-act="tg" data-id="${esc(s.id)}" ${HN.tgSubscribed(s.client_phone) ? "" : 'title="Муштарӣ ҳанӯз ба бот обуна нашудааст"'}><svg><use href="#i-arrow"/></svg><span>Telegram${HN.tgSubscribed(s.client_phone) ? " ✓" : ""}</span></button>` : "",
       `<button class="btn btn-ghost" data-statement="${esc(HN.customerKey(s))}"><svg><use href="#i-receipt"/></svg><span>Акт сверки</span></button>`,
       `<button class="btn btn-ghost" data-sheet-key="${esc(HN.customerKey(s))}"><svg><use href="#i-sheet"/></svg><span>Варақи муштарӣ</span></button>`,
       HN.can("delete") ? `<button class="btn btn-danger-soft" data-act="del-ship" data-id="${esc(s.id)}"><svg><use href="#i-trash"/></svg><span>Нест кардан</span></button>` : "",
@@ -873,7 +875,8 @@
       const id = a.dataset.id;
       ({
         pay: () => openPayment(id), edit: () => openShipment(HN.shipmentById(id)), wh: () => setWarehouse(id, a.dataset.to),
-        "del-ship": () => deleteShipment(id), "del-pay": () => deletePayment(id), "edit-exp": () => openExpense(S.expenses.find(x => String(x.id) === String(id))),
+        "del-ship": () => deleteShipment(id), wa: () => HN.waArrived(HN.shipmentById(id)),
+        tg: () => { const s = HN.shipmentById(id); HN.tgSend(id, HN.whStatus(s) === "delivered" ? "delivered" : "arrived"); }, "del-pay": () => deletePayment(id), "edit-exp": () => openExpense(S.expenses.find(x => String(x.id) === String(id))),
         "del-exp": () => deleteExpense(id), "save-role": () => saveRole(id), "del-profile": () => deleteProfile(id),
       }[a.dataset.act] || (() => {}))();
       return;
