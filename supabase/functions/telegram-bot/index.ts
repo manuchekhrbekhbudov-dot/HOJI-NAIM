@@ -16,7 +16,7 @@ const CORS = {
 export function makeHandler(env, fetchFn = fetch) {
   const API = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}`;
   const rest = `${env.SUPABASE_URL}/rest/v1`;
-  const svc = { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`, "Content-Type": "application/json" };
+  const svc = { apikey: env.SUPABASE_SERVICE_ROLE_KEY, "Content-Type": "application/json", ...(String(env.SUPABASE_SERVICE_ROLE_KEY).startsWith("sb_") ? {} : { Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}` }) };
 
   const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
   const db = async (path, init = {}) => {
@@ -189,5 +189,9 @@ export function makeHandler(env, fetchFn = fetch) {
 const D = (globalThis as any).Deno;
 if (D?.serve) {
   const env = Object.fromEntries(["TELEGRAM_BOT_TOKEN", "TELEGRAM_WEBHOOK_SECRET", "HOOK_SECRET", "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_ANON_KEY"].map(k => [k, D.env.get(k) || ""]));
+  // New Supabase API keys (sb_secret_… / sb_publishable_…) are preferred; legacy JWT keys are the fallback.
+  const firstKey = name => { try { const v = JSON.parse(D.env.get(name) || "{}"); return v.default || Object.values(v)[0] || ""; } catch { return ""; } };
+  env.SUPABASE_SERVICE_ROLE_KEY = firstKey("SUPABASE_SECRET_KEYS") || env.SUPABASE_SERVICE_ROLE_KEY;
+  env.SUPABASE_ANON_KEY = firstKey("SUPABASE_PUBLISHABLE_KEYS") || env.SUPABASE_ANON_KEY;
   D.serve(makeHandler(env));
 }
