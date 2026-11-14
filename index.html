@@ -7,13 +7,13 @@
   <meta name="description" content="HOJI-NAIM CARGO — системаи идоракунии борҳо, анбор, пардохтҳо ва ҳисобот.">
   <title>HOJI-NAIM CARGO</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css?v=20261107-redesign">
+  <link rel="stylesheet" href="style.css?v=20261114-sheets10">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js" defer></script>
-  <script src="js/core.js?v=20261107-redesign" defer></script>
-  <script src="js/exporter.js?v=20261107-redesign" defer></script>
-  <script src="js/notebook.js?v=20261107-redesign" defer></script>
-  <script src="main.js?v=20261107-redesign" defer></script>
+  <script src="js/core.js?v=20261114-sheets10" defer></script>
+  <script src="js/exporter.js?v=20261114-sheets10" defer></script>
+  <script src="js/notebook.js?v=20261114-sheets10" defer></script>
+  <script src="main.js?v=20261114-sheets10" defer></script>
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -382,22 +382,6 @@
       <label class="field"><span>Шарҳ</span><textarea name="description" rows="2" maxlength="500"></textarea></label>
       <p id="expenseMsg" class="form-msg" role="status"></p>
       <div class="modal-foot"><button type="button" class="btn btn-ghost" data-close>Бекор</button><button class="btn btn-primary" type="submit">Сабт кардан</button></div>
-    </form>
-  </dialog>
-
-  <!-- ===== Notebook: new sheet ===== -->
-  <dialog id="sheetDialog" class="modal" aria-labelledby="sheetTitle">
-    <form id="sheetForm" class="modal-body" novalidate>
-      <div class="modal-head"><div><p class="eyebrow">Дафтари Excel</p><h2 id="sheetTitle">Варақи нав</h2></div><button type="button" class="icon-btn" data-close aria-label="Пӯшидан"><svg><use href="#i-x"/></svg></button></div>
-      <label class="field"><span>Номи варақ *</span><input name="sheet_name" required maxlength="31" placeholder="Масалан: S-50"></label>
-      <label class="field"><span>Номи муштарӣ *</span><input name="customer_name" required maxlength="120"></label>
-      <div class="grid-fields">
-        <label class="field"><span>Коди муштарӣ</span><input name="client_code" maxlength="40"></label>
-        <label class="field"><span>Телефон</span><input name="phone" type="tel" maxlength="40" placeholder="+992 …"></label>
-      </div>
-      <p class="hint">Варақ барои муштарии нав сохта мешавад. Борҳои ин муштарӣ худкор дар ҳамин варақ нишон дода мешаванд.</p>
-      <p id="sheetMsg" class="form-msg" role="status"></p>
-      <div class="modal-foot"><button type="button" class="btn btn-ghost" data-close>Бекор</button><button class="btn btn-primary" type="submit">Сохтан</button></div>
     </form>
   </dialog>
 
