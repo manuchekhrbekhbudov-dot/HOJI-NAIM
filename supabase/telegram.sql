@@ -16,6 +16,9 @@ create table if not exists public.telegram_subscribers (
   created_at timestamptz not null default now()
 );
 create index if not exists telegram_subscribers_phone_idx on public.telegram_subscribers(phone_key);
+-- Customers subscribe by their customer code (e.g. S-50 → S50).
+alter table public.telegram_subscribers add column if not exists code_key text not null default '';
+create index if not exists telegram_subscribers_code_idx on public.telegram_subscribers(code_key);
 
 -- Every message the bot sent (or failed to send).
 create table if not exists public.telegram_log (
@@ -46,10 +49,13 @@ create policy "staff read tg subscribers" on public.telegram_subscribers for sel
 create policy "staff read tg log" on public.telegram_log for select to authenticated using (public.is_staff());
 grant select on public.telegram_subscribers, public.telegram_log to authenticated;
 revoke all on public.telegram_config from anon, authenticated;
+-- The Edge Function uses the service_role key; this project does not grant it table access by default.
+grant select, insert, update, delete on public.telegram_subscribers, public.telegram_log to service_role;
+grant select on public.shipments, public.payments, public.profiles to service_role;
 
 -- ====== ИВАЗ КУНЕД: суроғаи функсия ва калиди махфӣ (ҳамон HOOK_SECRET, ки дар Edge Function гузоштед) ======
 insert into public.telegram_config (id, function_url, hook_secret)
-values (1, 'https://wfxbgkasstkxzmyrjwpi.supabase.co/functions/v1/telegram-bot', 'ИВАЗ_КУНЕД_HOOK_SECRET')
+values (1, 'https://wfxbgkasstkxzmyrjwpi.supabase.co/functions/v1/quick-task', 'ИВАЗ_КУНЕД_HOOK_SECRET')
 on conflict (id) do update set function_url = excluded.function_url, hook_secret = excluded.hook_secret;
 
 -- Sends {event, shipment_id, payment_id} to the Edge Function. Errors are swallowed on purpose.
