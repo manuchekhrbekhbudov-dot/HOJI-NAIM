@@ -78,9 +78,10 @@
     return ws;
   }
 
-  HN.exportXlsx = (filename, specs) => {
-    const X = window.XLSX;
-    if (!X || !X.utils || !X.writeFile) { HN.toast("Китобхонаи Excel бор нашуд. Интернетро санҷед ва саҳифаро нав кунед.", "error"); return false; }
+  HN.exportXlsx = async (filename, specs) => {
+    let X;
+    try { if (!window.XLSX?.utils) HN.toast("Файли Excel омода мешавад…"); X = await HN.loadXlsx(); }
+    catch { HN.toast("Китобхонаи Excel бор нашуд. Интернетро санҷед ва дубора кӯшиш кунед.", "error"); return false; }
     const wb = X.utils.book_new();
     const used = new Set();
     specs.forEach(spec => X.utils.book_append_sheet(wb, buildSheet(X, spec), HN.safeSheetName(spec.name, used)));

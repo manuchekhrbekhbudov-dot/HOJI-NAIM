@@ -203,6 +203,19 @@
     if (/Failed to fetch|NetworkError/i.test(m)) return "Пайваст бо интернет ё база нест. Дубора кӯшиш кунед.";
     return m;
   };
+  // The Excel library (≈425 KB) is loaded on first export only, not on every page load.
+  let xlsxPromise = null;
+  HN.loadXlsx = () => {
+    if (window.XLSX?.utils) return Promise.resolve(window.XLSX);
+    if (!xlsxPromise) xlsxPromise = new Promise((resolve, reject) => {
+      const sc = document.createElement("script");
+      sc.src = "vendor/xlsx-js-style-1.2.0.js";
+      sc.onload = () => (window.XLSX?.utils ? resolve(window.XLSX) : reject(new Error("XLSX")));
+      sc.onerror = () => { xlsxPromise = null; reject(new Error("XLSX")); };
+      document.head.appendChild(sc);
+    });
+    return xlsxPromise;
+  };
   HN.lsGet = (k, fallback) => { try { const v = localStorage.getItem(k); return v === null ? fallback : JSON.parse(v); } catch { return fallback; } };
   HN.lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } };
 })();

@@ -430,9 +430,10 @@
   }
 
   /* ---------- Real .xlsx in the company's template layout ---------- */
-  function exportBook(sheets) {
-    const X = window.XLSX;
-    if (!X?.utils) { HN.toast("Китобхонаи Excel бор нашуд. Саҳифаро нав кунед.", "error"); return; }
+  async function exportBook(sheets) {
+    let X;
+    try { if (!window.XLSX?.utils) setStatus("Файли Excel омода мешавад…"); X = await HN.loadXlsx(); }
+    catch { HN.toast("Китобхонаи Excel бор нашуд. Интернетро санҷед ва дубора кӯшиш кунед.", "error"); return; }
     const wb = X.utils.book_new(), names = new Set();
     const thin = { style: "thin", color: { rgb: "000000" } }, B = { top: thin, bottom: thin, left: thin, right: thin };
     const font = (o = {}) => ({ name: "Calibri", sz: 11, ...o });
