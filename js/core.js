@@ -7,6 +7,8 @@
   // Public (publishable) Supabase key only. Never put the service_role key in the browser.
   HN.config = {
     supabaseUrl: "https://wfxbgkasstkxzmyrjwpi.supabase.co",
+    // Slug of the Telegram Edge Function in Supabase (the dashboard created it as «quick-task»).
+    tgFunction: "quick-task",
     supabaseKey: "sb_publishable_RHfMgPtLrfPEJzqvBwk5Vg_ksk-iBr2",
     defaults: { usdRate: 9.2361, cnyRate: 1.3803, kgPrice: 1, cubePrice: 200 },
   };

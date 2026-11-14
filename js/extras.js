@@ -312,7 +312,7 @@
       <li>Supabase → <b>Edge Functions → Deploy a new function → Via Editor</b>, ном: <code>telegram-bot</code>. Матни файли <code>supabase/functions/telegram-bot/index.ts</code>-ро аз GitHub гузоред → <b>Deploy</b>. Баъд дар танзимоти функсия <b>«Verify JWT»</b>-ро <b>хомӯш</b> кунед.</li>
       <li>Supabase → <b>Edge Functions → Secrets</b>: <code>TELEGRAM_BOT_TOKEN</code> = токен; <code>TELEGRAM_WEBHOOK_SECRET</code> ва <code>HOOK_SECRET</code> = ду калиди тасодуфӣ (тугмаи поён).</li>
       <li>SQL Editor: файли <code>supabase/telegram.sql</code> → дар он <code>ИВАЗ_КУНЕД_HOOK_SECRET</code>-ро бо ҳамон <code>HOOK_SECRET</code> иваз кунед → <b>Run</b>.</li>
-      <li>Пайвасти бот: дар браузер ин суроғаро кушоед (токен ва калидро гузоред):<br><code class="wrap">https://api.telegram.org/bot&lt;ТОКЕН&gt;/setWebhook?url=${esc(HN.config.supabaseUrl)}/functions/v1/telegram-bot&amp;secret_token=&lt;TELEGRAM_WEBHOOK_SECRET&gt;</code><br>Бояд <code>"ok":true</code> барояд.</li>
+      <li>Пайвасти бот: дар браузер ин суроғаро кушоед (токен ва калидро гузоред):<br><code class="wrap">https://api.telegram.org/bot&lt;ТОКЕН&gt;/setWebhook?url=${esc(HN.config.supabaseUrl)}/functions/v1/${esc(HN.config.tgFunction)}&amp;secret_token=&lt;TELEGRAM_WEBHOOK_SECRET&gt;</code><br>Бояд <code>"ok":true</code> барояд.</li>
     </ol>
     <div class="btn-row"><button class="btn btn-ghost" id="tgSecretBtn" type="button">Калиди тасодуфӣ</button><code id="tgSecret" class="secret-out"></code></div>`;
     if (!S.features.telegram) return `<div class="panel span-all"><div class="panel-head"><div><h3>Telegram бот барои муштариён</h3><p class="muted">Муштарӣ ботро мекушояд, телефонашро мефиристад ва хабарҳоро шахсан мегирад: бор расид, пардохт қабул шуд, бор супорида шуд, қарз.</p></div></div>${steps}</div>`;
@@ -328,13 +328,13 @@
     if ($("tgBot")) $("tgBot").onchange = e => { HN.lsSet("hn-tg-bot", e.target.value.trim().replace(/^@/, "")); renderAdminExtras(); };
     if ($("tgCopy")) $("tgCopy").onclick = async () => { try { await navigator.clipboard.writeText("https://t.me/" + HN.lsGet("hn-tg-bot", "")); HN.toast("Пайванд нусха шуд.", "ok"); } catch { HN.toast("Нусха нашуд."); } };
     if ($("tgInfo")) $("tgInfo").onclick = async () => {
-      const r = await S.db.functions.invoke("telegram-bot", { body: { action: "info" } });
+      const r = await S.db.functions.invoke(HN.config.tgFunction, { body: { action: "info" } });
       if (r.error || !r.data?.ok) { HN.toast("Бот ҷавоб надод. Қадамҳои 2–3-ро санҷед.", "error"); return; }
       HN.lsSet("hn-tg-bot", r.data.username); HN.toast("Бот кор мекунад: @" + r.data.username, "ok"); renderAdminExtras();
     };
   }
   HN.tgSend = async (shipmentId, event) => {
-    const r = await S.db.functions.invoke("telegram-bot", { body: { action: "send", shipment_id: shipmentId, event } });
+    const r = await S.db.functions.invoke(HN.config.tgFunction, { body: { action: "send", shipment_id: shipmentId, event } });
     if (r.error || !r.data?.ok) { HN.toast("Паём нарафт: " + (r.data?.error || r.error?.message || "бот танзим нашудааст"), "error"); return; }
     HN.toast(r.data.sent ? `Паём ба Telegram рафт (${r.data.sent}).` : "Муштарӣ ҳанӯз ба бот обуна нашудааст.", r.data.sent ? "ok" : "info");
     await HN.reload();

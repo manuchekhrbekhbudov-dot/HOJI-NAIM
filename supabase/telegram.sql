@@ -49,7 +49,7 @@ revoke all on public.telegram_config from anon, authenticated;
 
 -- ====== ИВАЗ КУНЕД: суроғаи функсия ва калиди махфӣ (ҳамон HOOK_SECRET, ки дар Edge Function гузоштед) ======
 insert into public.telegram_config (id, function_url, hook_secret)
-values (1, 'https://wfxbgkasstkxzmyrjwpi.supabase.co/functions/v1/telegram-bot', 'ИВАЗ_КУНЕД_HOOK_SECRET')
+values (1, 'https://wfxbgkasstkxzmyrjwpi.supabase.co/functions/v1/quick-task', 'ИВАЗ_КУНЕД_HOOK_SECRET')
 on conflict (id) do update set function_url = excluded.function_url, hook_secret = excluded.hook_secret;
 
 -- Sends {event, shipment_id, payment_id} to the Edge Function. Errors are swallowed on purpose.

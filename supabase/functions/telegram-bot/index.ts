@@ -160,7 +160,8 @@ export function makeHandler(env, fetchFn = fetch) {
         if (!env.HOOK_SECRET || hook !== env.HOOK_SECRET) return json({ ok: false }, 401);
         if (body.action === "setup") {
           // Connects the bot to this function (same as opening setWebhook in a browser).
-          const url = `${env.SUPABASE_URL}/functions/v1/telegram-bot`;
+          const slug = new URL(req.url).pathname.split("/").filter(Boolean).pop() || "telegram-bot";
+          const url = `${env.SUPABASE_URL}/functions/v1/${slug}`;
           await tg("setWebhook", { url, secret_token: env.TELEGRAM_WEBHOOK_SECRET, allowed_updates: ["message"] });
           await tg("setMyCommands", { commands: [{ command: "start", description: "Оғоз" }, { command: "qarz", description: "Қарзи ман" }] });
           const me = await tg("getMe", {}), info = await tg("getWebhookInfo", {});
