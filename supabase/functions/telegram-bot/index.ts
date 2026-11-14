@@ -158,6 +158,14 @@ export function makeHandler(env, fetchFn = fetch) {
       const hook = req.headers.get("x-hook-secret");
       if (hook !== null) {
         if (!env.HOOK_SECRET || hook !== env.HOOK_SECRET) return json({ ok: false }, 401);
+        if (body.action === "setup") {
+          // Connects the bot to this function (same as opening setWebhook in a browser).
+          const url = `${env.SUPABASE_URL}/functions/v1/telegram-bot`;
+          await tg("setWebhook", { url, secret_token: env.TELEGRAM_WEBHOOK_SECRET, allowed_updates: ["message"] });
+          await tg("setMyCommands", { commands: [{ command: "start", description: "Оғоз" }, { command: "qarz", description: "Қарзи ман" }] });
+          const me = await tg("getMe", {}), info = await tg("getWebhookInfo", {});
+          return json({ ok: true, username: me.username, webhook: info.url, pending: info.pending_update_count });
+        }
         return json({ ok: true, ...(await notify(body.event, body.shipment_id, body.payment_id)) });
       }
       // 3. Website (staff only)
