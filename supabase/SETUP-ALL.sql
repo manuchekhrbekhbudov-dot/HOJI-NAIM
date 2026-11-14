@@ -3,6 +3,20 @@
 -- Ҳеҷ сатри маълумотро нест намекунад. Пеш аз иҷро дар Админ-панел нусхаи эҳтиётӣ гиред.
 
 
+
+-- ===================== базавӣ: функсияҳои нақш (агар набошанд) =====================
+-- Some databases were created without these helpers. They only read profiles.role.
+create or replace function public.current_app_role()
+returns text language sql stable security definer set search_path = public
+as $$ select role from public.profiles where id = auth.uid() $$;
+
+create or replace function public.is_staff()
+returns boolean language sql stable security definer set search_path = public
+as $$ select coalesce(public.current_app_role() in ('owner','admin','accountant','operator'), false) $$;
+
+grant execute on function public.current_app_role() to authenticated;
+grant execute on function public.is_staff() to authenticated;
+
 -- ===================== admin_delete_shipment.sql =====================
 -- HOJI-NAIM CARGO: atomically delete a shipment and its linked payments.
 -- Run this migration in Supabase SQL Editor on the EXISTING live database.
