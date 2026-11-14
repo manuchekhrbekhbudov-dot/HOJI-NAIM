@@ -8,12 +8,13 @@
   <title>HOJI-NAIM CARGO</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://wfxbgkasstkxzmyrjwpi.supabase.co" crossorigin>
-  <link rel="stylesheet" href="style.css?v=20261114-fast">
+  <link rel="stylesheet" href="style.css?v=20261115-finance">
   <script src="vendor/supabase-js-2.118.0.js" defer></script>
-  <script src="js/core.js?v=20261114-fast" defer></script>
-  <script src="js/exporter.js?v=20261114-fast" defer></script>
-  <script src="js/notebook.js?v=20261114-fast" defer></script>
-  <script src="main.js?v=20261114-fast" defer></script>
+  <script src="js/core.js?v=20261115-finance" defer></script>
+  <script src="js/exporter.js?v=20261115-finance" defer></script>
+  <script src="js/notebook.js?v=20261115-finance" defer></script>
+  <script src="js/extras.js?v=20261115-finance" defer></script>
+  <script src="main.js?v=20261115-finance" defer></script>
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -129,6 +130,7 @@
           <div><span>Муштариён</span><b id="kCustomers">—</b><small>ҳамагӣ</small></div>
           <div><span>Дар анбор</span><b id="kStock">—</b><small id="kStockSub">бор</small></div>
           <div><span>Ҳисоби борҳо</span><b id="kBilled">—</b><small>дар давра, TJS</small></div>
+          <div data-perm="finance"><span>Дар касса (нақд)</span><b id="kCash">—</b><small>боқимонда, TJS</small></div>
         </div>
         <div class="grid-2">
           <div class="panel">
@@ -166,6 +168,12 @@
 
       <!-- Warehouse -->
       <section class="view" id="view-warehouse">
+        <div class="tabs" role="tablist">
+          <button class="tab on" data-wtab="stock" role="tab"><svg><use href="#i-warehouse"/></svg>Анбор</button>
+          <button class="tab" data-wtab="batches" role="tab"><svg><use href="#i-box"/></svg>Партияҳо (мошин)</button>
+        </div>
+        <div id="wtab-batches" class="rtab hidden"></div>
+        <div id="wtab-stock" class="rtab">
         <div class="kpis kpis-3">
           <article class="kpi"><span>Бор дар анбор</span><strong id="whCount">0</strong><small>дона</small></article>
           <article class="kpi"><span>Вазн дар анбор</span><strong id="whKg">0</strong><small>кг</small></article>
@@ -183,6 +191,7 @@
         <div class="panel flush">
           <div class="table-wrap"><table class="tbl tbl-click"><thead><tr><th>Сана</th><th>Рақами трек</th><th>Код</th><th>Муштарӣ</th><th>Телефон</th><th class="num">Ҷой</th><th class="num">Вазн, кг</th><th class="num">Ҳаҷм, м³</th><th class="num">Қарз</th><th>Ҳолат</th><th></th></tr></thead><tbody id="whRows"></tbody></table></div>
           <p class="empty hidden" id="whEmpty">Дар ин қисм бор нест.</p>
+        </div>
         </div>
       </section>
 
@@ -217,6 +226,8 @@
             <label class="field"><span>Маблағ</span><input name="amount" type="number" min="0.01" step="0.01" required placeholder="0.00" inputmode="decimal"></label>
             <label class="field"><span>Асъор</span><select name="currency"><option value="TJS">TJS</option><option value="USD">USD</option><option value="CNY">CNY</option></select></label>
             <label class="field"><span>Қурб</span><input name="fx_rate" type="number" min="0.000001" step="any" value="1" required></label>
+            <label class="field feat-expmethod hidden"><span>Касса</span><select name="method"><option value="cash">Нақд</option><option value="online">Онлайн / корт</option><option value="bank_transfer">Бонк</option><option value="other">Дигар</option></select></label>
+            <label class="field feat-batches hidden"><span>Партия</span><select name="batch_id"></select></label>
             <label class="field grow"><span>Шарҳ</span><input name="description" maxlength="500" placeholder="Иловагӣ"></label>
             <button class="btn btn-primary" type="submit"><svg><use href="#i-check"/></svg><span>Сабт</span></button>
           </form>
@@ -240,12 +251,14 @@
         <div class="tabs" role="tablist">
           <button class="tab on" data-rtab="analysis" role="tab"><svg><use href="#i-chart"/></svg>Ҳисобот</button>
           <button class="tab" data-rtab="notebook" role="tab"><svg><use href="#i-sheet"/></svg>Дафтари Excel</button>
+          <button class="tab" data-rtab="kassa" role="tab" data-perm="finance"><svg><use href="#i-wallet"/></svg>Касса</button>
         </div>
         <div class="rtab" id="rtab-analysis">
           <div class="toolbar">
             <div class="seg" id="repGroup" role="tablist" aria-label="Гурӯҳбандӣ"><button data-group="day">Рӯзона</button><button data-group="week">Ҳафтаина</button><button data-group="month" class="on">Моҳона</button></div>
             <label class="date-range"><input id="repFrom" type="date" aria-label="Аз сана"><span>—</span><input id="repTo" type="date" aria-label="То сана"></label>
             <select id="repCustomer" aria-label="Муштарӣ"><option value="">Ҳамаи муштариён</option></select>
+            <div class="seg" id="repCur" role="tablist" aria-label="Асъор"><button data-cur="TJS">TJS</button><button data-cur="USD">$ USD</button></div>
             <button class="btn btn-primary" id="repExport"><svg><use href="#i-download"/></svg><span>Содирот ба Excel</span></button>
           </div>
           <div class="kpis">
@@ -266,6 +279,7 @@
           </div>
         </div>
         <div class="rtab hidden" id="rtab-notebook"><div id="notebook"></div></div>
+        <div class="rtab hidden" id="rtab-kassa"></div>
       </section>
 
       <!-- Admin -->
@@ -290,6 +304,7 @@
             <ul class="checks" id="systemChecks"></ul>
           </div>
         </div>
+        <div class="grid-3" id="adminExtras"></div>
       </section>
       </div>
     </main>
@@ -311,6 +326,7 @@
         <label class="field"><span>Рақами бор / трек *</span><input name="tracking_no" required maxlength="100" autocomplete="off"></label>
         <label class="field"><span>Санаи қабул *</span><input name="shipment_date" type="date" required></label>
         <label class="field"><span>Ҷойҳо</span><input name="places" type="number" min="1" step="1" value="1" inputmode="numeric"></label>
+        <label class="field feat-batches hidden"><span>Партия (мошин)</span><select name="batch_id"></select></label>
         <label class="field" id="whField"><span>Ҳолати анбор</span><select name="warehouse_status"><option value="in_warehouse">Дар анбор</option><option value="delivered">Супурда шуд</option><option value="unknown">Номуайян</option></select></label>
       </fieldset>
       <fieldset>
@@ -331,6 +347,7 @@
           <label class="field"><span>Нархи 1 м³, $</span><input name="cube_price" type="number" min="0" step="any" required></label>
           <label class="field"><span>Қурби доллар</span><input name="fx_rate" type="number" min="0.000001" step="any" required></label>
         </div>
+        <label class="field"><span>Тахфиф, $</span><input name="discount" type="number" min="0" step="any" placeholder="0" inputmode="decimal"></label>
         <div class="calc span-2" id="calcBox" aria-live="polite"></div>
       </fieldset>
       <label class="field"><span>Ёддошт</span><textarea name="notes" rows="2" maxlength="1000"></textarea></label>
@@ -378,11 +395,49 @@
         <label class="field"><span>Асъор</span><select name="currency"><option value="TJS">TJS</option><option value="USD">USD</option><option value="CNY">CNY</option></select></label>
         <label class="field"><span>Қурб ба сомонӣ</span><input name="fx_rate" type="number" min="0.000001" step="any" value="1" required></label>
         <label class="field"><span>Сана *</span><input name="expense_date" type="date" required></label>
+        <label class="field feat-expmethod hidden"><span>Касса</span><select name="method"><option value="cash">Нақд</option><option value="online">Онлайн / корт</option><option value="bank_transfer">Бонк</option><option value="other">Дигар</option></select></label>
+        <label class="field feat-batches hidden"><span>Партия</span><select name="batch_id"></select></label>
       </div>
       <label class="field"><span>Шарҳ</span><textarea name="description" rows="2" maxlength="500"></textarea></label>
       <p id="expenseMsg" class="form-msg" role="status"></p>
       <div class="modal-foot"><button type="button" class="btn btn-ghost" data-close>Бекор</button><button class="btn btn-primary" type="submit">Сабт кардан</button></div>
     </form>
+  </dialog>
+
+  <!-- ===== Batch form ===== -->
+  <dialog id="batchFormDialog" class="modal" aria-labelledby="batchFormTitle">
+    <form id="batchForm" class="modal-body" novalidate>
+      <div class="modal-head"><div><p class="eyebrow">Партия</p><h2 id="batchFormTitle">Партияи нав</h2></div><button type="button" class="icon-btn" data-close aria-label="Пӯшидан"><svg><use href="#i-x"/></svg></button></div>
+      <div class="grid-fields">
+        <label class="field"><span>Номи партия *</span><input name="name" required maxlength="80"></label>
+        <label class="field"><span>Мошин / контейнер</span><input name="vehicle" maxlength="80" placeholder="Масалан: 01 TJ 1234"></label>
+        <label class="field"><span>Ҳолат</span><select name="status"><option value="loading">Бор шуда истодааст</option><option value="in_transit">Дар роҳ</option><option value="arrived">Расид</option><option value="closed">Пӯшида</option></select></label>
+        <label class="field"><span>Санаи фиристодан</span><input name="sent_date" type="date"></label>
+        <label class="field"><span>Санаи расидан</span><input name="arrived_date" type="date"></label>
+        <label class="field"><span>Хароҷоти роҳ, $</span><input name="cost_usd" type="number" min="0" step="any" inputmode="decimal"></label>
+        <label class="field"><span>Қурби доллар</span><input name="fx_rate" type="number" min="0.000001" step="any"></label>
+      </div>
+      <label class="field"><span>Ёддошт</span><textarea name="notes" rows="2" maxlength="1000"></textarea></label>
+      <p id="batchMsg" class="form-msg" role="status"></p>
+      <div class="modal-foot"><button type="button" class="btn btn-ghost" data-close>Бекор</button><button class="btn btn-primary" type="submit">Сабт кардан</button></div>
+    </form>
+  </dialog>
+  <dialog id="batchView" class="drawer" aria-labelledby="batchViewTitle">
+    <div class="drawer-body">
+      <div class="modal-head"><div><p class="eyebrow">Партия</p><h2 id="batchViewTitle">—</h2></div><button type="button" class="icon-btn" data-close aria-label="Пӯшидан"><svg><use href="#i-x"/></svg></button></div>
+      <div id="batchViewBody"></div>
+    </div>
+  </dialog>
+
+  <!-- ===== Customer statement (акт сверки) ===== -->
+  <dialog id="stmtDialog" class="modal modal-lg" aria-labelledby="stTitle">
+    <div class="modal-body stmt">
+      <div class="modal-head"><div><p class="eyebrow">Акт сверки · HOJI-NAIM CARGO</p><h2 id="stTitle">—</h2><p class="muted" id="stSub"></p></div><button type="button" class="icon-btn no-print" data-close aria-label="Пӯшидан"><svg><use href="#i-x"/></svg></button></div>
+      <div class="toolbar no-print"><label class="date-range"><input id="stFrom" type="date" aria-label="Аз сана"><span>—</span><input id="stTo" type="date" aria-label="То сана"></label>
+        <button class="btn btn-ghost" id="stPrint">Чоп / PDF</button><button class="btn btn-ghost" id="stExcel"><svg><use href="#i-download"/></svg><span>Excel</span></button>
+        <button class="btn btn-ghost" id="stCopy">Нусхаи матн</button><button class="btn btn-primary" id="stWhatsapp">WhatsApp</button></div>
+      <div id="stBody"></div>
+    </div>
   </dialog>
 
   <!-- ===== Confirm ===== -->

@@ -1,0 +1,54 @@
+name: Nightly encrypted backup
+
+# Every night a full copy of the database is saved as an ENCRYPTED artifact (kept 90 days).
+# Needs two repository secrets: SUPABASE_SERVICE_ROLE_KEY and BACKUP_PASSWORD.
+# Restore: download the artifact, then
+#   openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in backup.json.enc -out backup.json
+on:
+  schedule:
+    - cron: "17 21 * * *"   # 02:17 in Dushanbe
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check secrets
+        id: check
+        env:
+          KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PASS: ${{ secrets.BACKUP_PASSWORD }}
+        run: |
+          if [ -z "$KEY" ] || [ -z "$PASS" ]; then
+            echo "::notice::Backup skipped: add SUPABASE_SERVICE_ROLE_KEY and BACKUP_PASSWORD in Settings → Secrets → Actions."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Export database
+        if: steps.check.outputs.ready == 'true'
+        env:
+          SUPABASE_URL: https://wfxbgkasstkxzmyrjwpi.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/backup.mjs
+      - name: Encrypt (AES-256)
+        if: steps.check.outputs.ready == 'true'
+        env:
+          BACKUP_PASSWORD: ${{ secrets.BACKUP_PASSWORD }}
+        run: |
+          openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -in backup.json -out backup.json.enc -pass env:BACKUP_PASSWORD
+          shred -u backup.json
+      - name: Store encrypted backup
+        if: steps.check.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: hoji-naim-backup-${{ github.run_number }}
+          path: backup.json.enc
+          retention-days: 90

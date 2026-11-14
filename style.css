@@ -558,3 +558,37 @@ legend { padding: 0 6px; font-size: 12px; font-weight: 700; letter-spacing: .08e
 .xl-sheetmenu button:hover { background: #F3F2F1; }
 .xl-sheetmenu button.on { color: var(--xl-green); font-weight: 600; }
 .xl-sheetmenu small { color: #605E5C; }
+
+/* ---- Finance extras ---- */
+.mini-kpis { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+.grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 1100px) { .grid-3 { grid-template-columns: minmax(0, 1fr); } }
+.kassa-card { cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.kassa-card:hover { border-color: var(--navy-600); }
+.kassa-card.on { border-color: var(--navy-700); box-shadow: 0 0 0 2px var(--navy-100); }
+.rate-form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: end; }
+.rate-form .field:first-child, .rate-form .btn { grid-column: 1 / -1; }
+.rate-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 13px; }
+.rate-list li { display: flex; gap: 10px; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.rate-list li span { color: var(--muted); min-width: 84px; }
+.rate-list small { color: var(--muted); margin-left: auto; }
+.setup-steps { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 13px; color: var(--text-2); }
+.setup-steps code { background: var(--navy-50); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+.bs-loading { background: #EEF0F3; color: #55606F; }
+.bs-in_transit { background: var(--warn-bg); color: var(--warn); }
+.bs-arrived { background: var(--ok-bg); color: var(--ok); }
+.bs-closed { background: var(--navy-100); color: var(--navy-700); }
+.pick-list { display: grid; gap: 4px; max-height: 280px; overflow: auto; border: 1px solid var(--line); border-radius: 10px; padding: 6px; }
+.pick { display: flex; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 7px; cursor: pointer; font-size: 13px; }
+.pick:hover { background: var(--navy-50); }
+.pick input { width: 16px; height: 16px; min-height: 0; }
+.pick small { color: var(--muted); margin-left: 6px; }
+.st-table td { white-space: normal; }
+.st-open td { background: var(--navy-50); }
+.st-sign { margin-top: 6px; font-size: 13px; color: var(--text-2); }
+@media print {
+  body.print-stmt > *:not(#stmtDialog) { display: none !important; }
+  body.print-stmt #stmtDialog { position: static; display: block; width: 100%; max-width: none; max-height: none; box-shadow: none; border: 0; }
+  body.print-stmt #stmtDialog::backdrop { display: none; }
+  body.print-stmt .no-print { display: none !important; }
+}

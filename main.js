@@ -6,7 +6,7 @@
   const HN = window.HN, S = HN.state, $ = HN.$, esc = HN.esc, fmt = HN.fmt, money = HN.money;
   const D = HN.config.defaults;
   const RATE_KEY = "hn-usd-rate";
-  const usdRate = () => HN.num(HN.lsGet(RATE_KEY, D.usdRate)) || D.usdRate;
+  const usdRate = () => (HN.rateOn ? HN.rateOn(HN.today()) : 0) || HN.num(HN.lsGet(RATE_KEY, D.usdRate)) || D.usdRate;
   const fxDefault = cur => (cur === "USD" ? usdRate() : cur === "CNY" ? D.cnyRate : 1);
 
   /* ================= Navigation ================= */
@@ -124,6 +124,7 @@
         fetchAll("payments", "payment_date"),
         fetchAll("expenses", "expense_date").catch(() => []),
         first ? detectFeatures() : S.features.sheets ? loadSheets() : null,
+        HN.extras ? HN.extras.load(first).catch(err => console.warn("extras", err)) : null,
       ]);
       if (prof.error) console.warn("Profile read failed", prof.error);
       S.profile = prof.data || null;
@@ -170,6 +171,7 @@
   function renderView(name) {
     const fn = { dashboard: renderDashboard, shipments: renderShipments, warehouse: renderWarehouse, payments: renderPayments, expenses: renderExpenses, reports: renderReports, admin: renderAdmin }[name];
     fn && fn();
+    HN.extras?.afterRender(name);
     $("navWarehouseCount").textContent = S.features.warehouse ? (S.shipments.filter(s => HN.whStatus(s) === "in_warehouse").length || "") : "";
   }
   const rerender = () => renderView(current);
@@ -213,6 +215,7 @@
     $("kStock").textContent = S.features.warehouse ? stock.length : "—";
     $("kStockSub").textContent = S.features.warehouse ? fmt(stock.reduce((n, s) => n + HN.num(s.weight_kg), 0), 1) + " кг" : "SQL-и анбор лозим";
     $("kBilled").textContent = money(ships.reduce((n, s) => n + HN.total(s), 0));
+    if (HN.cashBalance) $("kCash").textContent = money(HN.cashBalance("cash"));
     drawChart();
     const top = debtors.slice(0, 6), max = top[0]?.debt || 1;
     $("debtorList").innerHTML = top.map(c => `<li><button class="rank-row" data-sheet-key="${esc(c.key)}"><span class="rank-name"><b>${esc(c.name)}</b><small>${esc([c.code, c.phone].filter(Boolean).join(" · ") || "—")}</small></span><span class="rank-val">${money(c.debt)}</span><span class="rank-bar"><i style="width:${Math.max(4, (c.debt / max) * 100)}%"></i></span></button></li>`).join("");
@@ -338,6 +341,7 @@
   });
   async function deletePayment(id) {
     const p = S.payments.find(x => String(x.id) === String(id)); if (!p) return;
+    if (HN.isLocked?.(p.payment_date)) { HN.toast(HN.lockMsg(), "error"); return; }
     const s = HN.shipmentById(p.shipment_id);
     if (!(await HN.confirm(`Пардохти ${money(p.amount_tjs)} TJS (бор «${s?.tracking_no || "—"}») нест карда шавад? Қарзи бор ба ҳамин маблағ зиёд мешавад.`, { title: "Нест кардани пардохт", ok: "Нест кардан", danger: true }))) return;
     const r = await S.db.from("payments").delete().eq("id", p.id);
@@ -390,6 +394,7 @@
     if (!s) { msg.textContent = "Борро интихоб кунед."; return; }
     if (amount <= 0 || rate <= 0) { msg.textContent = "Маблағ ва қурбро дуруст ворид кунед."; return; }
     if (!f.payment_date.value) { msg.textContent = "Санаро интихоб кунед."; return; }
+    if (HN.isLocked?.(f.payment_date.value)) { msg.textContent = HN.lockMsg(); return; }
     let tjs = HN.round2(amount * rate);
     const debt = HN.debt(s);
     if (tjs > debt + 0.005) {
@@ -419,7 +424,11 @@
     if (amount <= 0) return "Маблағро дуруст нависед.";
     if (rate <= 0) return "Қурбро дуруст нависед.";
     if (!date) return "Санаро интихоб кунед.";
-    return { category, currency: f.currency.value, amount_original: amount, fx_rate: rate, amount_tjs: HN.round2(amount * rate), expense_date: date, description: f.description.value.trim() };
+    if (HN.isLocked?.(date)) return HN.lockMsg();
+    const p = { category, currency: f.currency.value, amount_original: amount, fx_rate: rate, amount_tjs: HN.round2(amount * rate), expense_date: date, description: f.description.value.trim() };
+    if (S.features.expMethod && f.method) p.method = f.method.value || "cash";
+    if (S.features.batches && f.batch_id) p.batch_id = f.batch_id.value || null;
+    return p;
   }
   quick.addEventListener("submit", async e => {
     e.preventDefault();
@@ -445,6 +454,8 @@
     f.category.value = exp?.category || ""; f.amount.value = exp ? exp.amount_original ?? exp.amount ?? "" : "";
     f.currency.value = exp?.currency || "TJS"; f.fx_rate.value = String(exp?.fx_rate ?? exp?.exchange_rate ?? 1);
     f.expense_date.value = exp?.expense_date || HN.today(); f.description.value = exp?.description || exp?.notes || "";
+    HN.extras?.applyFeatures(); if (f.method) f.method.value = exp?.method || "cash"; if (f.batch_id) f.batch_id.value = exp?.batch_id || "";
+    if (exp && HN.isLocked?.(exp.expense_date)) $("expenseMsg").textContent = HN.lockMsg();
     $("expenseDialog").showModal();
   }
   expForm.addEventListener("submit", async e => {
@@ -459,6 +470,7 @@
   });
   async function deleteExpense(id) {
     const x = S.expenses.find(e => String(e.id) === String(id)); if (!x) return;
+    if (HN.isLocked?.(x.expense_date)) { HN.toast(HN.lockMsg(), "error"); return; }
     if (!(await HN.confirm(`Хароҷоти «${x.category}» (${money(x.amount_tjs)} TJS, ${HN.fmtDate(x.expense_date)}) нест карда шавад?`, { title: "Нест кардани хароҷот", ok: "Нест кардан", danger: true }))) return;
     const r = await S.db.from("expenses").delete().eq("id", x.id);
     if (r.error) { HN.toast("Нест нашуд: " + HN.dbError(r.error), "error"); return; }
@@ -496,19 +508,20 @@
   });
   function setReportTab(tab) {
     document.querySelectorAll("[data-rtab]").forEach(x => x.classList.toggle("on", x.dataset.rtab === tab));
-    $("rtab-analysis").classList.toggle("hidden", tab !== "analysis");
-    $("rtab-notebook").classList.toggle("hidden", tab !== "notebook");
+    ["analysis", "notebook", "kassa"].forEach(t => $("rtab-" + t).classList.toggle("hidden", tab !== t));
     HN.lsSet("hn-report-tab", tab);
     if (tab === "notebook") HN.notebook?.render();
+    if (tab === "kassa") HN.extras?.renderKassa();
   }
   $("repGroup").addEventListener("click", e => { const b = e.target.closest("[data-group]"); if (!b) return; repGroup = b.dataset.group; $("repGroup").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); renderAnalysis(); });
   ["repFrom", "repTo"].forEach(id => $(id).addEventListener("input", renderAnalysis));
   $("repCustomer").addEventListener("change", renderAnalysis);
+  $("repCur").addEventListener("click", e => { const b = e.target.closest("[data-cur]"); if (!b) return; HN.cur = b.dataset.cur; HN.lsSet("hn-report-cur", HN.cur); renderAnalysis(); });
   $("custSearch").addEventListener("input", renderAnalysis);
   if (!$("repFrom").value) { $("repFrom").value = HN.today().slice(0, 4) + "-01-01"; $("repTo").value = HN.today(); }
   function renderReports() {
     const tab = HN.lsGet("hn-report-tab", "analysis");
-    setReportTab(tab === "notebook" ? "notebook" : "analysis");
+    setReportTab(tab === "notebook" || (tab === "kassa" && HN.can("finance")) ? tab : "analysis");
     renderAnalysis();
   }
   function bucketOf(date) {
@@ -530,9 +543,9 @@
     const exps = ck ? [] : S.expenses.filter(e => HN.inRange(String(e.expense_date || "").slice(0, 10), from, to));
     const buckets = new Map();
     const B = k => { if (!buckets.has(k)) buckets.set(k, { key: k, count: 0, kg: 0, m3: 0, billed: 0, income: 0, expense: 0 }); return buckets.get(k); };
-    shipsIn.forEach(s => { const b = B(bucketOf(HN.shipmentDate(s))); b.count++; b.kg += HN.num(s.weight_kg); b.m3 += HN.num(s.volume_m3); b.billed += HN.total(s); });
-    pays.forEach(p => { B(bucketOf(String(p.payment_date).slice(0, 10))).income += HN.num(p.amount_tjs); });
-    exps.forEach(e => { B(bucketOf(String(e.expense_date).slice(0, 10))).expense += HN.num(e.amount_tjs); });
+    shipsIn.forEach(s => { const b = B(bucketOf(HN.shipmentDate(s))); b.count++; b.kg += HN.num(s.weight_kg); b.m3 += HN.num(s.volume_m3); b.billed += HN.val.ship(s); });
+    pays.forEach(p => { B(bucketOf(String(p.payment_date).slice(0, 10))).income += HN.val.pay(p); });
+    exps.forEach(e => { B(bucketOf(String(e.expense_date).slice(0, 10))).expense += HN.val.exp(e); });
     const rows = [...buckets.values()].sort((a, b) => b.key.localeCompare(a.key));
     return { from, to, ck, shipsIn, pays, exps, rows };
   }
@@ -543,12 +556,14 @@
     if (custs.some(c => c.key === prev)) sel.value = prev;
     const d = reportData(), fin = HN.can("finance");
     const sum = (arr, k) => arr.reduce((n, x) => n + HN.num(typeof k === "function" ? k(x) : x[k]), 0);
-    const income = sum(d.pays, "amount_tjs"), cost = sum(d.exps, "amount_tjs");
+    const income = sum(d.pays, HN.val.pay), cost = sum(d.exps, HN.val.exp), C = HN.curLabel();
+    $("repCur").querySelectorAll("button").forEach(x => x.classList.toggle("on", x.dataset.cur === HN.cur));
+    $("rIncome").nextElementSibling.textContent = C; $("rProfit").nextElementSibling.textContent = C;
     $("rShipments").textContent = d.shipsIn.length;
     $("rShipmentsSub").textContent = fmt(sum(d.shipsIn, "weight_kg"), 1) + " кг · " + fmt(sum(d.shipsIn, "volume_m3"), 3) + " м³";
     $("rIncome").textContent = money(income);
     $("rExpense").textContent = d.ck ? "—" : money(cost);
-    $("rExpenseSub").textContent = d.ck ? "хароҷот ба муштарӣ вобаста нест" : "TJS";
+    $("rExpenseSub").textContent = d.ck ? "хароҷот ба муштарӣ вобаста нест" : C;
     $("rProfit").textContent = d.ck ? "—" : money(income - cost);
     $("repTableTitle").textContent = { day: "Ҳисоботи рӯзона", week: "Ҳисоботи ҳафтаина", month: "Ҳисоботи моҳона" }[repGroup];
     $("repRangeLabel").textContent = (d.from ? HN.fmtDate(d.from) : "аз аввал") + " — " + (d.to ? HN.fmtDate(d.to) : "то имрӯз") + (d.ck ? " · " + (sel.selectedOptions[0]?.textContent || "") : "");
@@ -560,7 +575,7 @@
     // customers in range
     const q = $("custSearch").value.trim().toLocaleLowerCase();
     const groups = customerGroups(d.shipsIn).filter(c => !q || [c.name, c.code, c.phone].some(v => String(v || "").toLocaleLowerCase().includes(q)));
-    $("custRows").innerHTML = groups.map(c => `<tr class="clickable" data-sheet-key="${esc(c.key)}">${td(esc(c.code || "—"), "code")}${td(`<b>${esc(c.name)}</b>`)}${td(esc(c.phone || "—"), "nowrap")}${td(c.shipments.length, "num")}${td(fmt(c.places, 0), "num")}${td(fmt(c.kg, 1), "num")}${td(fmt(c.cube, 3), "num")}${td(money(c.billed), "num")}${td(money(c.paid), "num")}${td(money(c.debt), "num" + (c.debt > 0.005 ? " neg" : ""))}</tr>`).join("");
+    $("custRows").innerHTML = groups.map(c => `<tr class="clickable" data-sheet-key="${esc(c.key)}">${td(esc(c.code || "—"), "code")}${td(`<b>${esc(c.name)}</b> <button class="btn btn-xs btn-soft" data-statement="${esc(c.key)}" title="Акт сверки">Акт</button>`)}${td(esc(c.phone || "—"), "nowrap")}${td(c.shipments.length, "num")}${td(fmt(c.places, 0), "num")}${td(fmt(c.kg, 1), "num")}${td(fmt(c.cube, 3), "num")}${td(money(c.billed), "num")}${td(money(c.paid), "num")}${td(money(c.debt), "num" + (c.debt > 0.005 ? " neg" : ""))}</tr>`).join("");
     const G = k => groups.reduce((n, c) => n + c[k], 0);
     $("custFoot").innerHTML = groups.length ? `<tr>${td("Ҳамагӣ")}${td("")}${td("")}${td(groups.reduce((n, c) => n + c.shipments.length, 0), "num")}${td(fmt(G("places"), 0), "num")}${td(fmt(G("kg"), 1), "num")}${td(fmt(G("cube"), 3), "num")}${td(money(G("billed")), "num")}${td(money(G("paid")), "num")}${td(money(G("debt")), "num")}</tr>` : "";
     empty("custEmpty", !groups.length);
@@ -572,7 +587,7 @@
       if (!map.has(key)) map.set(key, { key, code: "", name: "", phone: "", shipments: [], places: 0, kg: 0, cube: 0, billed: 0, paid: 0, debt: 0 });
       const g = map.get(key);
       g.code = HN.customerCode(s) || g.code; g.name = String(s.client_name || "").trim() || g.name; g.phone = String(s.client_phone || "").trim() || g.phone;
-      g.shipments.push(s); g.places += HN.places(s); g.kg += HN.num(s.weight_kg); g.cube += HN.num(s.volume_m3); g.billed += HN.total(s); g.paid += HN.paid(s); g.debt += HN.debt(s);
+      g.shipments.push(s); g.places += HN.places(s); g.kg += HN.num(s.weight_kg); g.cube += HN.num(s.volume_m3); g.billed += HN.val.ship(s); g.paid += HN.val.paid(s); g.debt += HN.val.debt(s);
     });
     return [...map.values()].map(g => ({ ...g, name: g.name || g.code || "Муштарӣ" })).sort((a, b) => b.debt - a.debt || a.name.localeCompare(b.name));
   }
@@ -584,10 +599,10 @@
       { header: "Борҳо", value: r => r.count, type: "int", width: 9, total: true },
       { header: "Вазн (кг)", value: r => r.kg, type: "qty", width: 12, total: true },
       { header: "Ҳаҷм (м³)", value: r => r.m3, type: "qty", width: 12, total: true },
-      { header: "Ҳисоби борҳо (TJS)", value: r => r.billed, type: "money", width: 17, total: true },
-      { header: "Даромад (TJS)", value: r => r.income, type: "money", width: 15, total: true },
+      { header: `Ҳисоби борҳо (${HN.cur})`, value: r => r.billed, type: "money", width: 17, total: true },
+      { header: `Даромад (${HN.cur})`, value: r => r.income, type: "money", width: 15, total: true },
     ];
-    if (fin && !d.ck) periodCols.push({ header: "Хароҷот (TJS)", value: r => r.expense, type: "money", width: 15, total: true }, { header: "Фоида (TJS)", value: r => r.income - r.expense, type: "money", width: 15, total: true });
+    if (fin && !d.ck) periodCols.push({ header: `Хароҷот (${HN.cur})`, value: r => r.expense, type: "money", width: 15, total: true }, { header: `Фоида (${HN.cur})`, value: r => r.income - r.expense, type: "money", width: 15, total: true });
     const specs = [
       { name: { day: "Рӯзона", week: "Ҳафтаина", month: "Моҳона" }[repGroup], title: "HOJI-NAIM CARGO — " + $("repTableTitle").textContent, subtitle: "Давра: " + range, columns: periodCols, rows: d.rows },
       { name: "Муштариён", title: "HOJI-NAIM CARGO — Муштариён", subtitle: "Давра: " + range, columns: HN.cols.customers(), rows: customerGroups(d.shipsIn) },
@@ -609,8 +624,11 @@
       item(true, "Пайваст ба база", "Борҳо, пардохтҳо ва хароҷот хонда мешаванд."),
       item(f.warehouse, "Ҳолати анбор", f.warehouse ? "Фаъол." : "SQL: supabase/migrations/20261019_warehouse_inventory.sql"),
       item(f.audit, "Таърихи тағйирот", f.audit ? "Фаъол. Ҳар тағйир дар бор, пардохт ва хароҷот сабт мешавад." : "Ихтиёрӣ. SQL: supabase/migrations/20261107_history_and_sheets.sql"),
-      item(f.sheets, "Варақҳои муштариён дар база", f.sheets ? "Номи варақҳо барои ҳамаи кормандон якхела аст." : "Ҳоло номи варақҳо дар ҳамин браузер нигоҳ дошта мешавад. SQL: 20261107_history_and_sheets.sql"),
-    ].join("");
+      item(f.sheets, "Дафтари Excel дар база", f.sheets ? "Варақҳо барои ҳамаи кормандон якхелаанд." : "Ҳоло варақҳо дар ҳамин браузер нигоҳ дошта мешаванд."),
+      item(f.expMethod && f.rates, "Касса ва қурби рӯз", f.expMethod && f.rates ? "Фаъол." : "SQL лозим."),
+      item(f.batches, "Партияҳо (мошин)", f.batches ? "Фаъол." : "SQL лозим."),
+      item(f.lock, "Пӯшидани моҳ", f.lock ? "Фаъол." : "SQL лозим."),
+    ].join("") + (f.audit && f.sheets && f.expMethod && f.rates && f.batches && f.lock ? "" : '<li class="warn"><b>!</b><span><strong>Чӣ бояд кард</strong><small>Supabase → SQL Editor → файли supabase/SETUP-ALL.sql-ро пурра гузоред → Run. Як бор кифоя аст.</small></span></li>');
   }
   async function loadStaff() {
     if (!HN.can("admin")) return;
@@ -643,6 +661,7 @@
     HN.toast("Профил нест шуд.", "ok"); loadStaff();
   }
   $("backupXlsx").addEventListener("click", () => {
+    HN.lsSet("hn-last-backup", new Date().toISOString());
     HN.exportXlsx("HOJI-NAIM-Backup-" + HN.today() + ".xlsx", [
       { name: "Борҳо", title: "Нусхаи эҳтиётӣ — Борҳо", columns: [...HN.cols.shipments(), { header: "Навъи ҳисоб", value: s => s.billing_type, width: 10 }, { header: "Асъор", value: s => s.currency, width: 8 }, { header: "Нархи воҳид", value: s => s.unit_price, type: "qty", width: 11 }, { header: "Қурб", value: s => s.fx_rate, type: "qty", width: 10 }, { header: "Ҳисоб (асъор)", value: s => s.total_original, type: "money", width: 13 }, { header: "Ёддошт", value: s => s.notes, width: 40 }, { header: "ID", value: s => s.id, width: 38 }], rows: S.shipments },
       { name: "Пардохтҳо", title: "Нусхаи эҳтиётӣ — Пардохтҳо", columns: [...HN.cols.payments(), { header: "ID бор", value: p => p.shipment_id, width: 38 }, { header: "ID", value: p => p.id, width: 38 }], rows: S.payments },
@@ -650,7 +669,8 @@
     ]);
   });
   $("backupJson").addEventListener("click", () => {
-    const data = { exported_at: new Date().toISOString(), app: "HOJI-NAIM CARGO", shipments: S.shipments, payments: S.payments, expenses: S.expenses, customer_sheets: S.sheets, local_notebook: { rows: HN.lsGet("hoji-naim-cargo-sheet-v1", []), meta: HN.lsGet("hoji-naim-cargo-sheet-meta-v1", {}), sheet_names: HN.lsGet("hoji-naim-customer-sheet-names-v1", {}) } };
+    HN.lsSet("hn-last-backup", new Date().toISOString());
+    const data = { exported_at: new Date().toISOString(), app: "HOJI-NAIM CARGO", shipments: S.shipments, payments: S.payments, expenses: S.expenses, customer_sheets: S.sheets, batches: S.batches, fx_rates: S.rates, local_notebook: { rows: HN.lsGet("hoji-naim-cargo-sheet-v1", []), meta: HN.lsGet("hoji-naim-cargo-sheet-meta-v1", {}), sheet_names: HN.lsGet("hoji-naim-customer-sheet-names-v1", {}) } };
     const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
     const a = document.createElement("a"); a.href = url; a.download = "HOJI-NAIM-Backup-" + HN.today() + ".json"; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -684,10 +704,13 @@
       f.cube_price.value = HN.noteNumber(s, "Нархи куб") ?? (usd && s.billing_type === "cube" ? HN.num(s.unit_price) : D.cubePrice);
       f.fx_rate.value = usd ? HN.num(s.fx_rate) || usdRate() : usdRate();
       f.notes.value = HN.freeNotes(s);
+      f.discount.value = HN.noteNumber(s, "Тахфиф") || "";
+      HN.extras?.applyFeatures(); if (f.batch_id) f.batch_id.value = s.batch_id || "";
       $("existingCustomer").value = custs.some(c => c.key === HN.customerKey(s)) ? HN.customerKey(s) : "";
     } else {
       f.shipment_date.value = HN.today(); f.places.value = 1; f.warehouse_status.value = "in_warehouse";
-      f.kg_price.value = D.kgPrice; f.cube_price.value = D.cubePrice; f.fx_rate.value = usdRate();
+      f.kg_price.value = D.kgPrice; f.cube_price.value = D.cubePrice; f.fx_rate.value = usdRate(); f.discount.value = "";
+      HN.extras?.applyFeatures(); if (f.batch_id) f.batch_id.value = "";
       if (preset) { f.client_name.value = preset.name || ""; f.client_code.value = preset.code || ""; f.client_phone.value = preset.phone || ""; if (custs.some(c => c.key === preset.key)) $("existingCustomer").value = preset.key; }
     }
     updateCalc();
@@ -700,6 +723,12 @@
     if (!c) return;
     const f = form.elements; f.client_name.value = c.name; f.client_code.value = c.code; f.client_phone.value = c.phone;
   });
+  // Discount (тахфиф) in dollars is taken off the charge; the amount is kept in the notes.
+  function withDiscount(c, disc, rate) {
+    const d = Math.min(Math.max(0, HN.num(disc)), c.usd);
+    const usd = HN.round2(c.usd - d);
+    return { ...c, gross: c.usd, discount: d, usd, tjs: HN.round2(usd * HN.num(rate)) };
+  }
   function readDims() {
     const f = form.elements, l = HN.num(f.len.value), w = HN.num(f.wid.value), h = HN.num(f.hei.value), p = Math.max(1, HN.num(f.places.value) || 1);
     return l > 0 && w > 0 && h > 0 ? { l, w, h, p, volume: HN.round2(l * w * h * p * 1000) / 1000 } : null;
@@ -708,15 +737,15 @@
     const f = form.elements, dims = readDims();
     if (dims && fromDims) f.volume_m3.value = String(Math.round(dims.volume * 1e4) / 1e4);
     f.volume_m3.classList.toggle("auto", !!dims);
-    const c = HN.charge({ weight: f.weight_kg.value, volume: f.volume_m3.value, kgPrice: f.kg_price.value, cubePrice: f.cube_price.value, rate: f.fx_rate.value });
+    const c = withDiscount(HN.charge({ weight: f.weight_kg.value, volume: f.volume_m3.value, kgPrice: f.kg_price.value, cubePrice: f.cube_price.value, rate: f.fx_rate.value }), f.discount.value, f.fx_rate.value);
     const has = HN.num(f.weight_kg.value) > 0 || HN.num(f.volume_m3.value) > 0;
     const prev = editing ? `<div class="calc-prev">Ҳисоби пешина: <b>${money(HN.total(editing))} TJS</b> · пардохт шуд: ${money(HN.paid(editing))} TJS</div>` : "";
     $("calcBox").innerHTML = !has ? `<p class="muted">Вазн ё ҳаҷмро ворид кунед — нарх худкор ҳисоб мешавад.</p>${prev}` :
-      `<div class="calc-grid"><div class="${c.type === "kg" ? "on" : ""}"><small>Аз рӯи вазн</small><b>$${fmt(c.kgAmount)}</b><span>${HN.fmtQty(f.weight_kg.value || 0)} кг × $${HN.fmtQty(f.kg_price.value || 0)}</span></div><div class="${c.type === "cube" ? "on" : ""}"><small>Аз рӯи ҳаҷм</small><b>$${fmt(c.cubeAmount)}</b><span>${HN.fmtQty(f.volume_m3.value || 0, 4)} м³ × $${HN.fmtQty(f.cube_price.value || 0)}</span></div><div class="calc-total"><small>Ҳисоб · ${c.type === "kg" ? "аз рӯи КГ" : "аз рӯи КУБ"}</small><b>${money(c.tjs)} TJS</b><span>$${fmt(c.usd)}${c.density ? " · зичӣ " + fmt(c.density, 1) + " кг/м³" : ""}</span></div></div>${prev}`;
+      `<div class="calc-grid"><div class="${c.type === "kg" ? "on" : ""}"><small>Аз рӯи вазн</small><b>$${fmt(c.kgAmount)}</b><span>${HN.fmtQty(f.weight_kg.value || 0)} кг × $${HN.fmtQty(f.kg_price.value || 0)}</span></div><div class="${c.type === "cube" ? "on" : ""}"><small>Аз рӯи ҳаҷм</small><b>$${fmt(c.cubeAmount)}</b><span>${HN.fmtQty(f.volume_m3.value || 0, 4)} м³ × $${HN.fmtQty(f.cube_price.value || 0)}</span></div><div class="calc-total"><small>Ҳисоб · ${c.type === "kg" ? "аз рӯи КГ" : "аз рӯи КУБ"}</small><b>${money(c.tjs)} TJS</b><span>$${fmt(c.usd)}${c.discount ? ` (тахфиф −$${fmt(c.discount)})` : ""}${c.density ? " · зичӣ " + fmt(c.density, 1) + " кг/м³" : ""}</span></div></div>${prev}`;
     return c;
   }
   ["len", "wid", "hei", "places"].forEach(n => form.elements[n].addEventListener("input", () => updateCalc(true)));
-  ["weight_kg", "volume_m3", "kg_price", "cube_price", "fx_rate"].forEach(n => form.elements[n].addEventListener("input", () => updateCalc(false)));
+  ["weight_kg", "volume_m3", "kg_price", "cube_price", "fx_rate", "discount"].forEach(n => form.elements[n].addEventListener("input", () => updateCalc(false)));
   form.elements.volume_m3.addEventListener("input", () => { if (readDims()) { form.elements.len.value = form.elements.wid.value = form.elements.hei.value = ""; updateCalc(false); } });
   form.addEventListener("submit", async e => {
     e.preventDefault();
@@ -734,18 +763,23 @@
     if (weight <= 0 && volume <= 0) return fail("Вазн ё ҳаҷми борро ворид кунед.", f.weight_kg);
     if (kgPrice < 0 || cubePrice < 0) return fail("Нарх манфӣ шуда наметавонад.", f.kg_price);
     if (rate <= 0) return fail("Қурби долларро дуруст нависед.", f.fx_rate);
+    if (HN.isLocked?.(date) || (editing && HN.isLocked?.(HN.shipmentDate(editing)))) return fail(HN.lockMsg());
+    const gross = HN.charge({ weight, volume, kgPrice, cubePrice, rate }), disc = HN.num(f.discount.value);
+    if (disc < 0) return fail("Тахфиф манфӣ шуда наметавонад.", f.discount);
+    if (disc > gross.usd + 0.005) return fail(`Тахфиф ($${fmt(disc)}) аз ҳисоб ($${fmt(gross.usd)}) калон аст.`, f.discount);
     const dup = S.shipments.find(s => String(s.tracking_no || "").toLowerCase() === tracking.toLowerCase() && (!editing || String(s.id) !== String(editing.id)));
     if (dup) return fail(`Рақами «${tracking}» аллакай дар бори «${dup.client_name}» ҳаст.`, f.tracking_no);
-    const c = HN.charge({ weight, volume, kgPrice, cubePrice, rate });
+    const c = withDiscount(gross, disc, rate);
     if (editing && c.tjs < HN.paid(editing) - 0.005) return fail(`Ҳисоби нав (${money(c.tjs)} TJS) аз маблағи аллакай пардохтшуда (${money(HN.paid(editing))} TJS) кам аст.`);
     const dims = readDims();
     const notes = HN.buildNotes(editing?.notes || "", {
       "Коди муштарӣ": code, "Ҷойҳо": places,
       "Андоза": dims ? `${dims.h} × ${dims.w} × ${dims.l} м` : (editing && HN.noteValue(editing, "Андоза") && !readDims() && HN.num(f.volume_m3.value) === HN.num(editing.volume_m3) ? HN.noteValue(editing, "Андоза") : ""),
-      "Нархи кг": kgPrice, "Нархи куб": cubePrice, "Сумма кг": null, "Сумма куб": null,
+      "Нархи кг": kgPrice, "Нархи куб": cubePrice, "Сумма кг": null, "Сумма куб": null, "Тахфиф": c.discount ? HN.round2(c.discount) : null,
     }, f.notes.value);
     const payload = { client_name: name, client_phone: phone, tracking_no: tracking, shipment_date: date, billing_type: c.type, weight_kg: weight, volume_m3: volume, currency: "USD", unit_price: c.unitPrice, fx_rate: rate, total_original: c.usd, total_tjs: c.tjs, notes };
     if (S.features.warehouse) payload.warehouse_status = f.warehouse_status.value || "in_warehouse";
+    if (S.features.batches && f.batch_id) payload.batch_id = f.batch_id.value || null;
     msg.dataset.kind = ""; msg.textContent = "Сабт шуда истодааст…";
     const btn = $("shipmentSubmit"); btn.disabled = true;
     const r = editing ? await S.db.from("shipments").update(payload).eq("id", editing.id) : await S.db.from("shipments").insert({ ...payload, created_by: S.user.id });
@@ -772,6 +806,7 @@
       HN.debt(s) > 0.005 && HN.can("finance") ? `<button class="btn btn-primary" data-act="pay" data-id="${esc(s.id)}"><svg><use href="#i-wallet"/></svg><span>Сабти пардохт</span></button>` : "",
       HN.can("editShipment") ? `<button class="btn btn-ghost" data-act="edit" data-id="${esc(s.id)}"><svg><use href="#i-edit"/></svg><span>Таҳрир</span></button>` : "",
       S.features.warehouse && HN.can("staff") ? (HN.whStatus(s) === "in_warehouse" ? `<button class="btn btn-ghost" data-act="wh" data-to="delivered" data-id="${esc(s.id)}"><svg><use href="#i-check"/></svg><span>Супоридан</span></button>` : `<button class="btn btn-ghost" data-act="wh" data-to="in_warehouse" data-id="${esc(s.id)}"><svg><use href="#i-warehouse"/></svg><span>Ба анбор</span></button>`) : "",
+      `<button class="btn btn-ghost" data-statement="${esc(HN.customerKey(s))}"><svg><use href="#i-receipt"/></svg><span>Акт сверки</span></button>`,
       `<button class="btn btn-ghost" data-sheet-key="${esc(HN.customerKey(s))}"><svg><use href="#i-sheet"/></svg><span>Варақи муштарӣ</span></button>`,
       HN.can("delete") ? `<button class="btn btn-danger-soft" data-act="del-ship" data-id="${esc(s.id)}"><svg><use href="#i-trash"/></svg><span>Нест кардан</span></button>` : "",
     ].join("");
@@ -783,7 +818,7 @@
       <dl class="detail-grid">
         ${row("Муштарӣ", esc(s.client_name || "—"))}${row("Коди муштарӣ", esc(HN.customerCode(s) || "—"))}${row("Телефон", esc(s.client_phone || "—"))}${row("Санаи қабул", HN.fmtDate(HN.shipmentDate(s)))}
         ${row("Ҷойҳо", HN.places(s))}${row("Вазн", HN.fmtQty(s.weight_kg, 3) + " кг")}${row("Ҳаҷм", HN.fmtQty(s.volume_m3, 4) + " м³")}${row("Зичӣ", HN.num(s.volume_m3) > 0 ? fmt(HN.num(s.weight_kg) / HN.num(s.volume_m3), 1) + " кг/м³" : "—")}
-        ${dims ? row("Андоза (Б × П × Д)", esc(dims)) : ""}${row("Ҳисоб аз рӯи", s.billing_type === "cube" ? "Ҳаҷм (м³)" : "Вазн (кг)")}${row("Нархи воҳид", fmt(s.unit_price, 2) + " " + esc(s.currency || ""))}${row("Ҳисоб бо асъор", money(s.total_original) + " " + esc(s.currency || "") + " · қурб " + HN.fmtQty(s.fx_rate, 4))}
+        ${dims ? row("Андоза (Б × П × Д)", esc(dims)) : ""}${row("Ҳисоб аз рӯи", s.billing_type === "cube" ? "Ҳаҷм (м³)" : "Вазн (кг)")}${row("Нархи воҳид", fmt(s.unit_price, 2) + " " + esc(s.currency || ""))}${HN.noteNumber(s, "Тахфиф") ? row("Тахфиф", "$" + fmt(HN.noteNumber(s, "Тахфиф"))) : ""}${s.batch_id && S.batches ? row("Партия", esc(S.batches.find(b => b.id === s.batch_id)?.name || "—")) : ""}${row("Ҳисоб бо асъор", money(s.total_original) + " " + esc(s.currency || "") + " · қурб " + HN.fmtQty(s.fx_rate, 4))}
       </dl>
       ${HN.freeNotes(s) ? `<div class="detail-notes"><small>Ёддошт</small><p>${esc(HN.freeNotes(s))}</p></div>` : ""}
       <h3 class="detail-h">Пардохтҳо <span class="muted">(${pays.length})</span></h3>
@@ -811,6 +846,7 @@
   async function deleteShipment(id) {
     const s = HN.shipmentById(id); if (!s) return;
     if (!HN.can("delete")) { HN.toast("Нест кардан танҳо барои админ аст."); return; }
+    if (HN.isLocked?.(HN.shipmentDate(s))) { HN.toast(HN.lockMsg(), "error"); return; }
     const pays = S.paymentsIndex.get(String(s.id)) || [];
     const warn = pays.length ? ` Бо он ${pays.length} пардохт (${money(pays.reduce((n, p) => n + HN.num(p.amount_tjs), 0))} TJS) низ нест мешавад.` : "";
     if (!(await HN.confirm(`Бори «${s.tracking_no}» (${s.client_name}) нест карда шавад?${warn} Ин амалро баргардонидан мумкин нест.`, { title: "Нест кардани бор", ok: "Нест кардан", danger: true }))) return;
