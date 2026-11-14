@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="tg">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#14284B">
+  <meta name="description" content="HOJI-NAIM CARGO — хабарҳо дар бораи бори шумо дар Telegram.">
+  <title>HOJI-NAIM CARGO · Telegram</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <style>
+    :root { --navy: #14284B; --navy-2: #1f3a6b; --gold: #F2B705; --bg: #f3f5f9; --card: #fff; --text: #14213d; --muted: #5b6475; --line: #d9dee8; --err: #b42318; --ok: #067647; --tg: #229ED9; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body { min-height: 100vh; background: var(--bg); color: var(--text); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; display: flex; flex-direction: column; }
+    header { background: var(--navy); color: #fff; padding: 18px 16px; }
+    .brand { max-width: 460px; margin: 0 auto; display: flex; align-items: center; gap: 12px; }
+    .logo { width: 40px; height: 40px; border-radius: 10px; background: #fff; color: var(--navy); font-weight: 800; font-size: 20px; display: grid; place-items: center; }
+    .brand b { display: block; font-size: 17px; letter-spacing: .3px; }
+    .brand small { color: var(--gold); letter-spacing: 3px; font-size: 11px; font-weight: 700; }
+    main { flex: 1; padding: 24px 16px 40px; }
+    .card { max-width: 460px; margin: 0 auto; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 24px 20px; box-shadow: 0 6px 24px rgba(20, 40, 75, .08); }
+    h1 { font-size: 22px; margin: 0 0 6px; }
+    p { margin: 0 0 14px; color: var(--muted); }
+    ul.what { margin: 0 0 20px; padding: 0; list-style: none; display: grid; gap: 6px; }
+    ul.what li { background: #f6f8fc; border-radius: 10px; padding: 8px 12px; font-size: 15px; }
+    label { display: block; font-weight: 600; font-size: 14px; margin: 14px 0 6px; }
+    input { width: 100%; min-height: 48px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; font: inherit; font-size: 17px; background: #fff; color: var(--text); }
+    input:focus { outline: none; border-color: var(--navy-2); box-shadow: 0 0 0 3px rgba(31, 58, 107, .15); }
+    .hint { font-size: 13px; color: var(--muted); margin-top: 4px; }
+    button, .btn { display: flex; width: 100%; align-items: center; justify-content: center; gap: 10px; min-height: 52px; margin-top: 20px; border: 0; border-radius: 12px; background: var(--tg); color: #fff; font: inherit; font-weight: 700; font-size: 17px; cursor: pointer; text-decoration: none; }
+    button:disabled { opacity: .6; cursor: wait; }
+    .msg { margin-top: 16px; padding: 12px 14px; border-radius: 12px; font-size: 15px; display: none; }
+    .msg.err { display: block; background: #fef3f2; color: var(--err); border: 1px solid #fecdca; }
+    .msg.ok { display: block; background: #ecfdf3; color: var(--ok); border: 1px solid #abefc6; }
+    .hidden { display: none !important; }
+    footer { text-align: center; color: var(--muted); font-size: 13px; padding: 0 16px 24px; }
+    svg { width: 22px; height: 22px; fill: currentColor; }
+  </style>
+</head>
+<body>
+  <header><div class="brand"><div class="logo">H</div><div><b>HOJI-NAIM</b><small>CARGO</small></div></div></header>
+  <main>
+    <div class="card">
+      <h1>Хабарҳо дар Telegram</h1>
+      <p>Коди муштарӣ ва рақами телефонатонро нависед. Telegram кушода мешавад. Дар он ҷо <b>Start</b>-ро пахш кунед.</p>
+      <ul class="what">
+        <li>📦 Бори шумо ба Душанбе расид</li>
+        <li>✅ Пардохти шумо қабул шуд</li>
+        <li>🤝 Бор супорида шуд</li>
+        <li>💰 Қарзи шумо, ҳар вақт ки хоҳед</li>
+      </ul>
+      <form id="f" novalidate>
+        <label for="code">Коди муштарӣ</label>
+        <input id="code" name="code" autocomplete="off" autocapitalize="characters" placeholder="масалан: S-50" required maxlength="30">
+        <label for="phone">Рақами телефон</label>
+        <input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="масалан: 90 123 45 67" required maxlength="20">
+        <div class="hint">Ҳамон рақаме, ки ҳангоми супоридани бор гуфтед.</div>
+        <button id="go" type="submit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.78 15.27 9.6 19.6c.38 0 .55-.17.75-.36l1.8-1.73 3.73 2.73c.68.38 1.17.18 1.35-.63l2.45-11.5c.25-1.02-.39-1.42-1.05-1.17L3.9 10.5c-.98.39-.97.95-.17 1.2l3.67 1.14 8.52-5.37c.4-.24.77-.11.47.16"/></svg><span>Ба Telegram гузаштан</span></button>
+      </form>
+      <div id="msg" class="msg" role="status" aria-live="polite"></div>
+      <a id="open" class="btn hidden" href="#" rel="noopener">Telegram-ро кушодан</a>
+    </div>
+  </main>
+  <footer>HOJI-NAIM CARGO · Маълумоти шумо танҳо ба шумо намоён аст.</footer>
+  <script>
+  (function () {
+    var URL_FN = "https://wfxbgkasstkxzmyrjwpi.supabase.co/functions/v1/quick-task";
+    var KEY = "sb_publishable_RHfMgPtLrfPEJzqvBwk5Vg_ksk-iBr2";
+    var f = document.getElementById("f"), go = document.getElementById("go"), msg = document.getElementById("msg"), open = document.getElementById("open");
+    function show(text, ok) { msg.textContent = text; msg.className = "msg " + (ok ? "ok" : "err"); }
+    // ?code=S-50 in the address pre-fills the code
+    try { var c = new URLSearchParams(location.search).get("code"); if (c) f.code.value = c.slice(0, 30); } catch (e) {}
+    f.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var code = f.code.value.trim(), phone = f.phone.value.trim();
+      if (!code) { show("Коди муштариро нависед."); f.code.focus(); return; }
+      if (phone.replace(/\D/g, "").length < 9) { show("Рақами телефонро пурра нависед (9 рақам)."); f.phone.focus(); return; }
+      go.disabled = true; msg.className = "msg"; open.classList.add("hidden");
+      fetch(URL_FN, { method: "POST", headers: { "Content-Type": "application/json", apikey: KEY }, body: JSON.stringify({ action: "link", code: code, phone: phone }) })
+        .then(function (r) { return r.json().catch(function () { return { ok: false }; }); })
+        .then(function (d) {
+          if (!d || !d.ok || !d.link) { show((d && d.error) || "Хато шуд. Баъдтар боз кӯшиш кунед."); return; }
+          show("Тайёр! Дар Telegram Start-ро пахш кунед.", true);
+          open.href = d.link; open.classList.remove("hidden");
+          location.href = d.link;
+        })
+        .catch(function () { show("Интернет нест ё сервер ҷавоб надод. Боз кӯшиш кунед."); })
+        .then(function () { go.disabled = false; });
+    });
+  })();
+  </script>
+</body>
+</html>

@@ -340,6 +340,7 @@
     const log = (S.tgLog || []).slice(0, 8);
     return `<div class="panel span-all"><div class="panel-head"><div><h3>Telegram бот</h3><p class="muted">Обуначиён: <b>${S.tgSubs.length}</b>${S.tgSubs.some(x => x.code_key) ? " (" + esc([...new Set(S.tgSubs.map(x => x.code_key).filter(Boolean))].slice(0, 12).join(", ")) + ")" : ""}. Муштарӣ дар бот коди худро менависад (масалан S-50). Паёмҳо худкор мераванд: бор расид · пардохт · супоридан.</p></div>
       <div class="btn-row"><label class="field"><span>Username-и бот</span><input id="tgBot" value="${esc(bot)}" placeholder="hoji_naim_cargo_bot"></label><button class="btn btn-ghost" id="tgInfo" type="button">Санҷиши бот</button></div></div>
+      <p>Саҳифа барои муштариён (код + телефон → Telegram): <a href="${esc(new URL("telegram.html", location.href).href)}" target="_blank" rel="noopener"><b>${esc(new URL("telegram.html", location.href).href)}</b></a> <button class="btn btn-xs btn-soft" id="tgPageCopy" type="button">Нусха</button></p>
       ${bot ? `<p>Пайванд барои муштариён: <a href="https://t.me/${esc(bot)}" target="_blank" rel="noopener"><b>t.me/${esc(bot)}</b></a> <button class="btn btn-xs btn-soft" id="tgCopy" type="button">Нусха</button></p>` : '<p class="hint">Username-и ботро нависед, то пайванд барои муштариён пайдо шавад.</p>'}
       <div class="table-wrap"><table class="tbl"><thead><tr><th>Вақт</th><th>Паём</th><th>Бор</th><th>Ҳолат</th></tr></thead><tbody>${log.map(l => `<tr><td class="nowrap">${HN.fmtDateTime(l.created_at)}</td><td>${TG_EVENT[l.event] || esc(l.event)}</td><td>${esc(HN.shipmentById(l.shipment_id)?.tracking_no || "—")}</td><td>${l.ok ? '<span class="pill pay-paid">Фиристода шуд</span>' : `<span class="pill pay-unpaid" title="${esc(l.error)}">Хато</span>`}</td></tr>`).join("") || '<tr><td colspan="4" class="muted">Ҳоло паём нафиристода шудааст.</td></tr>'}</tbody></table></div>
       <details class="setup"><summary>Дастури насб</summary>${steps}</details></div>`;
@@ -347,6 +348,7 @@
   function wireTelegramCard() {
     if ($("tgSecretBtn")) $("tgSecretBtn").onclick = () => { $("tgSecret").textContent = randomSecret(); };
     if ($("tgBot")) $("tgBot").onchange = e => { HN.lsSet("hn-tg-bot", e.target.value.trim().replace(/^@/, "")); renderAdminExtras(); };
+    if ($("tgPageCopy")) $("tgPageCopy").onclick = async () => { try { await navigator.clipboard.writeText(new URL("telegram.html", location.href).href); HN.toast("Пайванд нусха шуд.", "ok"); } catch { HN.toast("Нусха нашуд."); } };
     if ($("tgCopy")) $("tgCopy").onclick = async () => { try { await navigator.clipboard.writeText("https://t.me/" + HN.lsGet("hn-tg-bot", "")); HN.toast("Пайванд нусха шуд.", "ok"); } catch { HN.toast("Нусха нашуд."); } };
     if ($("tgInfo")) $("tgInfo").onclick = async () => {
       const r = await S.db.functions.invoke(HN.config.tgFunction, { body: { action: "info" } });

@@ -620,3 +620,4 @@ legend { padding: 0 6px; font-size: 12px; font-weight: 700; letter-spacing: .08e
 details.setup { margin-top: 6px; }
 details.setup summary { cursor: pointer; font-weight: 600; color: var(--navy-600); }
 #tgTpl { margin: 4px 0 12px; flex-wrap: wrap; }
+.customer-link { display: block; text-align: center; margin-top: 14px; text-decoration: none; }
