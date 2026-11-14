@@ -547,3 +547,14 @@ legend { padding: 0 6px; font-size: 12px; font-weight: 700; letter-spacing: .08e
 .xl-tpl tr.xl-datarow td.xl-red { color: #E06666 !important; }
 .xl-tpl tr.xl-datarow:hover td { background: #E2EFDA; }
 .xl-note { padding: 7px 14px; font-size: 12.5px; color: #605E5C; background: #F3F2F1; border-top: 1px solid #E1DFDD; position: sticky; left: 0; }
+
+/* Excel sheet bar: ⋯ (all sheets) and plain + */
+.xl-tabsbar { position: relative; }
+.xl-more, .xl-addtab { flex: none; width: 34px; border: 0; background: transparent; cursor: pointer; color: #3B3A39; font-size: 20px; line-height: 1; display: grid; place-items: center; }
+.xl-more { font-size: 16px; letter-spacing: 1px; }
+.xl-more:hover, .xl-addtab:hover { background: #E1DFDD; color: var(--xl-green); }
+.xl-sheetmenu { position: absolute; bottom: 34px; left: 60px; z-index: 6; max-height: 320px; overflow: auto; min-width: 200px; background: #fff; border: 1px solid #C8C6C4; box-shadow: 0 8px 24px rgba(0,0,0,.18); border-radius: 4px; padding: 4px 0; display: grid; }
+.xl-sheetmenu button { border: 0; background: none; text-align: left; padding: 6px 14px; font: inherit; font-size: 13.5px; cursor: pointer; display: flex; gap: 8px; align-items: baseline; }
+.xl-sheetmenu button:hover { background: #F3F2F1; }
+.xl-sheetmenu button.on { color: var(--xl-green); font-weight: 600; }
+.xl-sheetmenu small { color: #605E5C; }

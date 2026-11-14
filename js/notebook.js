@@ -58,10 +58,17 @@
 
   /* ---------- Workbook storage ---------- */
   let book = null;
+  const READY_SHEETS = 10; // Лист1 … Лист10 are always ready; the accountant renames them
+  function topUp(b) {
+    for (let n = 1; b.sheets.length < READY_SHEETS; n++) {
+      if (!b.sheets.some(x => x.name.toLowerCase() === "лист" + n)) b.sheets.push(blankSheet(n));
+    }
+    return b;
+  }
   function blankSheet(n, extra = {}) { return { id: uid(), name: "Лист" + n, code: "", phone: "", rows: [], ...extra }; }
   function loadBook() {
     const saved = HN.lsGet(BOOK_KEY, null);
-    if (saved && Array.isArray(saved.sheets) && saved.sheets.length) return saved;
+    if (saved && Array.isArray(saved.sheets) && saved.sheets.length) return topUp(saved);
     // First run: migrate the previous single "Карго" ledger (grouped by customer code).
     const old = HN.lsGet(OLD_DRAFT_KEY, []), meta = HN.lsGet(OLD_META_KEY, {}) || {};
     const b = { sheets: [], active: null, usdRate: N(meta.usdRate) || D.usdRate, cnyRate: N(meta.cnyRate) > 1 ? N(meta.cnyRate) : D.cnyRate };
@@ -72,7 +79,7 @@
       groups.get(code).rows.push({ date: r.date || "", shop: r.shop || "", city: r.city || "", item: r.item || "", height: r.height ?? "", width: r.width ?? "", length: r.length ?? "", places: r.places ?? "", kgPerPlace: r.kgPerPlace ?? "", cubePrice: r.cubePrice ?? D.cubePrice, kgPrice: r.kgPrice ?? D.kgPrice, syncTrackingNo: r.syncTrackingNo || "" });
     });
     [...groups.values()].forEach((g, i) => b.sheets.push(blankSheet(i + 1, { code: g.code, phone: g.phone, rows: g.rows })));
-    if (!b.sheets.length) b.sheets.push(blankSheet(1));
+    topUp(b);
     b.active = b.sheets[0].id;
     return b;
   }
@@ -101,6 +108,7 @@
     if (!remote.length) { book.sheets.forEach(sh => dirty.add(sh.id)); flushRemote(); return; } // first upload
     const local = new Map(book.sheets.map(s => [s.id, s]));
     book.sheets = remote.map(x => { const id = x.customer_key.slice(6); return { ...(local.get(id) || {}), id, name: x.sheet_name, code: x.client_code || "", phone: x.phone || "", rows: Array.isArray(x.data?.rows) ? x.data.rows : [] }; });
+    const before = book.sheets.length; topUp(book); book.sheets.slice(before).forEach(x => dirty.add(x.id)); if (dirty.size) flushRemote();
     if (!book.sheets.some(s => s.id === book.active)) book.active = book.sheets[0]?.id;
     HN.lsSet(BOOK_KEY, book);
   }
@@ -165,7 +173,9 @@
           <div class="xl-tabs" id="xlTabs" role="tablist" aria-label="Варақҳо">
             ${book.sheets.map(x => `<button class="xl-tab${x.id === sh.id ? " on" : ""}" data-sheet="${esc(x.id)}" role="tab" aria-selected="${x.id === sh.id}" title="${esc(x.code ? "Код: " + x.code : "Код нанавишта")} — барои иваз кардани ном ду бор пахш кунед">${esc(x.name)}</button>`).join("")}
           </div>
-          <button class="xl-addtab" data-xl="add-sheet" title="Варақи нав" aria-label="Варақи нав"><span>+</span></button>
+          <button class="xl-more" data-xl="all-sheets" title="Ҳамаи варақҳо" aria-label="Ҳамаи варақҳо">⋯</button>
+          <button class="xl-addtab" data-xl="add-sheet" title="Варақи нав (Shift+F11)" aria-label="Варақи нав">+</button>
+          <div class="xl-sheetmenu hidden" id="xlSheetMenu" role="menu">${book.sheets.map(x => `<button role="menuitem" data-sheet="${esc(x.id)}" class="${x.id === sh.id ? "on" : ""}">${esc(x.name)}${x.code ? ` <small>${esc(x.code)}</small>` : ""}</button>`).join("")}</div>
         </div>
         <div class="xl-status"><span id="xlStatus">Омода</span><span id="xlAgg"></span><span class="xl-sheetcount">${book.sheets.length} варақ</span><span class="xl-zoom" aria-hidden="true"><i class="xl-view on"></i><i class="xl-view v2"></i><i class="xl-view v3"></i><b>−</b><span class="xl-slider"><i></i></span><b>+</b>100%</span></div>
       </div>`;
@@ -271,6 +281,8 @@
     const cell = e.target.closest(".xl-c[data-r]");
     if (cell) selectCell(Number(cell.dataset.r), Number(cell.dataset.c));
   });
+  document.addEventListener("keydown", e => { if (e.shiftKey && e.key === "F11" && HN.$("notebook")?.offsetParent) { e.preventDefault(); action("add-sheet"); } });
+  document.addEventListener("click", e => { const m = HN.$("xlSheetMenu"); if (m && !m.classList.contains("hidden") && !e.target.closest("#xlSheetMenu, [data-xl=all-sheets]")) m.classList.add("hidden"); });
   document.addEventListener("dblclick", e => {
     const row = e.target.closest("#notebook tr.xl-datarow[data-ship]");
     if (row) HN.openDetail(row.dataset.ship);
@@ -324,7 +336,12 @@
     if (book.sheets.some(x => x.id !== exceptId && x.name.toLowerCase() === n.toLowerCase())) return "Варақ бо ҳамин ном аллакай ҳаст.";
     return "";
   }
-  function nextName() { let n = book.sheets.length + 1; while (book.sheets.some(s => s.name.toLowerCase() === "лист" + n)) n++; return "Лист" + n; }
+  function nextName() {
+    const nums = book.sheets.map(s => (/^лист\s*(\d+)$/i.exec(s.name) || [])[1]).filter(Boolean).map(Number);
+    let n = Math.max(book.sheets.length, ...nums, 0) + 1;
+    while (book.sheets.some(s => s.name.toLowerCase() === "лист" + n)) n++;
+    return "Лист" + n;
+  }
   function startRename(tab) {
     const id = tab.dataset.sheet, old = tab.textContent;
     tab.innerHTML = `<input class="xl-tabinput" value="${esc(old)}" maxlength="31" aria-label="Номи нави варақ">`;
@@ -347,10 +364,11 @@
     const sh = activeSheet();
     if (kind === "tabs-left" || kind === "tabs-right") { root().querySelector(".xl-tabs")?.scrollBy({ left: kind === "tabs-left" ? -200 : 200, behavior: "smooth" }); return; }
     if (kind === "add-sheet") {
-      const n = blankSheet(0, { name: nextName() }); book.sheets.push(n); book.active = n.id; selected = null; save(n); await render();
-      root().querySelector('input[data-meta="code"]')?.focus();
-      HN.toast("Варақи «" + n.name + "» сохта шуд. Код ва Тел-и муштариро нависед.", "ok"); return;
+      const n = blankSheet(0, { name: nextName() });
+      book.sheets.splice(book.sheets.indexOf(sh) + 1, 0, n); book.active = n.id; selected = null; save(n); await render();
+      setStatus("Варақи «" + n.name + "» илова шуд"); return;
     }
+    if (kind === "all-sheets") { HN.$("xlSheetMenu")?.classList.toggle("hidden"); return; }
     if (kind === "rename") { const t = root().querySelector(".xl-tab.on"); if (t) startRename(t); return; }
     if (kind === "remove-sheet") {
       if (book.sheets.length < 2) return;
