@@ -46,6 +46,9 @@ create policy "staff read tg subscribers" on public.telegram_subscribers for sel
 create policy "staff read tg log" on public.telegram_log for select to authenticated using (public.is_staff());
 grant select on public.telegram_subscribers, public.telegram_log to authenticated;
 revoke all on public.telegram_config from anon, authenticated;
+-- The Edge Function uses the service_role key; this project does not grant it table access by default.
+grant select, insert, update, delete on public.telegram_subscribers, public.telegram_log to service_role;
+grant select on public.shipments, public.payments, public.profiles to service_role;
 
 -- ====== ИВАЗ КУНЕД: суроғаи функсия ва калиди махфӣ (ҳамон HOOK_SECRET, ки дар Edge Function гузоштед) ======
 insert into public.telegram_config (id, function_url, hook_secret)
