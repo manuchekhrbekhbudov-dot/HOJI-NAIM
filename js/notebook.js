@@ -20,7 +20,7 @@
   const OLD_DRAFT_KEY = "hoji-naim-cargo-sheet-v1";       // previous version — migrated, kept
   const OLD_META_KEY = "hoji-naim-cargo-sheet-meta-v1";
   const FIRST = 9;           // first data row, as in the template
-  const MIN_ROWS = 30;       // empty template rows always shown
+  const MIN_ROWS = 100;      // rows 9–108, as in the template
   const N = v => { const n = Number(String(v ?? "").replace(",", ".")); return Number.isFinite(n) ? n : 0; };
   const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random()).replace(/-/g, "").slice(0, 8);
 
@@ -30,8 +30,8 @@
   /* ---------- Template columns ---------- */
   // key, header, kind (in = input, f = formula), width px
   const COLS = [
-    ["no", "п/н", "f", 38], ["date", "Дата", "in", 92], ["shop", "магазин", "in", 80], ["city", "город", "in", 72],
-    ["item", "Наим-ие товара", "in", 104], ["height", "высота", "in", 58], ["width", "ширина", "in", 58], ["length", "длина", "in", 58],
+    ["no", "П/н", "f", 38], ["date", "Дата", "in", 92], ["shop", "магазин", "in", 80], ["city", "город", "in", 72],
+    ["item", "Наим-ие товвара", "in", 104], ["height", "высота", "in", 58], ["width", "ширина", "in", 58], ["length", "длина", "in", 58],
     ["places", "место", "in", 52], ["cube", "Общий объем, куб", "f", 76], ["kgPerPlace", "кг", "in", 52], ["kg", "Общий объем, кг", "f", 76],
     ["cubePrice", "цена куб", "in", 58], ["cubeAmount", "Сумма за куб", "f", 78], ["kgPrice", "цена кг", "in", 56], ["kgAmount", "Сумма за кг", "f", 78],
     ["price", "итоговая цена", "f", 84], ["density", "кг в одном кубе", "f", 70],
@@ -40,9 +40,10 @@
   const RED = new Set(["cube", "kg", "cubeAmount", "kgAmount"]);
   const TEXT = new Set(["date", "shop", "city", "item"]);
   const FORMULA = {
+    // exactly the formulas of «Новый образец 2025»
     no: r => `=IF(ISBLANK(F${r});"";COUNTA($F$${FIRST}:F${r}))`,
-    cube: r => `=F${r}*G${r}*H${r}*I${r}`, kg: r => `=K${r}*I${r}`, cubeAmount: r => `=J${r}*M${r}`, kgAmount: r => `=L${r}*O${r}`,
-    price: r => `=IF(N${r}>P${r};N${r};P${r})`, density: r => `=IF(J${r}>0;L${r}/J${r};"")`,
+    cube: r => `=I${r}*H${r}*G${r}*F${r}`, kg: r => `=K${r}*I${r}`, cubeAmount: r => `=M${r}*J${r}`, kgAmount: r => `=O${r}*L${r}`,
+    price: r => `=IF(J${r}*M${r}>L${r}*O${r};J${r}*M${r};L${r}*O${r})`, density: r => `=IFERROR(L${r}/J${r};"")`,
   };
   const calc = r => {
     const places = N(r.places), cube = N(r.height) * N(r.width) * N(r.length) * places, kg = N(r.kgPerPlace) * places;
@@ -134,7 +135,35 @@
   /* ---------- Rendering ---------- */
   const root = () => HN.$("notebook");
   const activeSheet = () => book.sheets.find(s => s.id === book.active) || book.sheets[0];
-  let selected = null, ready = false;
+  let selected = null, ready = false, showTotal = false;
+  // Totals of one sheet (same numbers as its row 7), used by «Итого Куб».
+  function sheetTotals(sh) {
+    const all = [...dbRows(sh), ...sh.rows.filter(used)];
+    const T = { places: 0, cube: 0, kg: 0, cubeAmount: 0, kgAmount: 0, price: 0 };
+    all.forEach(r => { const x = r.ro ? r.c : calc(r); Object.keys(T).forEach(k => (T[k] += x[k] || 0)); });
+    return { ...T, density: T.cube > 0 ? T.kg / T.cube : null, cargo: N(sh.cargoUsd), n: all.length };
+  }
+  const TOTAL_NAME = "Итого Куб";
+  function totalGrid() {
+    const list = book.sheets.map(sh => ({ sh, t: sheetTotals(sh) }));
+    const G = k => list.reduce((n, x) => n + (x.t[k] || 0), 0);
+    const last = 4 + list.length;
+    const cols = [["", 44], ["Код", 150], ["Место", 90], ["Куб", 100], ["Кг", 100], ["Сумма куб", 110], ["Сумма кг", 110], ["Сумма оплаты", 120], ["Кг в одном кубе", 110], ["Сумма карго", 110]];
+    const keys = [null, null, "places", "cube", "kg", "cubeAmount", "kgAmount", "price", "density", "cargo"];
+    const L = c => String.fromCharCode(65 + c);
+    const fmtv = (k, v) => (v === null || v === undefined || v === "" ? "" : k === "places" ? xf(v, 0) : k === "cargo" ? xf(v, 0) + "$" : xf(v, k === "density" ? 1 : 2));
+    let h = `<tr class="xt-title"><th class="xl-rh">1</th><td class="xl-c" data-r="1" data-c="0"></td><td class="xl-c xt-big" colspan="9" data-r="1" data-c="1">Общий итоги куб,кг (сумма куб,кг)</td></tr>`;
+    h += `<tr class="xt-head"><th class="xl-rh">2</th>${cols.map(([t], c) => `<td class="xl-c" data-r="2" data-c="${c}">${t}</td>`).join("")}</tr>`;
+    h += `<tr class="xt-sum"><th class="xl-rh">3</th><td class="xl-c" data-r="3" data-c="0"></td><td class="xl-c xt-lbl" data-r="3" data-c="1">Итого:</td>${keys.slice(2).map((k, i) => { const c = i + 2; const v = G(k); /* SUBTOTAL(9, …) of the column, as in the company's file */ return `<td class="xl-c xl-num" data-r="3" data-c="${c}" data-f="=SUBTOTAL(9;${L(c)}5:${L(c)}${last})">${fmtv(k, v)}</td>`; }).join("")}</tr>`;
+    h += `<tr class="xt-band"><th class="xl-rh">4</th><td class="xl-c" data-r="4" data-c="0"></td>${cols.slice(1).map((_, i) => `<td class="xl-c" data-r="4" data-c="${i + 1}"></td>`).join("")}</tr>`;
+    list.forEach(({ sh, t }, i) => {
+      const R = 5 + i, ref = `'${sh.name}'!`;
+      const src = { 1: "B1", 2: "I7", 3: "J7", 4: "L7", 5: "N7", 6: "P7", 7: "Q7", 8: "R7", 9: "Q5" };
+      h += `<tr class="xt-row" data-goto-sheet="${esc(sh.id)}" title="Барои кушодани ${esc(sh.name)} ду бор пахш кунед"><th class="xl-rh">${R}</th><td class="xl-c xl-center" data-r="${R}" data-c="0">${i + 1}</td>${keys.slice(1).map((k, j) => { const c = j + 1; const v = k === null ? esc(sh.code || "") : fmtv(k, t[k]); return `<td class="xl-c ${c === 1 ? "xl-center xl-b" : "xl-num"}" data-r="${R}" data-c="${c}" data-f="=${esc(ref)}${src[c]}">${v}</td>`; }).join("")}</tr>`;
+    });
+    return `<table class="xl-grid xl-tot"><colgroup><col class="xl-rhcol">${cols.map(c => `<col style="width:${c[1]}px">`).join("")}</colgroup>
+      <thead><tr class="xl-letters"><th class="xl-corner"></th>${cols.map((_, c) => `<th>${L(c)}</th>`).join("")}</tr></thead><tbody>${h}</tbody></table>`;
+  }
 
   async function render() {
     const el = root(); if (!el || !S.user) return;
@@ -167,11 +196,12 @@
           </div><span class="xl-group-label">Содирот</span></div>
         </div>
         <div class="xl-formula"><span class="xl-namebox" id="xlName">A${FIRST}</span><span class="xl-fxicons" aria-hidden="true"><i>✕</i><i>✓</i><em>fx</em></span><input id="xlFx" readonly aria-label="Сатри формула" value=""></div>
-        <div class="xl-gridwrap" id="xlGridWrap">${grid(sh, ro)}</div>
+        <div class="xl-gridwrap" id="xlGridWrap">${showTotal ? totalGrid() : grid(sh, ro)}</div>
         <div class="xl-tabsbar">
           <button class="xl-tabnav" data-xl="tabs-left" aria-label="Варақҳои пешина">◀</button><button class="xl-tabnav" data-xl="tabs-right" aria-label="Варақҳои баъдина">▶</button>
           <div class="xl-tabs" id="xlTabs" role="tablist" aria-label="Варақҳо">
-            ${book.sheets.map(x => `<button class="xl-tab${x.id === sh.id ? " on" : ""}" data-sheet="${esc(x.id)}" role="tab" aria-selected="${x.id === sh.id}" title="${esc(x.code ? "Код: " + x.code : "Код нанавишта")} — барои иваз кардани ном ду бор пахш кунед">${esc(x.name)}</button>`).join("")}
+            ${book.sheets.map(x => `<button class="xl-tab${x.id === sh.id && !showTotal ? " on" : ""}" data-sheet="${esc(x.id)}" role="tab" aria-selected="${x.id === sh.id && !showTotal}" title="${esc(x.code ? "Код: " + x.code : "Код нанавишта")} — барои иваз кардани ном ду бор пахш кунед">${esc(x.name)}</button>`).join("")}
+            <button class="xl-tab xl-tab-total${showTotal ? " on" : ""}" data-total="1" role="tab" aria-selected="${showTotal}" title="Ҷамъбасти ҳамаи варақҳо">${TOTAL_NAME}</button>
           </div>
           <button class="xl-more" data-xl="all-sheets" title="Ҳамаи варақҳо" aria-label="Ҳамаи варақҳо">⋯</button>
           <button class="xl-addtab" data-xl="add-sheet" title="Варақи нав (Shift+F11)" aria-label="Варақи нав">+</button>
@@ -181,7 +211,11 @@
       </div>`;
     const tab = el.querySelector(".xl-tab.on"), bar = el.querySelector(".xl-tabs");
     if (tab && bar && (tab.offsetLeft < bar.scrollLeft || tab.offsetLeft + tab.offsetWidth > bar.scrollLeft + bar.clientWidth)) bar.scrollLeft = tab.offsetLeft - 40;
-    refresh();
+    if (showTotal) {
+      const all = book.sheets.map(sheetTotals), sum = k => all.reduce((n, t) => n + (t[k] || 0), 0);
+      HN.$("xlAgg").textContent = `Варақҳо: ${book.sheets.length} · Место: ${xf(sum("places"), 0)} · куб: ${xf(sum("cube"), 3)} · кг: ${xf(sum("kg"), 1)} · Сумма оплаты: $${xf(sum("price"))}`;
+      HN.$("xlName").textContent = "B1"; root().querySelector(".xl").classList.add("xl-showtotal");
+    } else refresh();
     if (selected) selectCell(selected.r, selected.c, true);
   }
 
@@ -198,11 +232,12 @@
     h += row(1, td(1, 0, "Код", "xl-b xl-box") + `<td class="xl-c xl-box xl-in" colspan="5" data-r="1" data-c="1">${metaIn("code", sh.code, "Код")}</td>` + blanks(6, 6, 1) + td(1, 7, "Курс $", "xl-b xl-right") + `<td class="xl-c xl-box xl-in xl-num" data-r="1" data-c="8">${metaIn("usdRate", book.usdRate, "Курси доллар")}</td>` + blanks(9, 17, 1));
     h += row(2, td(2, 0, "Тел", "xl-b xl-box") + `<td class="xl-c xl-box xl-in" colspan="5" data-r="2" data-c="1">${metaIn("phone", sh.phone, "Тел")}</td>` + blanks(6, 6, 2) + td(2, 7, "Курс ¥", "xl-b xl-right") + `<td class="xl-c xl-box xl-in xl-num" data-r="2" data-c="8">${metaIn("cnyRate", book.cnyRate, "Курси юан")}</td>` + blanks(9, 17, 2));
     h += row(3, blanks(0, 17, 3));
-    h += row(4, blanks(0, 10, 4) + td(4, 11, "", "xl-box") + `<td class="xl-c xl-box xl-center" colspan="2" data-r="4" data-c="12">Место</td><td class="xl-c xl-box xl-center" colspan="2" data-r="4" data-c="14">Юань</td><td class="xl-c xl-box xl-center" colspan="2" data-r="4" data-c="16">Доллар</td>`);
-    h += row(5, blanks(0, 10, 5) + td(5, 11, "Карго", "xl-box") + `<td class="xl-c xl-box xl-num" colspan="2" data-r="5" data-c="12" data-t="places" data-f="=I7"></td><td class="xl-c xl-box xl-num" colspan="2" data-r="5" data-c="14" data-t="yuan" data-f="=Q7*I1/I2"></td><td class="xl-c xl-box xl-num" colspan="2" data-r="5" data-c="16" data-t="usd" data-f="=Q7"></td>`);
+    h += row(4, blanks(0, 10, 4) + td(4, 11, "", "xl-box xl-lav") + `<td class="xl-c xl-box xl-lav xl-center" colspan="2" data-r="4" data-c="12">Место</td><td class="xl-c xl-box xl-lav xl-center" colspan="2" data-r="4" data-c="14">Юань</td><td class="xl-c xl-box xl-lav xl-center" colspan="2" data-r="4" data-c="16">Доллар</td>`);
+    const cargoIn = (f, c, label) => `<td class="xl-c xl-box xl-in xl-center" colspan="2" data-r="5" data-c="${c}">${metaIn(f, sh[f] ?? "", label, "xl-center-in")}</td>`;
+    h += row(5, blanks(0, 10, 5) + td(5, 11, "Карго", "xl-box") + cargoIn("cargoPlaces", 12, "Карго: место") + cargoIn("cargoYuan", 14, "Карго: юань") + cargoIn("cargoUsd", 16, "Карго: доллар"));
     const itogo = new Set(["places", "cube", "kg", "cubeAmount", "kgAmount", "price", "density"]);
     h += row(6, COLS.map(([k], c) => itogo.has(k) ? td(6, c, "Итого:", "xl-b xl-box xl-center") : td(6, c, "", "xl-box")).join(""), "xl-r6");
-    h += row(7, COLS.map(([k], c) => itogo.has(k) && k !== "density" ? td(7, c, "", "xl-box xl-num", ` data-t="${k}" data-f="=SUM(${LETTER[k]}${FIRST}:${LETTER[k]}${last})"`) : td(7, c, "", "xl-box")).join(""), "xl-r7");
+    h += row(7, COLS.map(([k], c) => k === "density" ? td(7, c, "", "xl-box xl-num xl-b", ` data-t="density" data-f="=IFERROR(L7/J7;&quot;&quot;)"`) : itogo.has(k) ? td(7, c, "", "xl-box xl-num xl-b", ` data-t="${k}" data-f="=SUM(${LETTER[k]}${FIRST}:${LETTER[k]}${last})"`) : td(7, c, "", "xl-box")).join(""), "xl-r7");
     h += row(8, COLS.map(([, title], c) => td(8, c, title, "xl-hd")).join(""), "xl-r8");
     for (let i = 0; i < total; i++) {
       const R = FIRST + i, rec = all[i], isRo = !!rec?.ro, li = i - ro.length;
@@ -243,7 +278,7 @@
     });
     g.querySelectorAll("[data-t]").forEach(cell => {
       const k = cell.dataset.t;
-      cell.textContent = k === "places" ? xf(T.places, 0) : k === "usd" ? xf(T.price) : k === "yuan" ? xf(book.cnyRate > 0 ? (T.price * book.usdRate) / book.cnyRate : 0) : xf(T[k], 1);
+      cell.textContent = k === "places" ? xf(T.places, 0) : k === "density" ? (T.cube > 0 ? xf(T.kg / T.cube, 1) : "") : xf(T[k], 1);
     });
     const agg = HN.$("xlAgg");
     if (agg) agg.textContent = `Борҳо: ${all.filter(r => r.ro || used(r)).length} · Место: ${xf(T.places, 0)} · куб: ${xf(T.cube, 3)} · кг: ${xf(T.kg, 1)} · Итого: $${xf(T.price)} (${xf(T.price * book.usdRate)} TJS)`;
@@ -269,10 +304,11 @@
   /* ---------- Events ---------- */
   document.addEventListener("click", async e => {
     if (!e.target.closest("#notebook")) return;
+    if (e.target.closest("[data-total]")) { if (!showTotal) { showTotal = true; selected = null; await render(); } return; }
     const tab = e.target.closest("[data-sheet]");
     if (tab && !tab.querySelector("input")) {
       const id = tab.dataset.sheet;
-      if (id !== book.active) { book.active = id; selected = null; save(); await render(); }
+      if (id !== book.active || showTotal) { showTotal = false; book.active = id; selected = null; save(); await render(); }
       if (e.detail === 2) { const on = root().querySelector(".xl-tab.on"); if (on) startRename(on); }
       return;
     }
@@ -283,7 +319,9 @@
   });
   document.addEventListener("keydown", e => { if (e.shiftKey && e.key === "F11" && HN.$("notebook")?.offsetParent) { e.preventDefault(); action("add-sheet"); } });
   document.addEventListener("click", e => { const m = HN.$("xlSheetMenu"); if (m && !m.classList.contains("hidden") && !e.target.closest("#xlSheetMenu, [data-xl=all-sheets]")) m.classList.add("hidden"); });
-  document.addEventListener("dblclick", e => {
+  document.addEventListener("dblclick", async e => {
+    const go = e.target.closest("#notebook tr[data-goto-sheet]");
+    if (go) { showTotal = false; book.active = go.dataset.gotoSheet; selected = null; save(); await render(); return; }
     const row = e.target.closest("#notebook tr.xl-datarow[data-ship]");
     if (row) HN.openDetail(row.dataset.ship);
   });
@@ -387,8 +425,10 @@
       if (used(r) && !(await HN.confirm(`Сатри ${FIRST + Number(tr.dataset.i)} нест карда шавад?${r.syncTrackingNo ? " Бори аллакай дар система сабтшуда нест намешавад." : ""}`, { ok: "Нест кардан", danger: true }))) return;
       sh.rows.splice(li, 1); save(sh); await render(); return;
     }
+    if (showTotal && ["sync", "del-row", "rename", "remove-sheet"].includes(kind)) { HN.toast("Аввал варақи муштариро (Лист…) интихоб кунед."); return; }
+    if (kind === "add-sheet") showTotal = false;
     if (kind === "sync") { await sync(sh); return; }
-    if (kind === "export-sheet") { exportBook([sh]); return; }
+    if (kind === "export-sheet") { exportBook(showTotal ? book.sheets : [sh]); return; }
     if (kind === "export-all") exportBook(book.sheets);
   }
 
@@ -430,64 +470,105 @@
     }
   }
 
-  /* ---------- Real .xlsx in the company's template layout ---------- */
+  /* ---------- Real .xlsx in the company's template layout («Новый образец 2025») ---------- */
   async function exportBook(sheets) {
     let X;
     try { if (!window.XLSX?.utils) setStatus("Файли Excel омода мешавад…"); X = await HN.loadXlsx(); }
     catch { HN.toast("Китобхонаи Excel бор нашуд. Интернетро санҷед ва дубора кӯшиш кунед.", "error"); return; }
-    const wb = X.utils.book_new(), names = new Set();
-    const thin = { style: "thin", color: { rgb: "000000" } }, B = { top: thin, bottom: thin, left: thin, right: thin };
-    const font = (o = {}) => ({ name: "Calibri", sz: 11, ...o });
-    const ctr = { horizontal: "center", vertical: "center" };
+    const wb = X.utils.book_new(), names = new Set(), exported = [];
+    const side = st => ({ style: st, color: { rgb: "000000" } });
+    const B = { top: side("thin"), bottom: side("thin"), left: side("thin"), right: side("thin") };
+    const BM = { top: side("medium"), bottom: side("medium"), left: side("medium"), right: side("medium") };
+    const font = (o = {}) => ({ name: "Calibri", sz: 12, ...o });
+    const fill = rgb => ({ patternType: "solid", fgColor: { rgb } });
+    const ctr = { horizontal: "center", vertical: "center", wrapText: true };
     sheets.forEach(sh => {
       const all = [...dbRows(sh), ...sh.rows.filter(used)];
       const total = Math.max(MIN_ROWS, all.length), last = FIRST + total - 1;
       const ws = {}, merges = [];
       const put = (ref, cell) => (ws[ref] = cell);
-      const txt = (ref, v, s = {}) => put(ref, { t: "s", v, s: { font: font(s.font), alignment: s.alignment || { vertical: "center" }, border: s.border, fill: s.fill } });
-      const merge = a => merges.push(X.utils.decode_range(a));
-      txt("A1", "Код", { font: { bold: true }, border: B }); txt("B1", sh.code || "", { border: B }); ["C1", "D1", "E1", "F1"].forEach(r => txt(r, "", { border: B })); merge("B1:F1");
-      txt("A2", "Тел", { font: { bold: true }, border: B }); txt("B2", sh.phone || "", { border: B }); ["C2", "D2", "E2", "F2"].forEach(r => txt(r, "", { border: B })); merge("B2:F2");
+      const txt = (ref, v, s = {}) => put(ref, { t: "s", v, s: { font: font(s.font), alignment: s.alignment || { vertical: "center" }, border: s.border, fill: s.fill, numFmt: s.numFmt } });
+      const merge = r => merges.push(X.utils.decode_range(r));
+      txt("A1", "Код", { font: { bold: true }, border: B }); txt("B1", sh.code || "", { font: { sz: 14, bold: true }, border: B, alignment: ctr, numFmt: "@" }); ["C1", "D1", "E1", "F1"].forEach(r => txt(r, "", { border: B })); merge("B1:F1");
+      txt("A2", "Тел", { font: { bold: true }, border: B }); txt("B2", sh.phone || "", { font: { sz: 14, bold: true }, border: B, alignment: ctr, numFmt: "@" }); ["C2", "D2", "E2", "F2"].forEach(r => txt(r, "", { border: B })); merge("B2:F2");
       txt("H1", "Курс $", { font: { bold: true }, alignment: { horizontal: "right" } }); put("I1", { t: "n", v: N(book.usdRate), z: "0.0000", s: { font: font(), border: B, numFmt: "0.0000" } });
       txt("H2", "Курс ¥", { font: { bold: true }, alignment: { horizontal: "right" } }); put("I2", { t: "n", v: N(book.cnyRate), z: "0.0000", s: { font: font(), border: B, numFmt: "0.0000" } });
-      txt("L4", "", { border: B });
-      [["M4", "N4", "Место"], ["O4", "P4", "Юань"], ["Q4", "R4", "Доллар"]].forEach(([a, b, t]) => { txt(a, t, { border: B, alignment: ctr }); txt(b, "", { border: B }); merge(a + ":" + b); });
+      txt("L4", "", { border: B, fill: fill("CCCCFF") });
+      [["M4", "N4", "Место"], ["O4", "P4", "Юань"], ["Q4", "R4", "Доллар"]].forEach(([a, b, t]) => { txt(a, t, { border: B, alignment: ctr, fill: fill("CCCCFF") }); txt(b, "", { border: B, fill: fill("CCCCFF") }); merge(a + ":" + b); });
       txt("L5", "Карго", { border: B });
-      const T = all.reduce((t, r) => { const x = r.ro ? r.c : calc(r); t.places += x.places; t.price += x.price; return t; }, { places: 0, price: 0 });
-      [["M5", "N5", "I7", T.places, "0"], ["O5", "P5", "IF(I2>0,Q7*I1/I2,0)", N(book.cnyRate) > 0 ? (T.price * N(book.usdRate)) / N(book.cnyRate) : 0, "#,##0.00"], ["Q5", "R5", "Q7", T.price, "#,##0.00"]]
-        .forEach(([a, b, f, v, z]) => { put(a, { t: "n", f, v, z, s: { font: font(), border: B, numFmt: z, alignment: ctr } }); txt(b, "", { border: B }); merge(a + ":" + b); });
+      [["M5", "N5", "cargoPlaces", "General"], ["O5", "P5", "cargoYuan", "General"], ["Q5", "R5", "cargoUsd", '0"$"']].forEach(([a, b, k, z]) => {
+        const v = sh[k]; if (String(v ?? "").trim() !== "" && Number.isFinite(Number(String(v).replace(",", ".")))) put(a, { t: "n", v: N(v), z, s: { font: font(), border: B, numFmt: z, alignment: ctr } }); else txt(a, String(v ?? ""), { border: B, alignment: ctr });
+        txt(b, "", { border: B }); merge(a + ":" + b);
+      });
+      const T = all.reduce((t, r) => { const x = r.ro ? r.c : calc(r); ["places", "cube", "kg", "cubeAmount", "kgAmount", "price"].forEach(k => (t[k] += x[k] || 0)); return t; }, { places: 0, cube: 0, kg: 0, cubeAmount: 0, kgAmount: 0, price: 0 });
       COLS.forEach(([k, title], c) => {
         const L = String.fromCharCode(65 + c);
         const tot = ["places", "cube", "kg", "cubeAmount", "kgAmount", "price"].includes(k);
-        txt(L + "6", tot || k === "density" ? "Итого:" : "", { font: { bold: true }, border: B, alignment: ctr });
-        if (tot) { const v = all.reduce((n, r) => n + ((r.ro ? r.c : calc(r))[k] || 0), 0), z = k === "places" ? "0" : "#,##0.0"; put(L + "7", { t: "n", f: `SUM(${L}${FIRST}:${L}${last})`, v, z, s: { font: font(), border: B, numFmt: z, alignment: { horizontal: "right" } } }); }
+        if (tot || k === "density") txt(L + "6", "Итого:", { font: { sz: 16, bold: true }, border: B, alignment: ctr, fill: fill("C0C0C0") }); else txt(L + "6", "", { border: B });
+        if (tot) { const z = k === "places" ? "General" : "#,##0.0"; put(L + "7", { t: "n", f: `SUM(${L}${FIRST}:${L}${last})`, v: T[k], z, s: { font: font({ bold: true }), border: B, numFmt: z } }); }
+        else if (k === "density") put(L + "7", { t: T.cube > 0 ? "n" : "s", f: 'IFERROR(L7/J7,"")', v: T.cube > 0 ? T.kg / T.cube : "", z: "#,##0.0", s: { font: font({ bold: true }), border: B, numFmt: "#,##0.0" } });
         else txt(L + "7", "", { border: B });
-        txt(L + "8", title, { font: { bold: true }, border: B, alignment: { horizontal: "center", vertical: "center", wrapText: true } });
+        txt(L + "8", title.replace("Наим-ие товвара", "Наим-ие\nтоввара").replace("Общий объем", "Общий\nобъем"), { font: { sz: 10, bold: true, color: { rgb: "003366" } }, border: B, alignment: ctr, fill: fill("C0C0C0") });
       });
       for (let i = 0; i < total; i++) {
         const R = FIRST + i, r = all[i] || {}, x = r.ro ? r.c : calc(r);
-        const fill = i % 2 ? { patternType: "solid", fgColor: { rgb: "DDEBF7" } } : undefined;
+        const band = i % 2 ? fill("CCCCFF") : undefined;
         COLS.forEach(([k, , kind], c) => {
-          const ref = String.fromCharCode(65 + c) + R, base = { border: B, fill, alignment: { vertical: "center" } };
+          const ref = String.fromCharCode(65 + c) + R, base = { border: B, fill: band, alignment: { vertical: "center" } };
+          if (kind === "f" && k === "cube" && r.ro && !(N(r.height) && N(r.width) && N(r.length))) {
+            // shipment from the database without dimensions: keep its real volume
+            put(ref, { t: "n", v: x.cube, z: "#,##0.00", s: { ...base, numFmt: "#,##0.00", font: font({ color: { rgb: "FF0000" }, bold: true }) } });
+            return;
+          }
           if (kind === "f") {
             const f = FORMULA[k](R).slice(1).replace(/;/g, ",");
             const v = k === "no" ? (r.ro || String(r.height ?? "").trim() !== "" ? i + 1 : "") : k === "density" ? (x.density ?? "") : x[k];
-            const z = k === "no" ? "0" : "#,##0.00";
-            put(ref, { t: v === "" ? "s" : "n", v, f, z, s: { ...base, numFmt: z, font: font({ color: RED.has(k) ? { rgb: "FF0000" } : undefined, bold: k === "price" }), alignment: { horizontal: k === "no" ? "center" : "right", vertical: "center" } } });
+            const z = k === "no" ? "General" : "#,##0.00";
+            put(ref, { t: v === "" ? "s" : "n", v, f, z, s: { ...base, numFmt: z, font: font({ color: RED.has(k) ? { rgb: "FF0000" } : undefined, bold: RED.has(k) || k === "price" }), alignment: { horizontal: k === "no" ? "center" : undefined, vertical: "center" } } });
             return;
           }
           let raw = r[k];
           if (raw === undefined || raw === null || raw === "") raw = k === "cubePrice" ? D.cubePrice : k === "kgPrice" ? D.kgPrice : "";
-          if (k === "date" && toISO(raw)) { const d = HN.parseDate(toISO(raw)); put(ref, { t: "d", v: d, z: "dd.mm.yyyy", s: { ...base, font: font(), numFmt: "dd.mm.yyyy", alignment: ctr } }); }
+          if (k === "date" && toISO(raw)) { const d = HN.parseDate(toISO(raw)); put(ref, { t: "d", v: d, z: "dd.mm.yyyy", s: { ...base, font: font(), numFmt: "dd.mm.yyyy" } }); }
           else if (TEXT.has(k) || raw === "") put(ref, { t: "s", v: String(raw), s: { ...base, font: font() } });
-          else put(ref, { t: "n", v: N(raw), s: { ...base, font: font(), alignment: { horizontal: "right", vertical: "center" } } });
+          else put(ref, { t: "n", v: N(raw), s: { ...base, font: font() } });
         });
       }
       ws["!ref"] = "A1:R" + last; ws["!merges"] = merges;
-      ws["!cols"] = [5, 11, 11, 10, 15, 8, 8, 8, 8, 11, 7, 11, 9, 10, 8, 10, 11, 9].map(w => ({ wch: w }));
-      ws["!rows"] = Array.from({ length: last }, (_, i) => (i === 7 ? { hpt: 48 } : i === 5 || i === 6 ? { hpt: 22 } : { hpt: 15.75 }));
-      X.utils.book_append_sheet(wb, ws, HN.safeSheetName(sh.name, names));
+      ws["!cols"] = [6.8, 13.6, 9.7, 9.1, 12.8, 9.6, 10.1, 10.8, 10, 12.6, 8.7, 11.6, 9.1, 12.1, 11.8, 12, 12.1, 11.6].map(w => ({ wch: w }));
+      ws["!rows"] = Array.from({ length: last }, (_, i) => ({ hpt: [18.75, 18.75, 12.75, 15.75, 15.75, 21.75, 29.25, 50.25][i] || 15.75 }));
+      const name = HN.safeSheetName(sh.name, names);
+      exported.push({ name, sh, T });
+      X.utils.book_append_sheet(wb, ws, name);
     });
+    // «Итого Куб» — the last sheet, linked to every Лист by formulas (as in the company's file).
+    if (sheets.length > 1) {
+      const ws = {}, L = c => String.fromCharCode(65 + c), last = 4 + exported.length;
+      const put = (ref, cell) => (ws[ref] = cell);
+      const st = (o = {}) => ({ font: font({ sz: 14, ...o.font }), alignment: o.alignment || ctr, border: o.border || B, fill: o.fill, numFmt: o.numFmt });
+      put("B1", { t: "s", v: "Общий итоги куб,кг (сумма куб,кг)", s: st({ font: { sz: 18, bold: true }, border: BM }) });
+      for (let c = 2; c <= 9; c++) put(L(c) + "1", { t: "s", v: "", s: st({ border: BM }) });
+      ["Код", "Место", "Куб", "Кг", "Сумма куб", "Сумма кг", "Сумма оплаты", "Кг в одном кубе", "Сумма карго"].forEach((t, i) => put(L(i + 1) + "2", { t: "s", v: t, s: st({ font: { sz: 18, bold: true } }) }));
+      put("B3", { t: "s", v: "Итого:", s: st({ font: { sz: 18, bold: true }, alignment: { vertical: "center" } }) });
+      const sumOf = k => exported.reduce((n, e) => n + (k === "cargo" ? N(e.sh.cargoUsd) : e.T[k] || 0), 0);
+      [["C", "places"], ["D", "cube"], ["E", "kg"], ["F", "cubeAmount"], ["G", "kgAmount"], ["H", "price"], ["I", null], ["J", "cargo"]].forEach(([c, k]) => {
+        const v = k ? sumOf(k) : 0, z = c === "J" ? '0"$"' : c === "C" ? "0" : "#,##0.0";
+        put(c + "3", { t: "n", f: `SUBTOTAL(9,${c}5:${c}${last})`, v, z, s: st({ font: { bold: true, color: { rgb: "FF0000" } }, numFmt: z }) });
+      });
+      put("A4", { t: "s", v: "", s: st({ border: BM }) });
+      for (let c = 1; c <= 9; c++) put(L(c) + "4", { t: "s", v: "", s: st({ border: BM, fill: fill("C0C0C0") }) });
+      exported.forEach((e, i) => {
+        const R = 5 + i, ref = `'${e.name.replace(/'/g, "''")}'!`;
+        put("A" + R, { t: "n", v: i + 1, s: st({ font: { sz: 18 } }) });
+        put("B" + R, { t: "s", f: ref + "B1", v: e.sh.code || "", s: st({ font: { bold: true } }) });
+        [["C", "I7", e.T.places, "0"], ["D", "J7", e.T.cube, "#,##0.0"], ["E", "L7", e.T.kg, "#,##0.0"], ["F", "N7", e.T.cubeAmount, "#,##0.0"], ["G", "P7", e.T.kgAmount, "#,##0.0"], ["H", "Q7", e.T.price, "#,##0.0"], ["I", "R7", e.T.cube > 0 ? e.T.kg / e.T.cube : 0, "#,##0.0"], ["J", "Q5", N(e.sh.cargoUsd), '0"$"']]
+          .forEach(([c, src, v, z]) => put(c + R, { t: "n", f: ref + src, v, z, s: st({ alignment: { horizontal: "right", vertical: "center" }, numFmt: z }) }));
+      });
+      ws["!ref"] = "A1:J" + last; ws["!merges"] = [X.utils.decode_range("B1:J1")];
+      ws["!cols"] = [9.14, 19.14, 14.14, 14, 14, 14, 14, 16, 16, 14].map(w => ({ wch: w }));
+      ws["!rows"] = [{ hpt: 45.75 }, { hpt: 67.5 }, { hpt: 28.5 }, { hpt: 30 }, ...exported.map(() => ({ hpt: 22.5 }))];
+      X.utils.book_append_sheet(wb, ws, HN.safeSheetName(TOTAL_NAME, names));
+    }
     const file = sheets.length === 1 ? `HOJI-NAIM-${sheets[0].name}-${HN.today()}.xlsx` : `HOJI-NAIM-Дафтар-${HN.today()}.xlsx`;
     X.writeFile(wb, file.replace(/[\\/?*[\]:]/g, "-"), { compression: true, cellStyles: true });
     setStatus("Файл омода шуд: " + file);
