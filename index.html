@@ -8,13 +8,13 @@
   <title>HOJI-NAIM CARGO</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://wfxbgkasstkxzmyrjwpi.supabase.co" crossorigin>
-  <link rel="stylesheet" href="style.css?v=20261115-tg3">
+  <link rel="stylesheet" href="style.css?v=20261115-tg4">
   <script src="vendor/supabase-js-2.118.0.js" defer></script>
-  <script src="js/core.js?v=20261115-tg3" defer></script>
-  <script src="js/exporter.js?v=20261115-tg3" defer></script>
-  <script src="js/notebook.js?v=20261115-tg3" defer></script>
-  <script src="js/extras.js?v=20261115-tg3" defer></script>
-  <script src="main.js?v=20261115-tg3" defer></script>
+  <script src="js/core.js?v=20261115-tg4" defer></script>
+  <script src="js/exporter.js?v=20261115-tg4" defer></script>
+  <script src="js/notebook.js?v=20261115-tg4" defer></script>
+  <script src="js/extras.js?v=20261115-tg4" defer></script>
+  <script src="main.js?v=20261115-tg4" defer></script>
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -446,6 +446,18 @@
       <h2 id="confirmTitle">Тасдиқ</h2>
       <p id="confirmText" class="confirm-text"></p>
       <div class="modal-foot"><button type="button" class="btn btn-ghost" id="confirmCancel">Бекор</button><button type="button" class="btn btn-primary" id="confirmOk">Тасдиқ</button></div>
+    </div>
+  </dialog>
+
+  <dialog id="tgDialog" class="modal modal-sm" aria-labelledby="tgTitle">
+    <div class="modal-body">
+      <h2 id="tgTitle">Паём ба Telegram</h2>
+      <p class="muted" id="tgWho"></p>
+      <div class="seg" id="tgTpl" role="group" aria-label="Намуна">
+        <button type="button" data-tpl="arrived">Бор расид</button><button type="button" data-tpl="paid">Пардохт</button><button type="button" data-tpl="delivered">Супорида шуд</button>
+      </div>
+      <label class="field"><span>Матн (метавонед тағйир диҳед)</span><textarea id="tgText" rows="9" maxlength="3500"></textarea></label>
+      <div class="modal-foot"><button type="button" class="btn btn-ghost" id="tgCancel">Бекор</button><button type="button" class="btn btn-primary" id="tgSendBtn">Фиристодан</button></div>
     </div>
   </dialog>
 

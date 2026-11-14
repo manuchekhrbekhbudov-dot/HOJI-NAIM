@@ -87,11 +87,16 @@ export function makeHandler(env, fetchFn = fetch) {
       `Маблағ: ${money(s.total_tjs)} сомонӣ${usd}`, paidTotal > 0 ? `Пардохт шуд: ${money(paidTotal)} сомонӣ` : null,
       debt > 0.005 ? `Барои пардохт: ${money(debt)} сомонӣ` : "Бор пурра пардохт шудааст ✅", "", "HOJI-NAIM CARGO",
     ].filter(x => x !== null).join("\n");
+    const hi = s.client_name ? `, ${s.client_name}` : "";
+    const left = debt > 0.005 ? `Қарзи боқимонда: ${money(debt)} сомонӣ` : "Бор пурра пардохт шуд ✅";
     if (event === "paid") return [
-      "✅ Пардохт қабул шуд", `Бор: ${s.tracking_no}`, `Маблағ: ${money(payment?.amount_tjs)} сомонӣ`,
-      debt > 0.005 ? `Қарзи боқимонда: ${money(debt)} сомонӣ` : "Бор пурра пардохт шуд. Ташаккур!", "", "HOJI-NAIM CARGO",
+      `✅ Ассалому алейкум${hi}!`, `Пардохти шумо қабул шуд: ${money(payment?.amount_tjs)} сомонӣ.`, "",
+      `Бор: ${s.tracking_no}`, `Ҳамагӣ пардохт шуд: ${money(paidTotal)} аз ${money(s.total_tjs)} сомонӣ`, left, "", "Раҳмат! HOJI-NAIM CARGO",
     ].join("\n");
-    if (event === "delivered") return `🤝 Бори ${s.tracking_no} ба шумо супорида шуд.\nТашаккур, ки HOJI-NAIM CARGO-ро интихоб кардед!`;
+    if (event === "delivered") return [
+      `🤝 Ассалому алейкум${hi}!`, `Бори ${s.tracking_no} ба шумо супорида шуд.`, "",
+      `Ҷой: ${places(s)} · Вазн: ${qty(s.weight_kg, 1)} кг`, `Пардохт шуд: ${money(paidTotal)} сомонӣ`, left, "", "Раҳмат, ки HOJI-NAIM CARGO-ро интихоб кардед!",
+    ].join("\n");
     return "";
   }
 
