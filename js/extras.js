@@ -340,11 +340,40 @@
       HN.lsSet("hn-tg-bot", r.data.username); HN.toast("Бот кор мекунад: @" + r.data.username, "ok"); renderAdminExtras();
     };
   }
-  HN.tgSend = async (shipmentId, event) => {
-    const r = await S.db.functions.invoke(HN.config.tgFunction, { body: { action: "send", shipment_id: shipmentId, event } });
-    if (r.error || !r.data?.ok) { HN.toast("Паём нарафт: " + (r.data?.error || r.error?.message || "бот танзим нашудааст"), "error"); return; }
+  /* Ready texts the staff can edit before sending. */
+  HN.tgTemplates = s => {
+    const name = s.client_name ? ", " + s.client_name : "", paid = HN.paid(s), debt = HN.debt(s);
+    const pays = (S.payments || []).filter(p => String(p.shipment_id) === String(s.id)).sort((a, b) => String(a.payment_date || a.created_at).localeCompare(String(b.payment_date || b.created_at)));
+    const last = pays.length ? HN.num(pays[pays.length - 1].amount_tjs) : 0;
+    const left = debt > 0.005 ? `Қарзи боқимонда: ${money(debt)} сомонӣ` : "Бор пурра пардохт шуд ✅";
+    return {
+      arrived: `📦 Ассалому алейкум${name}!\nБори шумо дар Душанбе расид.\n\nРақам: ${s.tracking_no}\nҶой: ${HN.places(s)} · Вазн: ${HN.fmtQty(s.weight_kg, 1)} кг · Ҳаҷм: ${HN.fmtQty(s.volume_m3, 3)} м³\nМаблағ: ${money(HN.total(s))} сомонӣ${paid > 0 ? `\nПардохт шуд: ${money(paid)} сомонӣ` : ""}\n${debt > 0.005 ? `Барои пардохт: ${money(debt)} сомонӣ` : "Бор пурра пардохт шудааст ✅"}\n\nHOJI-NAIM CARGO`,
+      paid: `✅ Ассалому алейкум${name}!\nПардохти шумо қабул шуд${last ? `: ${money(last)} сомонӣ` : ""}.\n\nБор: ${s.tracking_no}\nҲамагӣ пардохт шуд: ${money(paid)} аз ${money(HN.total(s))} сомонӣ\n${left}\n\nРаҳмат! HOJI-NAIM CARGO`,
+      delivered: `🤝 Ассалому алейкум${name}!\nБори ${s.tracking_no} ба шумо супорида шуд.\n\nҶой: ${HN.places(s)} · Вазн: ${HN.fmtQty(s.weight_kg, 1)} кг\nПардохт шуд: ${money(paid)} сомонӣ\n${left}\n\nРаҳмат, ки HOJI-NAIM CARGO-ро интихоб кардед!`,
+    };
+  };
+  let tgShip = null, tgEvent = "arrived";
+  const tgPick = ev => { tgEvent = ev; $("tgText").value = HN.tgTemplates(tgShip)[ev]; document.querySelectorAll("#tgTpl [data-tpl]").forEach(b => b.classList.toggle("on", b.dataset.tpl === ev)); };
+  HN.openTg = s => {
+    tgShip = s;
+    $("tgWho").textContent = `${s.client_name || ""}${HN.customerCode(s) ? " · " + HN.customerCode(s) : ""} · ${s.tracking_no}`;
+    tgPick(HN.whStatus(s) === "delivered" ? "delivered" : HN.paid(s) > 0 ? "paid" : "arrived");
+    $("tgDialog").showModal(); $("tgText").focus();
+  };
+  document.querySelectorAll("#tgTpl [data-tpl]").forEach(b => b.addEventListener("click", () => tgPick(b.dataset.tpl)));
+  $("tgCancel")?.addEventListener("click", () => $("tgDialog").close());
+  $("tgSendBtn")?.addEventListener("click", async () => {
+    const text = $("tgText").value.trim();
+    if (!text) { HN.toast("Матнро нависед.", "error"); return; }
+    const btn = $("tgSendBtn"); btn.disabled = true;
+    try { if (await HN.tgSend(tgShip.id, tgEvent, text)) $("tgDialog").close(); } finally { btn.disabled = false; }
+  });
+  HN.tgSend = async (shipmentId, event, text) => {
+    const r = await S.db.functions.invoke(HN.config.tgFunction, { body: { action: "send", shipment_id: shipmentId, event, ...(text ? { text } : {}) } });
+    if (r.error || !r.data?.ok) { HN.toast("Паём нарафт: " + (r.data?.error || r.error?.message || "бот танзим нашудааст"), "error"); return false; }
     HN.toast(r.data.sent ? `Паём ба Telegram рафт (${r.data.sent}).` : "Муштарӣ ҳанӯз ба бот обуна нашудааст.", r.data.sent ? "ok" : "info");
     await HN.reload();
+    return !!r.data.sent;
   };
   HN.waArrived = s => {
     const debt = HN.debt(s);

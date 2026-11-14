@@ -878,7 +878,7 @@
         "del-ship": () => deleteShipment(id), wa: () => HN.waArrived(HN.shipmentById(id)),
         tg: async () => {
           const s = HN.shipmentById(id);
-          if (HN.tgSubscribed(s)) return HN.tgSend(id, HN.whStatus(s) === "delivered" ? "delivered" : "arrived");
+          if (HN.tgSubscribed(s)) return HN.openTg(s);
           // not subscribed yet: give the staff a personal link (t.me/<bot>?start=<code>) to send to the customer
           const link = HN.tgLink(s);
           if (!link) return HN.toast(HN.customerCode(s) ? "Username-и ботро дар Админ-панел → Telegram нависед." : "Ин бор коди муштарӣ надорад.", "info");
