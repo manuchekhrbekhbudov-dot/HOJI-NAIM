@@ -149,6 +149,8 @@
   function totalGrid() {
     const list = book.sheets.map(sh => ({ sh, t: sheetTotals(sh) })).filter(x => filled(x.t));
     const G = k => list.reduce((n, x) => n + (x.t[k] || 0), 0);
+    const ckey = v => String(v || "").trim().toUpperCase().replace(/[^0-9A-ZА-ЯЁӢӮҚҒҲҶ]/g, "");
+    const codeCount = new Map(); list.forEach(({ sh }) => { const k = ckey(sh.code); if (k) codeCount.set(k, (codeCount.get(k) || 0) + 1); });
     const last = 4 + list.length;
     const cols = [["", 44], ["Код", 150], ["Место", 90], ["Куб", 100], ["Кг", 100], ["Сумма куб", 110], ["Сумма кг", 110], ["Сумма оплаты", 120], ["Кг в одном кубе", 110], ["Сумма карго", 110]];
     const keys = [null, null, "places", "cube", "kg", "cubeAmount", "kgAmount", "price", "density", "cargo"];
@@ -161,7 +163,8 @@
     list.forEach(({ sh, t }, i) => {
       const R = 5 + i, ref = `'${sh.name}'!`;
       const src = { 1: "B1", 2: "I7", 3: "J7", 4: "L7", 5: "N7", 6: "P7", 7: "Q7", 8: "R7", 9: "Q5" };
-      h += `<tr class="xt-row" data-goto-sheet="${esc(sh.id)}" title="Барои кушодани ${esc(sh.name)} ду бор пахш кунед"><th class="xl-rh">${R}</th><td class="xl-c xl-center" data-r="${R}" data-c="0">${i + 1}</td>${keys.slice(1).map((k, j) => { const c = j + 1; const v = k === null ? esc(sh.code || "") : fmtv(k, t[k]); return `<td class="xl-c ${c === 1 ? "xl-center xl-b" : "xl-num"}" data-r="${R}" data-c="${c}" data-f="=${esc(ref)}${src[c]}">${v}</td>`; }).join("")}</tr>`;
+      const dupOf = codeCount.get(ckey(sh.code)) > 1;
+      h += `<tr class="xt-row" data-goto-sheet="${esc(sh.id)}" title="Барои кушодани ${esc(sh.name)} ду бор пахш кунед"><th class="xl-rh">${R}</th><td class="xl-c xl-center" data-r="${R}" data-c="0">${i + 1}</td>${keys.slice(1).map((k, j) => { const c = j + 1; const v = k === null ? esc(sh.code || "") + (c === 1 && dupOf ? " ⚠" : "") : fmtv(k, t[k]); return `<td class="xl-c ${c === 1 ? "xl-center xl-b" + (dupOf ? " xl-dup" : "") : "xl-num"}"${c === 1 && dupOf ? ' title="Ин код дар якчанд варақ ҳаст"' : ""} data-r="${R}" data-c="${c}" data-f="=${esc(ref)}${src[c]}">${v}</td>`; }).join("")}</tr>`;
     });
     if (!list.length) h += `<tr><th class="xl-rh">5</th><td class="xl-c" data-r="5" data-c="0"></td><td class="xl-c muted" colspan="9" data-r="5" data-c="1">Ҳоло ягон варақ пур нашудааст.</td></tr>`;
     return `<table class="xl-grid xl-tot"><colgroup><col class="xl-rhcol">${cols.map(c => `<col style="width:${c[1]}px">`).join("")}</colgroup>
@@ -185,13 +188,13 @@
         <div class="xl-menutabs" aria-hidden="true"><span>Файл</span><span class="on">Асосӣ</span><span>Ворид</span><span>Формулаҳо</span><span>Маълумот</span><span>Намоиш</span></div>
         <div class="xl-ribbon" role="toolbar" aria-label="Амалҳои дафтар">
           <div class="xl-group"><div class="xl-group-btns">
-            <button class="xl-btn xl-btn-lg" data-xl="sync"><svg><use href="#i-refresh"/></svg><span>Сабт дар система</span></button>
-            <div class="xl-stack"><button class="xl-btn" data-xl="del-row"><svg><use href="#i-trash"/></svg><span>Нест кардани сатр</span></button></div>
+            <button class="xl-btn xl-btn-lg" data-xl="sync" ${showTotal ? "disabled" : ""}><svg><use href="#i-refresh"/></svg><span>Сабт дар система</span></button>
+            <div class="xl-stack"><button class="xl-btn" data-xl="del-row" ${showTotal ? "disabled" : ""}><svg><use href="#i-trash"/></svg><span>Нест кардани сатр</span></button></div>
           </div><span class="xl-group-label">Сатрҳо</span></div>
           <div class="xl-group"><div class="xl-group-btns">
             <button class="xl-btn xl-btn-lg" data-xl="add-sheet"><svg><use href="#i-sheet"/></svg><span>Варақи нав</span></button>
-            <div class="xl-stack"><button class="xl-btn" data-xl="rename"><svg><use href="#i-edit"/></svg><span>Номи варақ</span></button>
-            <button class="xl-btn" data-xl="remove-sheet" ${book.sheets.length < 2 ? "disabled" : ""}><svg><use href="#i-trash"/></svg><span>Нест кардани варақ</span></button></div>
+            <div class="xl-stack"><button class="xl-btn" data-xl="rename" ${showTotal ? "disabled" : ""}><svg><use href="#i-edit"/></svg><span>Номи варақ</span></button>
+            <button class="xl-btn" data-xl="remove-sheet" ${book.sheets.length < 2 || showTotal ? "disabled" : ""}><svg><use href="#i-trash"/></svg><span>Нест кардани варақ</span></button></div>
           </div><span class="xl-group-label">Варақҳо</span></div>
           <div class="xl-group"><div class="xl-group-btns">
             <button class="xl-btn xl-btn-lg" data-xl="export-all"><svg><use href="#i-download"/></svg><span>Ҳамаи дафтар (.xlsx)</span></button>
@@ -351,6 +354,10 @@
     const d = e.target.closest('#notebook input[data-key="date"]');
     if (d) { const iso = toISO(d.value); const sh = activeSheet(), i = Number(d.dataset.row); if (sh.rows[i]) { sh.rows[i].date = iso || d.value; save(sh); } if (iso) d.value = HN.fmtDate(iso); else if (d.value.trim()) HN.toast("Санаро ба шакли 07.11.2026 нависед.", "error"); return; }
     if (!e.target.closest('#notebook input[data-meta="code"]')) return;
+    // Same code on another sheet → warn (Итого would count that customer twice).
+    const ck = v => String(v || "").trim().toUpperCase().replace(/[^0-9A-ZА-ЯЁӢӮҚҒҲҶ]/g, "");
+    const cur = activeSheet(), dup = ck(cur.code) && book.sheets.find(x => x.id !== cur.id && ck(x.code) === ck(cur.code));
+    if (dup) HN.toast(`Коди «${cur.code}» аллакай дар «${dup.name}» ҳаст. Агар ҳамон муштарӣ бошад, борҳоро дар як варақ нависед.`, "error");
     // A new code may match shipments already in the database → redraw the sheet.
     const pos = selected; render().then(() => { if (pos) selectCell(pos.r, pos.c, true); });
   });

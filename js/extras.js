@@ -312,8 +312,15 @@
   // Personal link t.me/<bot>?start=<CODE>_<KEY>. The key is stored in telegram_invites (staff only) and made once per code.
   const PIN_ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   HN.tgLink = async s => {
-    const bot = HN.lsGet("hn-tg-bot", ""), code = HN.tgCodeKey(HN.customerCode(s));
-    if (!bot || !code) return "";
+    let bot = HN.lsGet("hn-tg-bot", "");
+    const code = HN.tgCodeKey(HN.customerCode(s));
+    if (!code) return "";
+    if (!bot) {   // each computer learns the bot name once from the bot itself
+      const r = await S.db.functions.invoke(HN.config.tgFunction, { body: { action: "info" } }).catch(() => ({}));
+      bot = r?.data?.ok ? r.data.username : "";
+      if (!bot) return "";
+      HN.lsSet("hn-tg-bot", bot);
+    }
     let { data, error } = await S.db.from("telegram_invites").select("pin").eq("code_key", code).maybeSingle();
     if (error) throw error;
     let pin = data?.pin;
@@ -345,7 +352,12 @@
       <div class="table-wrap"><table class="tbl"><thead><tr><th>Вақт</th><th>Паём</th><th>Бор</th><th>Ҳолат</th></tr></thead><tbody>${log.map(l => `<tr><td class="nowrap">${HN.fmtDateTime(l.created_at)}</td><td>${TG_EVENT[l.event] || esc(l.event)}</td><td>${esc(HN.shipmentById(l.shipment_id)?.tracking_no || "—")}</td><td>${l.ok ? '<span class="pill pay-paid">Фиристода шуд</span>' : `<span class="pill pay-unpaid" title="${esc(l.error)}">Хато</span>`}</td></tr>`).join("") || '<tr><td colspan="4" class="muted">Ҳоло паём нафиристода шудааст.</td></tr>'}</tbody></table></div>
       <details class="setup"><summary>Дастури насб</summary>${steps}</details></div>`;
   }
+  let tgAsked = false;
   function wireTelegramCard() {
+    if (S.features.telegram && !HN.lsGet("hn-tg-bot", "") && !tgAsked) {
+      tgAsked = true;   // fill the bot name once, without pressing «Санҷиши бот»
+      S.db.functions.invoke(HN.config.tgFunction, { body: { action: "info" } }).then(r => { if (r?.data?.ok && r.data.username) { HN.lsSet("hn-tg-bot", r.data.username); renderAdminExtras(); } }).catch(() => {});
+    }
     if ($("tgSecretBtn")) $("tgSecretBtn").onclick = () => { $("tgSecret").textContent = randomSecret(); };
     if ($("tgBot")) $("tgBot").onchange = e => { HN.lsSet("hn-tg-bot", e.target.value.trim().replace(/^@/, "")); renderAdminExtras(); };
     if ($("tgPageCopy")) $("tgPageCopy").onclick = async () => { try { await navigator.clipboard.writeText(new URL("telegram.html", location.href).href); HN.toast("Пайванд нусха шуд.", "ok"); } catch { HN.toast("Нусха нашуд."); } };

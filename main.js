@@ -882,7 +882,7 @@
           // not subscribed yet: give the staff a personal link (t.me/<bot>?start=<code>) to send to the customer
           let link = "";
           try { link = await HN.tgLink(s); } catch (e) { return HN.toast(/telegram_invites/.test(e?.message || "") ? "SQL-и калидҳои Telegram ҳанӯз иҷро нашудааст (telegram.sql)." : HN.dbError(e), "error"); }
-          if (!link) return HN.toast(HN.customerCode(s) ? "Username-и ботро дар Админ-панел → Telegram нависед." : "Ин бор коди муштарӣ надорад.", "info");
+          if (!link) return HN.toast(HN.customerCode(s) ? "Бот ҷавоб надод. Админ-панел → Telegram → «Санҷиши бот»." : "Ин бор коди муштарӣ надорад.", "info");
           try { await navigator.clipboard.writeText(link); HN.toast("Муштарӣ ҳанӯз обуна нашудааст. Пайванди шахсӣ нусха шуд — ба ӯ фиристед: " + link, "info"); }
           catch { window.prompt("Ин пайвандро ба муштарӣ фиристед:", link); }
         }, "del-pay": () => deletePayment(id), "edit-exp": () => openExpense(S.expenses.find(x => String(x.id) === String(id))),
