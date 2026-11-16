@@ -8,13 +8,13 @@
   <title>HOJI-NAIM CARGO</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://wfxbgkasstkxzmyrjwpi.supabase.co" crossorigin>
-  <link rel="stylesheet" href="style.css?v=20261115-check2">
+  <link rel="stylesheet" href="style.css?v=20261116-excel">
   <script src="vendor/supabase-js-2.118.0.js" defer></script>
-  <script src="js/core.js?v=20261115-check2" defer></script>
-  <script src="js/exporter.js?v=20261115-check2" defer></script>
-  <script src="js/notebook.js?v=20261115-check2" defer></script>
-  <script src="js/extras.js?v=20261115-check2" defer></script>
-  <script src="main.js?v=20261115-check2" defer></script>
+  <script src="js/core.js?v=20261116-excel" defer></script>
+  <script src="js/exporter.js?v=20261116-excel" defer></script>
+  <script src="js/notebook.js?v=20261116-excel" defer></script>
+  <script src="js/extras.js?v=20261116-excel" defer></script>
+  <script src="main.js?v=20261116-excel" defer></script>
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -447,6 +447,14 @@
       <h2 id="confirmTitle">Тасдиқ</h2>
       <p id="confirmText" class="confirm-text"></p>
       <div class="modal-foot"><button type="button" class="btn btn-ghost" id="confirmCancel">Бекор</button><button type="button" class="btn btn-primary" id="confirmOk">Тасдиқ</button></div>
+    </div>
+  </dialog>
+
+  <dialog id="custDialog" class="modal modal-xl" aria-labelledby="custTitle">
+    <div class="modal-body">
+      <div class="modal-head"><div><p class="eyebrow">Дафтари Excel ва система</p><h2 id="custTitle">Ҳамаи борҳои муштарӣ</h2></div><button type="button" class="icon-btn" data-close aria-label="Пӯшидан"><svg><use href="#i-x"/></svg></button></div>
+      <form id="custForm" class="cust-search" autocomplete="off"><input id="custQ" placeholder="Код (S-50) ё телефон (504440101)" aria-label="Код ё телефон"><button class="btn btn-primary" type="submit">Ҷустан</button></form>
+      <div id="custOut"></div>
     </div>
   </dialog>
 
