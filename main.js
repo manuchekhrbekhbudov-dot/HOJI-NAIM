@@ -41,6 +41,7 @@
     document.body.classList.remove("nav-open");
     if (name === "admin" && !staffLoaded) loadStaff();
     renderView(name);
+    setTopAction(name);
     $("views").scrollTop = 0; window.scrollTo(0, 0);
   }
   window.addEventListener("hashchange", () => showView(viewFromHash()));
@@ -198,7 +199,7 @@
     const now = new Date();
     $("todayLabel").textContent = HN.fmtDate(HN.today()) + " · " + ["Якшанбе", "Душанбе", "Сешанбе", "Чоршанбе", "Панҷшанбе", "Ҷумъа", "Шанбе"][now.getDay()];
     const h = now.getHours();
-    $("greeting").textContent = (h < 12 ? "Субҳ ба хайр" : h < 18 ? "Рӯз ба хайр" : "Шом ба хайр") + (S.profile?.full_name ? ", " + S.profile.full_name : "");
+    $("greeting").textContent = (h < 5 || h >= 23 ? "Шаб ба хайр" : h < 12 ? "Субҳ ба хайр" : h < 18 ? "Рӯз ба хайр" : "Шом ба хайр") + (S.profile?.full_name ? ", " + S.profile.full_name : "");
     const pays = S.payments.filter(p => HN.inRange(String(p.payment_date || "").slice(0, 10), from, to));
     const exps = S.expenses.filter(e => HN.inRange(String(e.expense_date || "").slice(0, 10), from, to));
     const ships = S.shipments.filter(s => HN.inRange(HN.shipmentDate(s), from, to));
@@ -783,7 +784,28 @@
     await loadData();
     if (wasEdit && $("detailDialog").open) openDetail(id);
   });
-  $("addShipmentTop").addEventListener("click", () => openShipment());
+  // The blue button at the top does what the open page is about.
+  const TOP_ACTION = {
+    dashboard: { text: "Бори нав", icon: "i-plus", perm: "staff", run: () => openShipment() },
+    shipments: { text: "Бори нав", icon: "i-plus", perm: "staff", run: () => openShipment() },
+    warehouse: { text: "Мошини нав (партия)", icon: "i-plus", perm: "staff", run: () => HN.extras?.openBatchForm?.(), when: () => S.features.batches },
+    payments: { text: "Сабти пардохт", icon: "i-plus", perm: "finance", run: () => openPayment() },
+    expenses: { text: "Хароҷоти нав", icon: "i-plus", perm: "finance", run: () => openExpense() },
+    reports: { text: "Содирот ба Excel", icon: "i-download", perm: "staff", run: () => $("repExport").click() },
+    excel: { text: "Варақи нав", icon: "i-plus", perm: "staff", run: () => document.querySelector('#notebook [data-xl="add-sheet"]')?.click() },
+    kassa: { text: "Касса ба Excel", icon: "i-download", perm: "finance", run: () => $("kExport")?.click() },
+    admin: { text: "Нусха ба Excel", icon: "i-download", perm: "admin", run: () => $("backupXlsx").click() },
+  };
+  function setTopAction(view) {
+    const a = TOP_ACTION[view], btn = $("addShipmentTop");
+    const show = !!a && HN.can(a.perm) && (!a.when || a.when());
+    btn.classList.toggle("hidden", !show);
+    if (!show) return;
+    $("topActText").textContent = a.text;
+    $("topActIcon").innerHTML = `<use href="#${a.icon}"/>`;
+  }
+  HN.setTopAction = setTopAction;
+  $("addShipmentTop").addEventListener("click", () => TOP_ACTION[current]?.run());
 
   /* ================= Shipment details ================= */
   async function openDetail(id) {

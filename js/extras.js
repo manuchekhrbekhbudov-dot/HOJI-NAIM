@@ -518,7 +518,7 @@
     const st = e.target.closest("[data-statement]"); if (st) { e.stopPropagation(); openStatement(st.dataset.statement); }
   }, true);
   HN.extras = {
-    load, applyFeatures, renderKassa, renderBatches, openStatement, openBatch,
+    load, applyFeatures, renderKassa, renderBatches, openStatement, openBatch, openBatchForm,
     afterRender(view) {
       if (view === "warehouse") setWtab(wtab);
       if (view === "admin") renderAdminExtras();
