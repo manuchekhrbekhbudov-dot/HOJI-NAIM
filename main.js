@@ -16,13 +16,15 @@
     warehouse: ["Анбор", "Борҳои ҳозира ва супоридашуда"],
     payments: ["Пардохтҳо", "Пардохтҳои қисман ва пурра"],
     expenses: ["Хароҷот", "Хароҷоти ҳаррӯзаи ширкат", "finance"],
-    reports: ["Ҳисобот", "Ҳисоботи давравӣ ва дафтари Excel"],
+    reports: ["Ҳисобот", "Ҳисоботи давравӣ ва касса"],
+    excel: ["Дафтари Excel", "Варақҳои муштариён (Лист1, Лист2 …) — худкор ба система сабт мешавад"],
     admin: ["Админ-панел", "Кормандон, нусхаи эҳтиётӣ ва ҳолати система", "admin"],
   };
   let current = "dashboard";
   function viewFromHash() {
     let v = (location.hash || "").replace("#", "");
     if (v === "inventory") v = "warehouse";
+    if (v === "notebook") v = "excel";
     return VIEWS[v] ? v : "dashboard";
   }
   function showView(name) {
@@ -169,7 +171,7 @@
 
   /* ================= Render ================= */
   function renderView(name) {
-    const fn = { dashboard: renderDashboard, shipments: renderShipments, warehouse: renderWarehouse, payments: renderPayments, expenses: renderExpenses, reports: renderReports, admin: renderAdmin }[name];
+    const fn = { dashboard: renderDashboard, shipments: renderShipments, warehouse: renderWarehouse, payments: renderPayments, expenses: renderExpenses, reports: renderReports, excel: () => HN.notebook?.render(), admin: renderAdmin }[name];
     fn && fn();
     HN.extras?.afterRender(name);
     $("navWarehouseCount").textContent = S.features.warehouse ? (S.shipments.filter(s => HN.whStatus(s) === "in_warehouse").length || "") : "";
@@ -511,9 +513,8 @@
   });
   function setReportTab(tab) {
     document.querySelectorAll("[data-rtab]").forEach(x => x.classList.toggle("on", x.dataset.rtab === tab));
-    ["analysis", "notebook", "kassa"].forEach(t => $("rtab-" + t).classList.toggle("hidden", tab !== t));
+    ["analysis", "kassa"].forEach(t => $("rtab-" + t).classList.toggle("hidden", tab !== t));
     HN.lsSet("hn-report-tab", tab);
-    if (tab === "notebook") HN.notebook?.render();
     if (tab === "kassa") HN.extras?.renderKassa();
   }
   $("repGroup").addEventListener("click", e => { const b = e.target.closest("[data-group]"); if (!b) return; repGroup = b.dataset.group; $("repGroup").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); renderAnalysis(); });
@@ -524,7 +525,7 @@
   if (!$("repFrom").value) { $("repFrom").value = HN.today().slice(0, 4) + "-01-01"; $("repTo").value = HN.today(); }
   function renderReports() {
     const tab = HN.lsGet("hn-report-tab", "analysis");
-    setReportTab(tab === "notebook" || (tab === "kassa" && HN.can("finance")) ? tab : "analysis");
+    setReportTab(tab === "kassa" && HN.can("finance") ? tab : "analysis");
     renderAnalysis();
   }
   function bucketOf(date) {
@@ -868,7 +869,7 @@
     const close = e.target.closest("[data-close]");
     if (close) { close.closest("dialog")?.close(); return; }
     const sheet = e.target.closest("[data-sheet-key]");
-    if (sheet) { $("detailDialog").close(); HN.lsSet("hn-report-tab", "notebook"); HN.notebook?.select(sheet.dataset.sheetKey); HN.go("reports"); return; }
+    if (sheet) { $("detailDialog").close(); HN.notebook?.select(sheet.dataset.sheetKey); HN.go("excel"); return; }
     const openShip = e.target.closest("[data-open-ship]");
     if (openShip) { openDetail(openShip.dataset.openShip); return; }
     const a = e.target.closest("[data-act]");
