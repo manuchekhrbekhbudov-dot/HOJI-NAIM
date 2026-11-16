@@ -30,6 +30,7 @@
     S.features.lock = !settings.error;
     S.closedUntil = (settings.data || []).find(x => x.key === "closed_until")?.value || null;
     S.resetMark = (settings.data || []).find(x => x.key === "data_reset_at")?.value || "";   // set by supabase/reset-data.sql
+    S.tgTexts = Object.fromEntries(["tg_prices", "tg_address", "tg_contact"].map(k => [k, (settings.data || []).find(x => x.key === k)?.value || ""]));
     S.features.expMethod = !method.error;
     applyFeatures();
   }
@@ -351,10 +352,23 @@
       <p>Саҳифа барои муштариён (код + телефон → Telegram): <a href="${esc(new URL("telegram.html", location.href).href)}" target="_blank" rel="noopener"><b>${esc(new URL("telegram.html", location.href).href)}</b></a> <button class="btn btn-xs btn-soft" id="tgPageCopy" type="button">Нусха</button></p>
       ${bot ? `<p>Пайванд барои муштариён: <a href="https://t.me/${esc(bot)}" target="_blank" rel="noopener"><b>t.me/${esc(bot)}</b></a> <button class="btn btn-xs btn-soft" id="tgCopy" type="button">Нусха</button></p>` : '<p class="hint">Username-и ботро нависед, то пайванд барои муштариён пайдо шавад.</p>'}
       <div class="table-wrap"><table class="tbl"><thead><tr><th>Вақт</th><th>Паём</th><th>Бор</th><th>Ҳолат</th></tr></thead><tbody>${log.map(l => `<tr><td class="nowrap">${HN.fmtDateTime(l.created_at)}</td><td>${TG_EVENT[l.event] || esc(l.event)}</td><td>${esc(HN.shipmentById(l.shipment_id)?.tracking_no || "—")}</td><td>${l.ok ? '<span class="pill pay-paid">Фиристода шуд</span>' : `<span class="pill pay-unpaid" title="${esc(l.error)}">Хато</span>`}</td></tr>`).join("") || '<tr><td colspan="4" class="muted">Ҳоло паём нафиристода шудааст.</td></tr>'}</tbody></table></div>
+      ${HN.can("admin") ? `<form id="tgTexts" class="tg-texts"><h4>Матнҳои менюи бот</h4><p class="hint">Муштарӣ дар бот тугмаҳои «💵 Нархҳо», «📍 Суроғаи анбор» ва «☎️ Оператор»-ро пахш мекунад ва ҳамин матнро мебинад.</p>
+        <label class="field"><span>💵 Нархҳо</span><textarea name="tg_prices" rows="3" maxlength="1500" placeholder="Масалан: 1 м³ — 200 $, 1 кг — 1 $. Ҳисоб аз рӯи куб ё кг, кадоме ки зиёд бошад.">${esc(S.tgTexts?.tg_prices || "")}</textarea></label>
+        <label class="field"><span>📍 Суроғаи анбор</span><textarea name="tg_address" rows="2" maxlength="1000" placeholder="Масалан: ш. Душанбе, кӯчаи …, анбори № … Соати корӣ: 9:00–18:00">${esc(S.tgTexts?.tg_address || "")}</textarea></label>
+        <label class="field"><span>☎️ Оператор</span><textarea name="tg_contact" rows="2" maxlength="1000" placeholder="Масалан: +992 … (WhatsApp, Telegram)">${esc(S.tgTexts?.tg_contact || "")}</textarea></label>
+        <button class="btn btn-primary" type="submit">Сабт</button></form>` : ""}
       <details class="setup"><summary>Дастури насб</summary>${steps}</details></div>`;
   }
   let tgAsked = false;
   function wireTelegramCard() {
+    const tf = $("tgTexts");
+    if (tf) tf.onsubmit = async e => {
+      e.preventDefault();
+      const rows = ["tg_prices", "tg_address", "tg_contact"].map(key => ({ key, value: tf.elements[key].value.trim() }));
+      const r = await S.db.from("app_settings").upsert(rows, { onConflict: "key" });
+      if (r.error) { HN.toast(HN.dbError(r.error), "error"); return; }
+      rows.forEach(x => (S.tgTexts[x.key] = x.value)); HN.toast("Матнҳои бот сабт шуданд.", "ok");
+    };
     if (S.features.telegram && !HN.lsGet("hn-tg-bot", "") && !tgAsked) {
       tgAsked = true;   // fill the bot name once, without pressing «Санҷиши бот»
       S.db.functions.invoke(HN.config.tgFunction, { body: { action: "info" } }).then(r => { if (r?.data?.ok && r.data.username) { HN.lsSet("hn-tg-bot", r.data.username); renderAdminExtras(); } }).catch(() => {});

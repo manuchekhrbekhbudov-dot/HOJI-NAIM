@@ -1,6 +1,6 @@
 // HOJI-NAIM CARGO — Telegram bot (Supabase Edge Function «telegram-bot»).
 // One function, three kinds of requests:
-//   1. Telegram webhook (header X-Telegram-Bot-Api-Secret-Token): /start, customer code (e.g. S-50), «Қарзи ман».
+//   1. Telegram webhook (header X-Telegram-Bot-Api-Secret-Token): /start, «📱 send my phone», menu (борҳо, қарз, нархҳо, суроға, оператор).
 //   2. Database events from pg_net triggers (header x-hook-secret): arrived / paid / delivered.
 //   3. Customer page telegram.html (public): code + phone → personal bot link.
 //   4. The website (Authorization: Bearer <staff session>): manual send, bot info.
@@ -39,6 +39,7 @@ export function makeHandler(env, fetchFn = fetch) {
   const qty = (n, d = 2) => String(Math.round((Number(n) || 0) * 10 ** d) / 10 ** d);
   const note = (s, key) => { const m = String(s.notes || "").split(";").map(x => x.trim()).find(x => x.toLowerCase().startsWith(key.toLowerCase() + ":")); return m ? m.slice(m.indexOf(":") + 1).trim() : ""; };
   const places = s => Number(note(s, "Ҷойҳо")) || 1;
+  const fmtDate = d => { const v = String(d || "").slice(0, 10).split("-"); return v.length === 3 ? `${v[2]}.${v[1]}.${v[0]}` : ""; };
   // Customer code as typed ("S-50", "s 50", Cyrillic "С-50" → "S50"): Cyrillic letters map to Latin by sound.
   const LOOK = { "А": "A", "Б": "B", "В": "V", "Д": "D", "Е": "E", "З": "Z", "И": "I", "К": "K", "Л": "L", "М": "M", "Н": "N", "О": "O", "П": "P", "Р": "R", "С": "S", "Т": "T", "У": "U", "Ф": "F" };
   const codeKey = v => String(v || "").toUpperCase().replace(/[АБВДЕЗИКЛМНОПРСТУФ]/g, c => LOOK[c]).replace(/[^0-9A-ZА-ЯЁӢӮҚҒҲҶ]/g, "").slice(0, 30);
@@ -122,51 +123,91 @@ export function makeHandler(env, fetchFn = fetch) {
     return { sent, subscribed: true };
   }
 
-  const KEYBOARD = { keyboard: [[{ text: "💰 Қарзи ман" }]], resize_keyboard: true };
-  const ASK = "Барои обуна пайванди шахсиро, ки корманди HOJI-NAIM CARGO фиристод, пахш кунед.\nЁ коди муштарӣ ва калидро нависед (масалан: S-50 AB12CD34).";
+  /* ---------- Conversation: subscribe with the phone button, then a full menu ---------- */
+  const B = { contact: "📱 Рақамро фиристодан", ships: "📦 Борҳои ман", debt: "💰 Қарзи ман", prices: "💵 Нархҳо", address: "📍 Суроғаи анбор", operator: "☎️ Оператор" };
+  // Before subscribing: phone button + public info. After: the full menu.
+  const KB_NEW = { keyboard: [[{ text: B.contact, request_contact: true }], [{ text: B.prices }, { text: B.address }], [{ text: B.operator }]], resize_keyboard: true };
+  const KB_MENU = { keyboard: [[{ text: B.ships }, { text: B.debt }], [{ text: B.prices }, { text: B.address }], [{ text: B.operator }]], resize_keyboard: true };
+  const ASK = "Барои дидани борҳо ва гирифтани хабар тугмаи «📱 Рақамро фиристодан»-ро дар поён пахш кунед.\nTelegram рақами худи шуморо мефиристад — дигар чизе навиштан лозим нест.";
+  const STATUS = { in_warehouse: "дар анбор", delivered: "супорида шуд" };
+  // Texts the company writes in Админ-панел → Telegram (app_settings: tg_prices, tg_address, tg_contact).
+  async function setting(key) {
+    try { return String((await db(`app_settings?key=eq.${key}&select=value`))?.[0]?.value || "").trim(); } catch { return ""; }
+  }
   async function onTelegram(update) {
     const m = update.message;
     if (!m || !m.chat) return;
     const chat = m.chat.id;
     const say = (text, extra = {}) => tg("sendMessage", { chat_id: chat, text, ...extra });
     const subscribe = async (patch) => db("telegram_subscribers?on_conflict=chat_id", { method: "POST", headers: { Prefer: "resolution=merge-duplicates" }, body: JSON.stringify({ chat_id: chat, first_name: m.from?.first_name || "", username: m.from?.username || "", active: true, ...patch }) });
-    // Subscribing needs the customer's code AND personal key (made on the site): «S-50 AB12CD34» or link t.me/<bot>?start=S50_AB12CD34.
-    // Without the key anyone could read another customer's debt by guessing a code.
+    const mySub = async () => (await db(`telegram_subscribers?chat_id=eq.${chat}&active=is.true&select=phone_key,code_key`))?.[0] || null;
+    // Personal link from the site (t.me/<bot>?start=S50_KEY) still works: code + personal key.
     const byCode = async (raw) => {
       const parts = String(raw || "").trim().split(/[\s_]+/).filter(Boolean);
       const pin = parts.length > 1 ? parts.pop().toUpperCase() : "";
       const code = codeKey(parts.join(""));
-      if (code.length < 2 || !/^[A-Z0-9]{6,12}$/.test(pin)) return say(ASK, { reply_markup: KEYBOARD });
+      if (code.length < 2 || !/^[A-Z0-9]{6,12}$/.test(pin)) return null;
       const inv = (await db(`telegram_invites?code_key=eq.${encodeURIComponent(code)}&select=pin`))?.[0];
-      if (!inv || inv.pin !== pin) return say("Код ё калид нодуруст аст. Пайванди шахсиро аз корманди HOJI-NAIM CARGO гиред.", { reply_markup: KEYBOARD });
+      if (!inv || inv.pin !== pin) return say("Пайванд нодуруст аст. Тугмаи «📱 Рақамро фиристодан»-ро пахш кунед.", { reply_markup: KB_NEW });
       const ships = await shipmentsByCode(code);
       await subscribe({ code_key: code, phone: "", phone_key: "" });
-      return say(`Ташаккур! Шумо обуна шудед ✅\nКод: ${code} · ${ships.length} бор.\nВақте ки бор мерасад, пардохт қабул мешавад ё бор супорида мешавад, ба шумо хабар медиҳем.\n\nБарои дидани қарз «💰 Қарзи ман»-ро пахш кунед.`, { reply_markup: KEYBOARD });
+      return say(`Ташаккур! Шумо обуна шудед ✅\nКод: ${code} · ${ships.length} бор.`, { reply_markup: KB_MENU });
     };
+
     if (m.contact) {
-      if (m.contact.user_id && m.from && m.contact.user_id !== m.from.id) return say(ASK, { reply_markup: KEYBOARD });
-      await subscribe({ phone: m.contact.phone_number, phone_key: phoneKey(m.contact.phone_number) });
-      return say("Ташаккур! Шумо обуна шудед ✅", { reply_markup: KEYBOARD });
+      // only the customer's own number (Telegram fills user_id for «send my phone»)
+      if (!m.from || m.contact.user_id !== m.from.id) return say("Лутфан рақами худатонро бо тугмаи поён фиристед.", { reply_markup: KB_NEW });
+      const key = phoneKey(m.contact.phone_number);
+      await subscribe({ phone: m.contact.phone_number, phone_key: key, code_key: "" });
+      const ships = await shipmentsFor({ phone_key: key });
+      return say(ships.length
+        ? `Ташаккур! Шумо обуна шудед ✅\nБо рақами шумо ${ships.length} бор ёфт шуд.\nВақте ки бор мерасад, пардохт қабул мешавад ё бор супорида мешавад, ба шумо хабар медиҳем.\n\nМенюи поёнро истифода баред.`
+        : "Ташаккур! Шумо обуна шудед ✅\nҲоло бо ин рақам бор ёфт нашуд. Вақте ки бори шумо бо ҳамин рақам сабт мешавад, хабар медиҳем.\nАгар бор бо рақами дигар сабт шуда бошад, ба оператор нависед (☎️ Оператор).", { reply_markup: KB_MENU });
     }
+
     const text = String(m.text || "").trim();
     if (text.startsWith("/start")) {
-      const payload = text.slice(6).trim();          // t.me/<bot>?start=S-50
-      if (payload) return byCode(payload);
-      return say("Ассалому алейкум! Ин боти HOJI-NAIM CARGO аст.\n\n" + ASK, { reply_markup: KEYBOARD });
+      const payload = text.slice(6).trim();
+      if (payload) { const r = await byCode(payload); if (r !== null) return r; }
+      const sub = await mySub();
+      return say("Ассалому алейкум! Ин боти HOJI-NAIM CARGO аст.\n\n" + (sub ? "Шумо обуна ҳастед ✅ Менюи поёнро истифода баред." : ASK), { reply_markup: sub ? KB_MENU : KB_NEW });
     }
-    if (text === "💰 Қарзи ман" || text.startsWith("/qarz") || text.startsWith("/debt")) {
-      const sub = (await db(`telegram_subscribers?chat_id=eq.${chat}&select=phone_key,code_key`))?.[0];
-      if (!sub) return say(ASK, { reply_markup: KEYBOARD });
+    if (text === B.prices || text.startsWith("/narx")) {
+      const t = await setting("tg_prices");
+      return say(t ? "💵 Нархҳо\n\n" + t : "💵 Нархҳоро аз оператор пурсед (☎️ Оператор).");
+    }
+    if (text === B.address || text.startsWith("/address")) {
+      const t = await setting("tg_address");
+      return say(t ? "📍 Суроғаи анбор\n\n" + t : "📍 Суроғаро аз оператор пурсед (☎️ Оператор).");
+    }
+    if (text === B.operator || text.startsWith("/operator")) {
+      const t = await setting("tg_contact");
+      return say(t ? "☎️ Тамос бо оператор\n\n" + t : "☎️ Рақами операторро дар офиси HOJI-NAIM CARGO пурсед.");
+    }
+    const isShips = text === B.ships || text.startsWith("/bor"), isDebt = text === B.debt || text.startsWith("/qarz") || text.startsWith("/debt");
+    if (isShips || isDebt) {
+      const sub = await mySub();
+      if (!sub) return say(ASK, { reply_markup: KB_NEW });
       const ships = await shipmentsFor(sub);
-      if (!ships.length) return say("Бо коди шумо бор ёфт нашуд.");
+      if (!ships.length) return say("Бо рақами шумо бор ёфт нашуд. Агар бор бо рақами дигар сабт шуда бошад, ба оператор нависед (☎️ Оператор).", { reply_markup: KB_MENU });
       const paid = await paidOf(ships.map(s => s.id));
-      let total = 0;
-      const lines = ships.slice(0, 30).map(s => { const d = Math.max(0, Number(s.total_tjs || 0) - (paid[s.id] || 0)); total += d; return `• ${s.tracking_no} — ${money(s.total_tjs)}${d > 0.005 ? ` · қарз ${money(d)}` : " · пардохт шуд ✅"}`; });
-      ships.slice(30).forEach(s => (total += Math.max(0, Number(s.total_tjs || 0) - (paid[s.id] || 0))));
-      return say(`Борҳои шумо (${ships.length}):\n${lines.join("\n")}\n\nҚарзи умумӣ: ${money(total)} сомонӣ`);
+      const debtOf = s => Math.max(0, Number(s.total_tjs || 0) - (paid[s.id] || 0));
+      const total = ships.reduce((n, s) => n + debtOf(s), 0);
+      if (isShips) {
+        const lines = ships.slice(0, 15).map(s => {
+          const item = note(s, "Мол"), st = STATUS[s.warehouse_status] || "дар роҳ", d = debtOf(s);
+          return `📦 ${fmtDate(s.shipment_date)} · ${item || s.tracking_no}\n   Ҷой: ${places(s)} · ${qty(s.weight_kg, 1)} кг · ${qty(s.volume_m3, 3)} м³ · ${st}\n   ${money(s.total_tjs)} сомонӣ${d > 0.005 ? ` · қарз ${money(d)}` : " · пардохт шуд ✅"}`;
+        });
+        return say(`Борҳои шумо (${ships.length}${ships.length > 15 ? ", 15-тои охирин" : ""}):\n\n${lines.join("\n\n")}\n\nҚарзи умумӣ: ${money(total)} сомонӣ`, { reply_markup: KB_MENU });
+      }
+      const owing = ships.filter(s => debtOf(s) > 0.005);
+      if (!owing.length) return say(`💰 Шумо қарз надоред ✅\nҲамаи ${ships.length} бор пардохт шудаанд. Раҳмат!`, { reply_markup: KB_MENU });
+      const lines = owing.slice(0, 30).map(s => `• ${fmtDate(s.shipment_date)} · ${note(s, "Мол") || s.tracking_no} — қарз ${money(debtOf(s))}`);
+      return say(`💰 Қарзи шумо\n\n${lines.join("\n")}\n\nҚарзи умумӣ: ${money(total)} сомонӣ`, { reply_markup: KB_MENU });
     }
-    if (text.startsWith("/")) return say(ASK, { reply_markup: KEYBOARD });
-    return byCode(text);
+    if (!text.startsWith("/")) { const r = await byCode(text); if (r !== null) return r; }
+    const sub = await mySub();
+    return say(sub ? "Менюи поёнро истифода баред 👇" : ASK, { reply_markup: sub ? KB_MENU : KB_NEW });
   }
 
   async function staffUser(req) {
@@ -200,7 +241,7 @@ export function makeHandler(env, fetchFn = fetch) {
           const slug = new URL(req.url).pathname.split("/").filter(Boolean).pop() || "telegram-bot";
           const url = `${env.SUPABASE_URL}/functions/v1/${slug}`;
           await tg("setWebhook", { url, secret_token: env.TELEGRAM_WEBHOOK_SECRET, allowed_updates: ["message"] });
-          await tg("setMyCommands", { commands: [{ command: "start", description: "Оғоз" }, { command: "qarz", description: "Қарзи ман" }] });
+          await tg("setMyCommands", { commands: [{ command: "start", description: "Оғоз" }, { command: "bor", description: "Борҳои ман" }, { command: "qarz", description: "Қарзи ман" }, { command: "narx", description: "Нархҳо" }, { command: "address", description: "Суроғаи анбор" }, { command: "operator", description: "Оператор" }] });
           const me = await tg("getMe", {}), info = await tg("getWebhookInfo", {});
           return json({ ok: true, username: me.username, webhook: info.url, pending: info.pending_update_count });
         }
