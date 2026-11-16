@@ -30,7 +30,7 @@
     S.features.lock = !settings.error;
     S.closedUntil = (settings.data || []).find(x => x.key === "closed_until")?.value || null;
     S.resetMark = (settings.data || []).find(x => x.key === "data_reset_at")?.value || "";   // set by supabase/reset-data.sql
-    S.tgTexts = Object.fromEntries(["tg_prices", "tg_address", "tg_contact"].map(k => [k, (settings.data || []).find(x => x.key === k)?.value || ""]));
+    S.tgTexts = Object.fromEntries(["tg_prices", "tg_address", "tg_contact", "tg_payment", "tg_remind", "tg_link_code", "tg_staff_chat"].map(k => [k, (settings.data || []).find(x => x.key === k)?.value || ""]));
     S.features.expMethod = !method.error;
     applyFeatures();
   }
@@ -341,7 +341,7 @@
     }
     return `https://t.me/${bot}?start=${code}_${pin}`;
   };
-  const TG_EVENT = { registered: "Бор қабул шуд", arrived: "Бор расид", paid: "Пардохт", delivered: "Супорида шуд", custom: "Паёми дастӣ", batch_loading: "Мошин: бор шуда истодааст", batch_in_transit: "Мошин: дар роҳ", batch_arrived: "Мошин: расид" };
+  const TG_EVENT = { remind: "Ёдраскунии қарз", broadcast: "Хабар ба ҳама", to_operator: "Савол ба оператор", operator: "Ҷавоби оператор", akt: "Акт сверка", registered: "Бор қабул шуд", arrived: "Бор расид", paid: "Пардохт", delivered: "Супорида шуд", custom: "Паёми дастӣ", batch_loading: "Мошин: бор шуда истодааст", batch_in_transit: "Мошин: дар роҳ", batch_arrived: "Мошин: расид" };
   const randomSecret = () => Array.from(crypto.getRandomValues(new Uint8Array(24)), b => "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"[b % 56]).join("");
   function telegramCard() {
     const bot = HN.lsGet("hn-tg-bot", "");
@@ -360,11 +360,24 @@
       <p>Саҳифа барои муштариён (код + телефон → Telegram): <a href="${esc(new URL("telegram.html", location.href).href)}" target="_blank" rel="noopener"><b>${esc(new URL("telegram.html", location.href).href)}</b></a> <button class="btn btn-xs btn-soft" id="tgPageCopy" type="button">Нусха</button></p>
       ${bot ? `<p>Пайванд барои муштариён: <a href="https://t.me/${esc(bot)}" target="_blank" rel="noopener"><b>t.me/${esc(bot)}</b></a> <button class="btn btn-xs btn-soft" id="tgCopy" type="button">Нусха</button></p>` : '<p class="hint">Username-и ботро нависед, то пайванд барои муштариён пайдо шавад.</p>'}
       <div class="table-wrap"><table class="tbl"><thead><tr><th>Вақт</th><th>Паём</th><th>Бор</th><th>Ҳолат</th></tr></thead><tbody>${log.map(l => `<tr><td class="nowrap">${HN.fmtDateTime(l.created_at)}</td><td>${TG_EVENT[l.event] || esc(l.event)}</td><td>${esc(HN.shipmentById(l.shipment_id)?.tracking_no || "—")}</td><td>${l.ok ? '<span class="pill pay-paid">Фиристода шуд</span>' : `<span class="pill pay-unpaid" title="${esc(l.error)}">Хато</span>`}</td></tr>`).join("") || '<tr><td colspan="4" class="muted">Ҳоло паём нафиристода шудааст.</td></tr>'}</tbody></table></div>
-      ${HN.can("admin") ? `<form id="tgTexts" class="tg-texts"><h4>Матнҳои менюи бот</h4><p class="hint">Муштарӣ дар бот тугмаҳои «💵 Нархҳо», «📍 Суроғаи анбор» ва «☎️ Оператор»-ро пахш мекунад ва ҳамин матнро мебинад.</p>
+      ${HN.can("admin") ? `<form id="tgTexts" class="tg-texts"><h4>Матнҳои менюи бот</h4><p class="hint">Муштарӣ дар бот тугмаҳои «💵 Нархҳо», «📍 Суроғаи анбор», «💳 Пардохт» ва «☎️ Оператор»-ро пахш мекунад ва ҳамин матнро мебинад. Аз рақами оператор тугмаи WhatsApp худкор сохта мешавад.</p>
         <label class="field"><span>💵 Нархҳо</span><textarea name="tg_prices" rows="3" maxlength="1500" placeholder="Масалан: 1 м³ — 200 $, 1 кг — 1 $. Ҳисоб аз рӯи куб ё кг, кадоме ки зиёд бошад.">${esc(S.tgTexts?.tg_prices || "")}</textarea></label>
         <label class="field"><span>📍 Суроғаи анбор</span><textarea name="tg_address" rows="2" maxlength="1000" placeholder="Масалан: ш. Душанбе, кӯчаи …, анбори № … Соати корӣ: 9:00–18:00">${esc(S.tgTexts?.tg_address || "")}</textarea></label>
         <label class="field"><span>☎️ Оператор</span><textarea name="tg_contact" rows="2" maxlength="1000" placeholder="Масалан: +992 … (WhatsApp, Telegram)">${esc(S.tgTexts?.tg_contact || "")}</textarea></label>
-        <button class="btn btn-primary" type="submit">Сабт</button></form>` : ""}
+        <label class="field"><span>💳 Пардохт — чӣ тавр пардохт кунанд</span><textarea name="tg_payment" rows="2" maxlength="1000" placeholder="Масалан: Корти Алиф 1234 … (ба номи …), Душанбе Сити …, ё дар анбор нақд.">${esc(S.tgTexts?.tg_payment || "")}</textarea></label>
+        <button class="btn btn-primary" type="submit">Сабт</button></form>
+      <div class="tg-texts"><h4>💬 Паёмҳои муштариён → гурӯҳи кормандон</h4>
+        <p class="hint">Муштарӣ ба бот савол менависад (матн, расм, овоз) — паём ба гурӯҳи Telegram-и кормандон меояд. Оператор дар гурӯҳ ба он паём <b>Reply (Ответить)</b> мекунад ва ҷавоб ба муштарӣ меравад.</p>
+        ${S.tgTexts?.tg_staff_chat ? '<p><span class="pill pay-paid">Гурӯҳ пайваст аст ✓</span></p>' : '<p><span class="pill pay-unpaid">Гурӯҳ ҳанӯз пайваст нест</span></p>'}
+        <ol class="setup-steps"><li>Дар Telegram гурӯҳ созед (масалан «HOJI-NAIM — Операторҳо») ва кормандонро илова кунед.</li><li>Ботро <b>@${esc(bot || "hoji_naim_cargo_bot")}</b> ба гурӯҳ илова кунед.</li><li>Дар гурӯҳ нависед: <code>/link ${esc(S.tgTexts?.tg_link_code || "——————")}</code></li></ol>
+        <div class="btn-row"><button class="btn btn-ghost" type="button" id="tgLinkCode">${S.tgTexts?.tg_link_code ? "Коди нав" : "Код гирифтан"}</button></div></div>
+      <div class="tg-texts"><h4>⏰ Ёдраскунии қарз</h4>
+        <p class="hint">Ҳар душанбе соати 10:00 ба муштариёне, ки қарз доранд, худкор паём меравад (рӯйхати қарзҳо бо сомонӣ ва доллар).</p>
+        <label class="check"><input type="checkbox" id="tgRemindOn" ${S.tgTexts?.tg_remind === "off" ? "" : "checked"}> <span>Ҳар ҳафта фиристода шавад</span></label>
+        <div class="btn-row"><button class="btn btn-ghost" type="button" id="tgRemindNow">Ҳозир фиристодан</button></div></div>
+      <div class="tg-texts"><h4>📢 Хабар ба ҳамаи муштариён</h4>
+        <textarea id="tgBroadcast" rows="3" maxlength="3500" placeholder="Масалан: Рӯзи ид (15.12) анбор баста аст. Аз 16.12 кор мекунем."></textarea>
+        <div class="btn-row"><button class="btn btn-primary" type="button" id="tgBroadcastBtn">Ба ҳама фиристодан</button></div></div>` : ""}
       <details class="setup"><summary>Дастури насб</summary>${steps}</details></div>`;
   }
   let tgAsked = false;
@@ -372,10 +385,31 @@
     const tf = $("tgTexts");
     if (tf) tf.onsubmit = async e => {
       e.preventDefault();
-      const rows = ["tg_prices", "tg_address", "tg_contact"].map(key => ({ key, value: tf.elements[key].value.trim() }));
+      const rows = ["tg_prices", "tg_address", "tg_contact", "tg_payment"].map(key => ({ key, value: tf.elements[key].value.trim() }));
       const r = await S.db.from("app_settings").upsert(rows, { onConflict: "key" });
       if (r.error) { HN.toast(HN.dbError(r.error), "error"); return; }
       rows.forEach(x => (S.tgTexts[x.key] = x.value)); HN.toast("Матнҳои бот сабт шуданд.", "ok");
+    };
+    const setSetting = async (key, value) => { const r = await S.db.from("app_settings").upsert({ key, value }, { onConflict: "key" }); if (r.error) { HN.toast(HN.dbError(r.error), "error"); return false; } S.tgTexts[key] = value; return true; };
+    const invoke = async (body, okMsg) => {
+      const r = await S.db.functions.invoke(HN.config.tgFunction, { body });
+      if (r.error || !r.data?.ok) { HN.toast("Нарафт: " + (r.data?.error || r.error?.message || "бот ҷавоб надод"), "error"); return null; }
+      HN.toast(okMsg(r.data), "ok"); return r.data;
+    };
+    if ($("tgLinkCode")) $("tgLinkCode").onclick = async () => {
+      const code = String(100000 + (crypto.getRandomValues(new Uint32Array(1))[0] % 900000));
+      if (await setSetting("tg_link_code", code)) { HN.toast("Код: " + code + " — дар гурӯҳ нависед: /link " + code, "ok"); renderAdminExtras(); }
+    };
+    if ($("tgRemindOn")) $("tgRemindOn").onchange = async e => { if (await setSetting("tg_remind", e.target.checked ? "on" : "off")) HN.toast(e.target.checked ? "Ёдраскунӣ ҳар ҳафта меравад." : "Ёдраскунии ҳарҳафтаина хомӯш шуд.", "ok"); };
+    if ($("tgRemindNow")) $("tgRemindNow").onclick = async () => {
+      if (!(await HN.confirm("Ба ҳамаи муштариёне, ки қарз доранд, ҳозир ёдраскунӣ фиристода шавад?", { ok: "Фиристодан" }))) return;
+      await invoke({ action: "remind" }, d => `Ёдраскунӣ ба ${d.sent} муштарӣ рафт.`);
+    };
+    if ($("tgBroadcastBtn")) $("tgBroadcastBtn").onclick = async () => {
+      const text = $("tgBroadcast").value.trim();
+      if (!text) { HN.toast("Матни хабарро нависед.", "error"); return; }
+      if (!(await HN.confirm(`Ин хабар ба ҳамаи обуначиён (${S.tgSubs.length}) фиристода шавад?\n\n${text}`, { ok: "Ба ҳама фиристодан" }))) return;
+      if (await invoke({ action: "broadcast", text }, d => `Хабар ба ${d.sent} аз ${d.total} муштарӣ рафт.`)) $("tgBroadcast").value = "";
     };
     if (S.features.telegram && !HN.lsGet("hn-tg-bot", "") && !tgAsked) {
       tgAsked = true;   // fill the bot name once, without pressing «Санҷиши бот»
