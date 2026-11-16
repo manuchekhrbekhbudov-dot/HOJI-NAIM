@@ -274,6 +274,10 @@
 
   async function render() {
     const el = root(); if (!el || !S.user) return;
+    // Keep the place: scroll of the grid and of the page, and the cell being typed in (a re-draw must not jump).
+    const oldWrap = HN.$("xlGridWrap"), keep = { top: oldWrap?.scrollTop || 0, left: oldWrap?.scrollLeft || 0, y: window.scrollY, sheet: book?.active, total: showTotal };
+    const act = document.activeElement?.closest?.("#notebook .xl-c input");
+    if (act) keep.focus = { r: act.closest(".xl-c").dataset.r, c: act.closest(".xl-c").dataset.c, a: act.selectionStart, b: act.selectionEnd };
     if (!book) book = loadBook();
     // After «Аз сифр» (supabase/reset-data.sql) every browser forgets its old notebook.
     if (S.resetMark && book.resetMark !== S.resetMark) {
@@ -336,6 +340,14 @@
       HN.$("xlName").textContent = "B1"; root().querySelector(".xl").classList.add("xl-showtotal");
     } else refresh();
     if (selected) selectCell(selected.r, selected.c, true);
+    if (keep.sheet === book.active && keep.total === showTotal) {
+      const w = HN.$("xlGridWrap"); if (w) { w.scrollTop = keep.top; w.scrollLeft = keep.left; }
+      if (keep.focus) {
+        const inp = root().querySelector(`.xl-c[data-r="${keep.focus.r}"][data-c="${keep.focus.c}"] input`);
+        if (inp) { inp.focus({ preventScroll: true }); try { inp.setSelectionRange(keep.focus.a, keep.focus.b); } catch {} }
+      }
+      if (Math.abs(window.scrollY - keep.y) > 1) window.scrollTo(0, keep.y);
+    }
   }
 
   const td = (r, c, html, cls = "", attrs = "") => `<td class="xl-c ${cls}" data-r="${r}" data-c="${c}"${attrs}>${html}</td>`;
@@ -484,8 +496,18 @@
         if (!root().querySelector(`.xl-c[data-r="${rr}"][data-c="${c}"]`)) return;
       }
     };
+    const side = dc => {
+      for (let cc = c + dc, k = 0; k < 20 && cc >= 0; k++, cc += dc) {
+        const t = root().querySelector(`.xl-c[data-r="${r}"][data-c="${cc}"] input`);
+        if (t) { e.preventDefault(); t.focus(); t.select?.(); return; }
+        if (!root().querySelector(`.xl-c[data-r="${r}"][data-c="${cc}"]`)) return;
+      }
+    };
+    const len = input.value.length, a0 = input.selectionStart, b0 = input.selectionEnd, all = a0 === 0 && b0 === len;
     if (e.key === "Enter" || e.key === "ArrowDown") go(1);
     else if (e.key === "ArrowUp") go(-1);
+    else if (e.key === "ArrowRight" && (all || a0 === len)) side(1);
+    else if (e.key === "ArrowLeft" && (all || b0 === 0)) side(-1);
   });
 
   /* ---------- Sheet actions ---------- */
