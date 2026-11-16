@@ -8,13 +8,13 @@
   <title>HOJI-NAIM CARGO</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://wfxbgkasstkxzmyrjwpi.supabase.co" crossorigin>
-  <link rel="stylesheet" href="style.css?v=20261117-login2">
+  <link rel="stylesheet" href="style.css?v=20261117-wow">
   <script src="vendor/supabase-js-2.118.0.js" defer></script>
-  <script src="js/core.js?v=20261117-login2" defer></script>
-  <script src="js/exporter.js?v=20261117-login2" defer></script>
-  <script src="js/notebook.js?v=20261117-login2" defer></script>
-  <script src="js/extras.js?v=20261117-login2" defer></script>
-  <script src="main.js?v=20261117-login2" defer></script>
+  <script src="js/core.js?v=20261117-wow" defer></script>
+  <script src="js/exporter.js?v=20261117-wow" defer></script>
+  <script src="js/notebook.js?v=20261117-wow" defer></script>
+  <script src="js/extras.js?v=20261117-wow" defer></script>
+  <script src="main.js?v=20261117-wow" defer></script>
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -47,27 +47,49 @@
   <!-- ===== Auth ===== -->
   <section id="authScreen" class="auth hidden">
     <div class="auth-side">
+      <span class="aurora a1" aria-hidden="true"></span><span class="aurora a2" aria-hidden="true"></span><span class="aurora a3" aria-hidden="true"></span>
       <div class="brand brand-lg"><span class="brand-mark">H</span><span class="brand-name"><b>HOJI-NAIM</b><small>CARGO</small></span></div>
       <div class="auth-copy">
-        <p class="eyebrow on-dark">Системаи идоракунии карго</p>
-        <h1>Борҳо, анбор, пардохтҳо ва ҳисобот <span class="gold">дар як ҷо.</span></h1>
-        <div class="auth-route" aria-hidden="true">
-          <div class="rt-end"><span class="rt-dot"></span><b>Хитой</b><small>қабули бор</small></div>
-          <div class="rt-line"><span class="rt-truck"><svg viewBox="0 0 24 24"><path d="M2.5 6.5h11v9h-11zM13.5 9.5h4l3 3v3h-7z"/><circle cx="6.5" cy="17" r="1.8"/><circle cx="17" cy="17" r="1.8"/></svg></span></div>
-          <div class="rt-end"><span class="rt-dot rt-gold"></span><b>Душанбе</b><small>анбор · супоридан</small></div>
+        <p class="auth-badge"><span class="pulse"></span>Системаи идоракунии карго</p>
+        <h1>Аз Хитой то Душанбе —<br><span class="shine">ҳар бор дар назорат.</span></h1>
+        <p class="auth-lead">Борҳо, анбор, пардохт, касса, ҳисобот ва Telegram-бот барои муштариён — ҳама дар як система.</p>
+
+        <div class="auth-map" aria-hidden="true">
+          <svg viewBox="0 0 520 235" class="map-svg">
+            <defs>
+              <linearGradient id="rtg" x1="0" x2="1"><stop offset="0" stop-color="#8fb3ff"/><stop offset="1" stop-color="#F4B400"/></linearGradient>
+              <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            </defs>
+            <path id="rtPath" d="M60 190 C 170 95, 330 95, 460 160" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="10" stroke-linecap="round"/>
+            <path d="M60 190 C 170 95, 330 95, 460 160" fill="none" stroke="url(#rtg)" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 10" class="rt-dash"/>
+            <g filter="url(#glow)"><circle cx="60" cy="190" r="7" fill="#8fb3ff"/><circle cx="460" cy="160" r="8" fill="#F4B400"/></g>
+            <circle cx="60" cy="190" r="16" fill="none" stroke="#8fb3ff" stroke-opacity=".5" class="ring"/>
+            <circle cx="460" cy="160" r="18" fill="none" stroke="#F4B400" stroke-opacity=".6" class="ring r2"/>
+            <g class="rt-truck2">
+              <rect x="-17" y="-13" width="34" height="26" rx="8" fill="#F4B400"/>
+              <path d="M-10 -4h11v8h-11zM1 -1h4l3 3v2h-7z" fill="none" stroke="#0E1B33" stroke-width="1.6" stroke-linejoin="round"/>
+              <circle cx="-6" cy="6" r="1.8" fill="#0E1B33"/><circle cx="5" cy="6" r="1.8" fill="#0E1B33"/>
+              <animateMotion dur="7s" repeatCount="indefinite" rotate="0" keyPoints="0;1;1" keyTimes="0;.85;1" calcMode="linear"><mpath href="#rtPath"/></animateMotion>
+            </g>
+            <text x="60" y="226" text-anchor="middle" class="map-lbl">Хитой</text>
+            <text x="460" y="200" text-anchor="middle" class="map-lbl gold">Душанбе</text>
+          </svg>
+          <div class="float-card fc1"><span class="fc-ic tg">✈</span><span><b>HOJI-NAIM CARGO</b><small>✅ Бори шумо дар Душанбе расид · 4 ҷой · 120 кг</small></span></div>
+          <div class="float-card fc2"><span class="fc-ic ok">✓</span><span><b>Пардохт қабул шуд</b><small>Қарз: 0.00 сомонӣ</small></span></div>
         </div>
+
         <ul class="auth-points">
-          <li><svg><use href="#i-box"/></svg><span><b>Назорати борҳо</b><small>Аз қабул дар Хитой то супоридан ба муштарӣ</small></span></li>
-          <li><svg><use href="#i-wallet"/></svg><span><b>Пардохт, қарз ва касса</b><small>Пардохти қисман ва пурра, сомонӣ ва доллар</small></span></li>
-          <li><svg><use href="#i-sheet"/></svg><span><b>Дафтари Excel</b><small>Варақи алоҳида барои ҳар муштарӣ</small></span></li>
-          <li><svg><use href="#i-arrow"/></svg><span><b>Telegram-бот</b><small>Муштарӣ худаш хабар ва қарзашро мебинад</small></span></li>
+          <li><svg><use href="#i-box"/></svg><span>Борҳо ва анбор</span></li>
+          <li><svg><use href="#i-wallet"/></svg><span>Пардохт ва касса</span></li>
+          <li><svg><use href="#i-sheet"/></svg><span>Дафтари Excel</span></li>
+          <li><svg><use href="#i-arrow"/></svg><span>Telegram-бот</span></li>
         </ul>
       </div>
       <p class="auth-foot">© 2026 HOJI-NAIM CARGO · Душанбе</p>
     </div>
     <div class="auth-main">
       <form id="authForm" class="auth-card" novalidate>
-        <span class="auth-mark" aria-hidden="true">H</span>
+        <div class="auth-top"><span class="auth-mark" aria-hidden="true">H</span><span class="auth-secure"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></svg>Пайвасти ҳифзшуда</span></div>
         <div class="auth-head">
           <h2 id="authHeading">Ворид шудан</h2>
           <p id="authDescription" class="muted">Email ва пароли худро ворид кунед.</p>
