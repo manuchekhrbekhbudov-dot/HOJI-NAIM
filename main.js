@@ -60,6 +60,11 @@
     $("authScreen").classList.toggle("hidden", which !== "auth");
     $("app").classList.toggle("hidden", which !== "app");
   }
+  $("pwEye").addEventListener("click", () => {
+    const pw = $("password"), show = pw.type === "password";
+    pw.type = show ? "text" : "password"; $("pwEye").classList.toggle("on", show);
+    $("pwEye").setAttribute("aria-label", show ? "Паролро пинҳон кардан" : "Паролро нишон додан"); pw.focus();
+  });
   $("authModeToggle").addEventListener("click", () => {
     authMode = authMode === "signin" ? "signup" : "signin";
     const up = authMode === "signup";
