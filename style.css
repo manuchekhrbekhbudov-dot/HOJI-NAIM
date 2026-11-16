@@ -637,3 +637,4 @@ details.setup summary { cursor: pointer; font-weight: 600; color: var(--navy-600
 .xl-findform input { width: 140px; }
 .tg-texts { margin: 14px 0; display: grid; gap: 10px; max-width: 720px; } .tg-texts h4 { margin: 0; }
 .tg-texts label.check { display: flex; gap: 8px; align-items: center; font-weight: 600; } .tg-texts label.check input { width: auto; min-height: 0; }
+.xl-btn.xl-pending { background: #fff4ce; box-shadow: inset 0 0 0 1px #e0b100; border-radius: 4px; }
