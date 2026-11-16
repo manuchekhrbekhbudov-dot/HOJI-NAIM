@@ -16,7 +16,8 @@
     warehouse: ["Анбор", "Борҳои ҳозира ва супоридашуда"],
     payments: ["Пардохтҳо", "Пардохтҳои қисман ва пурра"],
     expenses: ["Хароҷот", "Хароҷоти ҳаррӯзаи ширкат", "finance"],
-    reports: ["Ҳисобот", "Ҳисоботи давравӣ ва касса"],
+    reports: ["Ҳисобот", "Ҳисоботи давравӣ: борҳо, пардохтҳо, хароҷот, муштариён"],
+    kassa: ["Касса", "Пули нақд ва бонк: даромад, хароҷот ва бақия", "finance"],
     excel: ["Дафтари Excel", "Варақҳои муштариён (Лист1, Лист2 …) — худкор ба система сабт мешавад"],
     admin: ["Админ-панел", "Кормандон, нусхаи эҳтиётӣ ва ҳолати система", "admin"],
   };
@@ -171,7 +172,7 @@
 
   /* ================= Render ================= */
   function renderView(name) {
-    const fn = { dashboard: renderDashboard, shipments: renderShipments, warehouse: renderWarehouse, payments: renderPayments, expenses: renderExpenses, reports: renderReports, excel: () => HN.notebook?.render(), admin: renderAdmin }[name];
+    const fn = { dashboard: renderDashboard, shipments: renderShipments, warehouse: renderWarehouse, payments: renderPayments, expenses: renderExpenses, reports: renderReports, excel: () => HN.notebook?.render(), kassa: () => HN.extras?.renderKassa(), admin: renderAdmin }[name];
     fn && fn();
     HN.extras?.afterRender(name);
     $("navWarehouseCount").textContent = S.features.warehouse ? (S.shipments.filter(s => HN.whStatus(s) === "in_warehouse").length || "") : "";
@@ -507,27 +508,13 @@
 
   /* ----- Reports ----- */
   let repGroup = "month";
-  $("view-reports").querySelector(".tabs").addEventListener("click", e => {
-    const b = e.target.closest("[data-rtab]"); if (!b) return;
-    setReportTab(b.dataset.rtab);
-  });
-  function setReportTab(tab) {
-    document.querySelectorAll("[data-rtab]").forEach(x => x.classList.toggle("on", x.dataset.rtab === tab));
-    ["analysis", "kassa"].forEach(t => $("rtab-" + t).classList.toggle("hidden", tab !== t));
-    HN.lsSet("hn-report-tab", tab);
-    if (tab === "kassa") HN.extras?.renderKassa();
-  }
   $("repGroup").addEventListener("click", e => { const b = e.target.closest("[data-group]"); if (!b) return; repGroup = b.dataset.group; $("repGroup").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); renderAnalysis(); });
   ["repFrom", "repTo"].forEach(id => $(id).addEventListener("input", renderAnalysis));
   $("repCustomer").addEventListener("change", renderAnalysis);
   $("repCur").addEventListener("click", e => { const b = e.target.closest("[data-cur]"); if (!b) return; HN.cur = b.dataset.cur; HN.lsSet("hn-report-cur", HN.cur); renderAnalysis(); });
   $("custSearch").addEventListener("input", renderAnalysis);
   if (!$("repFrom").value) { $("repFrom").value = HN.today().slice(0, 4) + "-01-01"; $("repTo").value = HN.today(); }
-  function renderReports() {
-    const tab = HN.lsGet("hn-report-tab", "analysis");
-    setReportTab(tab === "kassa" && HN.can("finance") ? tab : "analysis");
-    renderAnalysis();
-  }
+  function renderReports() { renderAnalysis(); }
   function bucketOf(date) {
     if (repGroup === "day") return date;
     if (repGroup === "week") return HN.weekStart(date);

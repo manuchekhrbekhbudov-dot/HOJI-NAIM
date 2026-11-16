@@ -8,13 +8,13 @@
   <title>HOJI-NAIM CARGO</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://wfxbgkasstkxzmyrjwpi.supabase.co" crossorigin>
-  <link rel="stylesheet" href="style.css?v=20261117-botv4">
+  <link rel="stylesheet" href="style.css?v=20261117-navkassa">
   <script src="vendor/supabase-js-2.118.0.js" defer></script>
-  <script src="js/core.js?v=20261117-botv4" defer></script>
-  <script src="js/exporter.js?v=20261117-botv4" defer></script>
-  <script src="js/notebook.js?v=20261117-botv4" defer></script>
-  <script src="js/extras.js?v=20261117-botv4" defer></script>
-  <script src="main.js?v=20261117-botv4" defer></script>
+  <script src="js/core.js?v=20261117-navkassa" defer></script>
+  <script src="js/exporter.js?v=20261117-navkassa" defer></script>
+  <script src="js/notebook.js?v=20261117-navkassa" defer></script>
+  <script src="js/extras.js?v=20261117-navkassa" defer></script>
+  <script src="main.js?v=20261117-navkassa" defer></script>
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -86,6 +86,7 @@
         <a class="nav-item" href="#expenses" data-view="expenses" data-perm="finance"><svg><use href="#i-receipt"/></svg><span>Хароҷот</span></a>
         <a class="nav-item" href="#reports" data-view="reports"><svg><use href="#i-chart"/></svg><span>Ҳисобот</span></a>
         <a class="nav-item" href="#excel" data-view="excel"><svg><use href="#i-sheet"/></svg><span>Дафтари Excel</span></a>
+        <a class="nav-item" href="#kassa" data-view="kassa" data-perm="finance"><svg><use href="#i-wallet"/></svg><span>Касса</span></a>
         <a class="nav-item" href="#admin" data-view="admin" data-perm="admin"><svg><use href="#i-shield"/></svg><span>Админ-панел</span></a>
       </nav>
       <div class="side-user">
@@ -250,10 +251,6 @@
 
       <!-- Reports -->
       <section class="view" id="view-reports">
-        <div class="tabs" role="tablist">
-          <button class="tab on" data-rtab="analysis" role="tab"><svg><use href="#i-chart"/></svg>Ҳисобот</button>
-          <button class="tab" data-rtab="kassa" role="tab" data-perm="finance"><svg><use href="#i-wallet"/></svg>Касса</button>
-        </div>
         <div class="rtab" id="rtab-analysis">
           <div class="toolbar">
             <div class="seg" id="repGroup" role="tablist" aria-label="Гурӯҳбандӣ"><button data-group="day">Рӯзона</button><button data-group="week">Ҳафтаина</button><button data-group="month" class="on">Моҳона</button></div>
@@ -279,7 +276,11 @@
             <p class="empty hidden" id="custEmpty">Муштарӣ ёфт нашуд.</p>
           </div>
         </div>
-        <div class="rtab hidden" id="rtab-kassa"></div>
+      </section>
+
+      <!-- Kassa (own menu item) -->
+      <section class="view" id="view-kassa">
+        <div class="rtab" id="rtab-kassa"></div>
       </section>
 
       <!-- Excel notebook (own menu item, under Ҳисобот) -->
