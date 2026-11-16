@@ -8,13 +8,13 @@
   <title>HOJI-NAIM CARGO</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://wfxbgkasstkxzmyrjwpi.supabase.co" crossorigin>
-  <link rel="stylesheet" href="style.css?v=20261117-wow2">
+  <link rel="stylesheet" href="style.css?v=20261117-glass">
   <script src="vendor/supabase-js-2.118.0.js" defer></script>
-  <script src="js/core.js?v=20261117-wow2" defer></script>
-  <script src="js/exporter.js?v=20261117-wow2" defer></script>
-  <script src="js/notebook.js?v=20261117-wow2" defer></script>
-  <script src="js/extras.js?v=20261117-wow2" defer></script>
-  <script src="main.js?v=20261117-wow2" defer></script>
+  <script src="js/core.js?v=20261117-glass" defer></script>
+  <script src="js/exporter.js?v=20261117-glass" defer></script>
+  <script src="js/notebook.js?v=20261117-glass" defer></script>
+  <script src="js/extras.js?v=20261117-glass" defer></script>
+  <script src="main.js?v=20261117-glass" defer></script>
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -46,12 +46,14 @@
 
   <!-- ===== Auth ===== -->
   <section id="authScreen" class="auth hidden">
+    <span class="auth-spot" aria-hidden="true"></span>
+    <span class="stars" aria-hidden="true"><i style="left:8%;top:20%;animation-delay:0s"></i><i style="left:22%;top:70%;animation-delay:1.2s"></i><i style="left:35%;top:35%;animation-delay:2.4s"></i><i style="left:48%;top:85%;animation-delay:0.6s"></i><i style="left:58%;top:15%;animation-delay:3s"></i><i style="left:66%;top:60%;animation-delay:1.8s"></i><i style="left:74%;top:30%;animation-delay:4s"></i><i style="left:82%;top:78%;animation-delay:2.2s"></i><i style="left:90%;top:12%;animation-delay:0.9s"></i><i style="left:95%;top:50%;animation-delay:3.6s"></i><i style="left:14%;top:92%;animation-delay:2.8s"></i><i style="left:42%;top:8%;animation-delay:1.5s"></i></span>
     <div class="auth-side">
       <span class="aurora a1" aria-hidden="true"></span><span class="aurora a2" aria-hidden="true"></span><span class="aurora a3" aria-hidden="true"></span>
       <div class="brand brand-lg"><span class="brand-mark">H</span><span class="brand-name"><b>HOJI-NAIM</b><small>CARGO</small></span></div>
       <div class="auth-copy">
         <p class="auth-badge"><span class="pulse"></span>Системаи идоракунии карго</p>
-        <h1>Аз Хитой то Душанбе —<br><span class="shine">ҳар бор дар назорат.</span></h1>
+        <h1>Аз Хитой то Душанбе —<br><span class="shine rot" id="authRot">ҳар бор дар назорат.</span></h1>
         <p class="auth-lead">Борҳо, анбор, пардохт, касса, ҳисобот ва Telegram-бот барои муштариён — ҳама дар як система.</p>
 
         <div class="auth-map" aria-hidden="true">
