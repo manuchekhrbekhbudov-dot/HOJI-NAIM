@@ -684,3 +684,4 @@ details.setup summary { cursor: pointer; font-weight: 600; color: var(--navy-600
   .auth-main { padding: 24px 16px 36px; }
 }
 .auth-card .form-msg:empty { display: none; }
+.xl-btn.xl-pending { background: #fff4ce; box-shadow: inset 0 0 0 1px #e0b100; border-radius: 4px; }

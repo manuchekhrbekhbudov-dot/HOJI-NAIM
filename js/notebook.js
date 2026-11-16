@@ -340,6 +340,7 @@
       HN.$("xlName").textContent = "B1"; root().querySelector(".xl").classList.add("xl-showtotal");
     } else refresh();
     if (selected) selectCell(selected.r, selected.c, true);
+    if (!showTotal) showPending();
     if (keep.sheet === book.active && keep.total === showTotal) {
       const w = HN.$("xlGridWrap"); if (w) { w.scrollTop = keep.top; w.scrollLeft = keep.left; }
       if (keep.focus) {
@@ -582,7 +583,8 @@
 
   /* ---------- Save rows into the system as shipments ---------- */
   // A row is ready for the system when it has a date, a price > 0 and the sheet has a code.
-  const rowReady = r => used(r) && !!toISO(r.date) && calc(r).price > 0;
+  // ready = something to bill (место + size or kg); an empty date becomes today, a wrongly typed date blocks the row
+  const rowReady = r => used(r) && calc(r).price > 0 && (!String(r.date || "").trim() || !!toISO(r.date));
   const rowSig = (sh, r) => JSON.stringify([sh.code, sh.phone, ...["date", "shop", "city", "item", "height", "width", "length", "places", "kgPerPlace", "cubePrice", "kgPrice"].map(k => String(r[k] ?? ""))]);
   async function upsertRow(sh, r, rate) {
     const x = calc(r), code = String(sh.code || "").trim(), phone = String(sh.phone || "").trim();
@@ -600,59 +602,55 @@
     if (error) throw error;
     r.syncSig = rowSig(sh, r);
   }
+  /* Saving to the system is done by the person, with the «Сабт дар система» button and a confirmation —
+     never by itself (a typing mistake must not reach reports, debts or Telegram).
+     The button shows how many rows of this sheet are new or changed and not saved yet. */
+  function markOld(sh) {
+    // rows saved before this version: take them as up to date (no re-pricing of old shipments)
+    sh.rows.forEach(r => { if (r.syncTrackingNo && !r.syncSig && S.shipments.some(x => x.tracking_no === r.syncTrackingNo)) r.syncSig = rowSig(sh, r); });
+  }
+  function pendingOf(sh) {
+    markOld(sh);
+    const ready = sh.rows.filter(r => rowReady(r) && r.syncSig !== rowSig(sh, r));
+    return { ready, fresh: ready.filter(r => !r.syncTrackingNo), changed: ready.filter(r => r.syncTrackingNo), unfinished: sh.rows.filter(r => used(r) && !rowReady(r)) };
+  }
+  function showPending() {
+    const btn = root()?.querySelector('[data-xl="sync"] span'); if (!btn || showTotal) return;
+    const sh = activeSheet(), p = pendingOf(sh), n = p.ready.length;
+    btn.textContent = n ? `Сабт дар система (${n})` : "Сабт дар система";
+    btn.closest("button").classList.toggle("xl-pending", n > 0);
+    if (n) setStatus(`${n} сатр ҳанӯз дар система нест — санҷед ва «Сабт дар система»-ро пахш кунед`);
+  }
+  function scheduleAuto() { showPending(); }   // name kept: called after every edit
   async function sync(sh) {
     if (!HN.can("staff")) { HN.toast("Барои сабт дар система иҷозати корманд лозим аст."); return; }
     const code = String(sh.code || "").trim();
     if (!code) { HN.toast("Дар ҳуҷайраи «Код» (B1) коди муштариро нависед.", "error"); root().querySelector('input[data-meta="code"]')?.focus(); return; }
-    const rows = sh.rows.filter(used);
-    if (!rows.length) { HN.toast("Дар варақ ҳоло сатри пуршуда нест."); return; }
-    const bad = rows.find(r => calc(r).price <= 0);
-    if (bad) { HN.toast(`Сатри ${FIRST + dbRows(sh).length + sh.rows.indexOf(bad)}: место, андоза ё кг пур нашудааст — нарх 0 аст.`, "error"); return; }
     const rate = N(book.usdRate);
     if (rate <= 0) { HN.toast("Курси долларро (I1) дуруст нависед.", "error"); return; }
+    const p = pendingOf(sh), rowNo = r => FIRST + dbRows(sh).length + sh.rows.indexOf(r);
+    if (!p.ready.length) {
+      HN.toast(p.unfinished.length ? `Сатри ${rowNo(p.unfinished[0])} нопурра аст: место ва андоза ё кг лозим (сана ба шакли 07.11.2026).` : "Ҳамаи сатрҳои ин варақ аллакай дар система ҳастанд ✓", p.unfinished.length ? "error" : "ok");
+      return;
+    }
+    const parts = [p.fresh.length ? `${p.fresh.length} сатри нав` : "", p.changed.length ? `${p.changed.length} сатри тағйирёфта` : ""].filter(Boolean).join(" ва ");
+    const total = p.ready.reduce((n, r) => n + calc(r).price, 0);
+    const noDate = p.ready.filter(r => !String(r.date || "").trim()).length;
+    const warn = (noDate ? ` ${noDate} сатр сана надорад — санаи имрӯз гузошта мешавад.` : "") + (p.unfinished.length ? ` ${p.unfinished.length} сатр нопурра аст (сатри ${p.unfinished.slice(0, 3).map(rowNo).join(", ")}) ва сабт намешавад.` : "");
+    if (!(await HN.confirm(`Варақи «${sh.name}» (Код: ${code}): ${parts} ба система сабт шавад? Ҳамагӣ $${xf(total)}.${warn} Пеш аз сабт рақамҳоро санҷед — баъд онҳо ба ҳисобот, қарз ва Telegram мераванд.`, { title: "Сабт дар система", ok: "Сабт" }))) return;
     setStatus("Сабт шуда истодааст…");
     let done = 0;
     try {
-      for (const r of rows) { await upsertRow(sh, r, rate); done++; }
+      for (const r of p.ready) { await upsertRow(sh, r, rate); done++; }
       save(sh); await HN.reload();
-      HN.toast(`Варақи «${sh.name}» ба система сабт шуд: ${done} бор.`, "ok");
+      HN.toast(`Варақи «${sh.name}» ба система сабт шуд: ${done} сатр.`, "ok");
+      setStatus(`Дар система сабт шуд ✓ (${done}) · ` + new Date().toLocaleTimeString("ru-RU").slice(0, 5));
     } catch (err) {
       console.error("Notebook sync", err); save(sh);
       HN.toast(`Сабт пас аз ${done} сатр қатъ шуд: ${HN.dbError(err)}`, "error"); setStatus("Хатои сабт");
     }
+    showPending();
   }
-  /* Automatic: what is typed in Excel goes into the system by itself (reports, debts, Telegram).
-     Only finished rows (date + место + size or kg) are written; unchanged rows are skipped. */
-  let autoTimer = null, autoBusy = false, autoWarned = "";
-  function scheduleAuto() { clearTimeout(autoTimer); autoTimer = setTimeout(autoSync, 2500); }
-  async function autoSync() {
-    if (autoBusy) { scheduleAuto(); return; }
-    if (!S.user || !HN.can("staff")) return;
-    const rate = N(book.usdRate); if (rate <= 0) return;
-    const jobs = [];
-    book.sheets.forEach(sh => {
-      if (!String(sh.code || "").trim()) return;
-      sh.rows.forEach(r => {
-        // rows saved earlier with the button: take them as up to date (no re-pricing of old shipments)
-        if (r.syncTrackingNo && !r.syncSig && S.shipments.some(x => x.tracking_no === r.syncTrackingNo)) { r.syncSig = rowSig(sh, r); save(sh); return; }
-        if (rowReady(r) && r.syncSig !== rowSig(sh, r)) jobs.push([sh, r]);
-      });
-    });
-    if (!jobs.length) return;
-    autoBusy = true; setStatus("Ба система сабт шуда истодааст…");
-    let done = 0;
-    try {
-      for (const [sh, r] of jobs) { await upsertRow(sh, r, rate); done++; save(sh); }
-      await HN.reload();
-      setStatus(`Дар система сабт шуд ✓ (${done}) · ` + new Date().toLocaleTimeString("ru-RU").slice(0, 5));
-      autoWarned = "";
-    } catch (err) {
-      console.warn("Auto sync", err); const m = HN.dbError(err);
-      setStatus("Ба система сабт нашуд: " + m);
-      if (autoWarned !== m) { autoWarned = m; HN.toast("Дафтар ба система сабт нашуд: " + m, "error"); }
-    } finally { autoBusy = false; }
-  }
-  HN.notebookAutoSync = autoSync;
   // Deleting a row that is already in the system also removes that shipment (if it has no payments).
   async function removeSynced(r) {
     const s = r.syncTrackingNo && S.shipments.find(x => x.tracking_no === r.syncTrackingNo);
