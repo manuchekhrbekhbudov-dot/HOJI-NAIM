@@ -66,6 +66,8 @@ revoke all on public.telegram_config from anon, authenticated;
 -- The Edge Function uses the service_role key; this project does not grant it table access by default.
 grant select, insert, update, delete on public.telegram_subscribers, public.telegram_log to service_role;
 grant select on public.shipments, public.payments, public.profiles to service_role;
+-- Bot menu texts (Нархҳо, Суроға, Оператор) are kept in app_settings and written in Админ-панел.
+grant select on public.app_settings to service_role;
 
 -- ====== ИВАЗ КУНЕД: суроғаи функсия ва калиди махфӣ (ҳамон HOOK_SECRET, ки дар Edge Function гузоштед) ======
 insert into public.telegram_config (id, function_url, hook_secret)
