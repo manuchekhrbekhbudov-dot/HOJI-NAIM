@@ -91,6 +91,8 @@
     setStatus(ok ? "Сабт шуд · " + new Date().toLocaleTimeString("ru-RU").slice(0, 5) : "Хато: браузер маълумотро нигоҳ дошта натавонист");
     if (sheet && S.features.sheetData) { dirty.add(sheet.id); clearTimeout(saveTimer); saveTimer = setTimeout(flushRemote, 900); }
   }
+  // Tab order changed → store every sheet's position, not only the edited one.
+  function savePositions() { book.sheets.forEach(x => dirty.add(x.id)); save(); if (S.features.sheetData) { clearTimeout(saveTimer); saveTimer = setTimeout(flushRemote, 900); } }
   async function flushRemote() {
     const ids = [...dirty]; dirty.clear();
     for (const id of ids) {
@@ -105,11 +107,17 @@
     const r = await S.db.from("customer_sheets").select("customer_key,sheet_name,client_code,phone,data,position").like("customer_key", "sheet:%");
     if (r.error) { S.features.sheetData = false; return; }
     S.features.sheetData = true;
-    const remote = (r.data || []).sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+    // Order of tabs = saved position; sheets saved with the same position (older versions) go in natural order Лист1, Лист2 … Лист10.
+    const natural = (a, b) => String(a.sheet_name || "").localeCompare(String(b.sheet_name || ""), "ru", { numeric: true });
+    let remote = (r.data || []).slice().sort((a, b) => (a.position ?? 0) - (b.position ?? 0) || natural(a, b));
+    const pos = remote.map(x => x.position ?? 0), broken = new Set(pos).size !== pos.length;
+    if (broken) remote = remote.slice().sort(natural);
     if (!remote.length) { book.sheets.forEach(sh => dirty.add(sh.id)); flushRemote(); return; } // first upload
     const local = new Map(book.sheets.map(s => [s.id, s]));
     book.sheets = remote.map(x => { const id = x.customer_key.slice(6); return { ...(local.get(id) || {}), id, name: x.sheet_name, code: x.client_code || "", phone: x.phone || "", rows: Array.isArray(x.data?.rows) ? x.data.rows : [] }; });
-    const before = book.sheets.length; topUp(book); book.sheets.slice(before).forEach(x => dirty.add(x.id)); if (dirty.size) flushRemote();
+    const before = book.sheets.length; topUp(book); book.sheets.slice(before).forEach(x => dirty.add(x.id));
+    if (broken) book.sheets.forEach(x => dirty.add(x.id));   // write the repaired order back once
+    if (dirty.size) flushRemote();
     if (!book.sheets.some(s => s.id === book.active)) book.active = book.sheets[0]?.id;
     HN.lsSet(BOOK_KEY, book);
   }
@@ -168,7 +176,7 @@
     const ids = new Set(drop.map(x => x.id));
     book.sheets = book.sheets.filter(x => !ids.has(x.id));
     if (!book.sheets.some(x => x.id === book.active)) book.active = book.sheets[0].id;
-    save(); if (S.features.sheetData) await S.db.from("customer_sheets").delete().in("customer_key", [...ids].map(id => "sheet:" + id));
+    savePositions(); if (S.features.sheetData) await S.db.from("customer_sheets").delete().in("customer_key", [...ids].map(id => "sheet:" + id));
     await render(); HN.toast(`${drop.length} варақи холӣ тоза шуд.`, "ok");
   }
 
@@ -518,7 +526,7 @@
     if (kind === "tabs-left" || kind === "tabs-right") { root().querySelector(".xl-tabs")?.scrollBy({ left: kind === "tabs-left" ? -200 : 200, behavior: "smooth" }); return; }
     if (kind === "add-sheet") {
       const n = blankSheet(0, { name: nextName() });
-      book.sheets.splice(book.sheets.indexOf(sh) + 1, 0, n); book.active = n.id; selected = null; save(n); await render();
+      book.sheets.push(n); book.active = n.id; selected = null; savePositions(); await render();
       setStatus("Варақи «" + n.name + "» илова шуд"); return;
     }
     if (kind === "clean") { await cleanEmpty(); return; }
@@ -529,7 +537,7 @@
       if (book.sheets.length < 2) return;
       const filled = sh.rows.filter(used).length;
       if (!(await HN.confirm(`Варақи «${sh.name}»${filled ? ` (${filled} сатр)` : ""} нест карда шавад? Борҳое, ки аллакай дар система сабт шудаанд, нест намешаванд.`, { title: "Нест кардани варақ", ok: "Нест кардан", danger: true }))) return;
-      book.sheets = book.sheets.filter(s => s.id !== sh.id); book.active = book.sheets[0].id; selected = null; save();
+      book.sheets = book.sheets.filter(s => s.id !== sh.id); book.active = book.sheets[0].id; selected = null; savePositions();
       if (S.features.sheetData) await S.db.from("customer_sheets").delete().eq("customer_key", "sheet:" + sh.id);
       await render(); return;
     }
