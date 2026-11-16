@@ -29,6 +29,7 @@
     S.features.batches = !batches.error; S.batches = batches.error ? [] : batches.data || [];
     S.features.lock = !settings.error;
     S.closedUntil = (settings.data || []).find(x => x.key === "closed_until")?.value || null;
+    S.resetMark = (settings.data || []).find(x => x.key === "data_reset_at")?.value || "";   // set by supabase/reset-data.sql
     S.features.expMethod = !method.error;
     applyFeatures();
   }
