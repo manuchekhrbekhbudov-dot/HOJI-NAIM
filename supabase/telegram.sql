@@ -131,3 +131,5 @@ notify pgrst, 'reload schema';
 -- Turn off later (if ever needed):
 --   drop trigger if exists hn_tg_shipments on public.shipments;
 --   drop trigger if exists hn_tg_payments on public.payments;
+
+-- Messages by status (load recorded in China, batch loading / on the road / arrived): run supabase/telegram-batches.sql after this file.
