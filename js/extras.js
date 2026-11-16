@@ -199,6 +199,7 @@
       ${b.notes ? `<div class="detail-notes"><small>Ёддошт</small><p>${esc(b.notes)}</p></div>` : ""}
       <div class="detail-actions">
         ${staff ? `<button class="btn btn-ghost" data-bact="edit"><svg><use href="#i-edit"/></svg><span>Таҳрир</span></button>` : ""}
+        ${staff && S.features.telegram && ["loading", "in_transit", "arrived"].includes(b.status) ? `<button class="btn btn-ghost" data-bact="tg" title="Ба ҳамаи муштариёни ин мошин дар Telegram хабар меравад"><svg><use href="#i-arrow"/></svg><span>Хабар ба муштариён (Telegram)</span></button>` : ""}
         ${staff && b.status !== "arrived" && b.status !== "closed" ? `<button class="btn btn-primary" data-bact="arrived"><svg><use href="#i-warehouse"/></svg><span>Расид — ба анбор</span></button>` : ""}
         <button class="btn btn-ghost" data-bact="export"><svg><use href="#i-download"/></svg><span>Excel</span></button>
         ${HN.can("delete") ? `<button class="btn btn-danger-soft" data-bact="delete"><svg><use href="#i-trash"/></svg><span>Нест кардан</span></button>` : ""}
@@ -228,6 +229,13 @@
       const r = await S.db.from("shipments").update({ batch_id: b.id }).in("id", ids);
       if (r.error) { HN.toast(HN.dbError(r.error), "error"); return; }
       HN.toast(`${ids.length} бор ба «${b.name}» илова шуд.`, "ok"); await HN.reload(); openBatch(b.id); return;
+    }
+    if (act === "tg") {
+      const label = BSTATUS[b.status] || b.status;
+      if (!(await HN.confirm(`Ба ҳамаи муштариёни «${b.name}» хабари «${label}» фиристода шавад?`, { ok: "Фиристодан" }))) return;
+      const r = await S.db.functions.invoke(HN.config.tgFunction, { body: { action: "batch", batch_id: b.id, status: b.status } });
+      if (r.error || !r.data?.ok) { HN.toast("Хабар нарафт: " + (r.data?.error || r.error?.message || "бот танзим нашудааст"), "error"); return; }
+      HN.toast(r.data.sent ? `Хабар ба ${r.data.sent} муштарӣ рафт.` : "Ҳеҷ кадом муштарии ин мошин ба бот обуна нест.", r.data.sent ? "ok" : "info"); return;
     }
     if (act === "arrived") {
       const x = bStats(b), toStock = x.ships.filter(s => HN.whStatus(s) !== "delivered");
@@ -333,7 +341,7 @@
     }
     return `https://t.me/${bot}?start=${code}_${pin}`;
   };
-  const TG_EVENT = { arrived: "Бор расид", paid: "Пардохт", delivered: "Супорида шуд", custom: "Паёми дастӣ" };
+  const TG_EVENT = { registered: "Бор қабул шуд", arrived: "Бор расид", paid: "Пардохт", delivered: "Супорида шуд", custom: "Паёми дастӣ", batch_loading: "Мошин: бор шуда истодааст", batch_in_transit: "Мошин: дар роҳ", batch_arrived: "Мошин: расид" };
   const randomSecret = () => Array.from(crypto.getRandomValues(new Uint8Array(24)), b => "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"[b % 56]).join("");
   function telegramCard() {
     const bot = HN.lsGet("hn-tg-bot", "");

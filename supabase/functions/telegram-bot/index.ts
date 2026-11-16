@@ -1,7 +1,7 @@
 // HOJI-NAIM CARGO — Telegram bot (Supabase Edge Function «telegram-bot»).
 // One function, three kinds of requests:
 //   1. Telegram webhook (header X-Telegram-Bot-Api-Secret-Token): /start, «📱 send my phone», menu (борҳо, қарз, нархҳо, суроға, оператор).
-//   2. Database events from pg_net triggers (header x-hook-secret): arrived / paid / delivered.
+//   2. Database events from pg_net triggers (header x-hook-secret): registered / arrived / paid / delivered, and batch status (loading / in_transit / arrived).
 //   3. Customer page telegram.html (public): code + phone → personal bot link.
 //   4. The website (Authorization: Bearer <staff session>): manual send, bot info.
 // Secrets (Supabase → Edge Functions → Secrets): TELEGRAM_BOT_TOKEN, TELEGRAM_WEBHOOK_SECRET, HOOK_SECRET.
@@ -83,6 +83,11 @@ export function makeHandler(env, fetchFn = fetch) {
 
   function message(event, s, debt, paidTotal, payment) {
     const usd = s.currency === "USD" ? ` ($${money(s.total_original)})` : "";
+    if (event === "registered") return [
+      `📝 Ассалому алейкум${s.client_name ? ", " + s.client_name : ""}!`, "Бори шумо қабул ва сабт шуд.", "",
+      note(s, "Мол") ? `Мол: ${note(s, "Мол")}` : null, `Сана: ${fmtDate(s.shipment_date)}`, `Ҷой: ${places(s)} · Вазн: ${qty(s.weight_kg, 1)} кг · Ҳаҷм: ${qty(s.volume_m3, 3)} м³`,
+      `Маблағ: ${money(s.total_tjs)} сомонӣ${usd}`, "", "Вақте ки бор ба мошин бор мешавад, дар роҳ аст ва ба Душанбе мерасад, хабар медиҳем.", "", "HOJI-NAIM CARGO",
+    ].filter(x => x !== null).join("\n");
     if (event === "arrived") return [
       `📦 Ассалому алейкум${s.client_name ? ", " + s.client_name : ""}!`, "Бори шумо дар Душанбе расид.", "",
       `Рақам: ${s.tracking_no}`, `Ҷой: ${places(s)} · Вазн: ${qty(s.weight_kg, 1)} кг · Ҳаҷм: ${qty(s.volume_m3, 3)} м³`,
@@ -210,6 +215,53 @@ export function makeHandler(env, fetchFn = fetch) {
     return say(sub ? "Менюи поёнро истифода баред 👇" : ASK, { reply_markup: sub ? KB_MENU : KB_NEW });
   }
 
+  /* ---------- Batch (мошин) status → one message per customer with all their loads in it ---------- */
+  const BATCH_TEXT = {
+    loading: { head: "📦 Бори шумо ба мошин бор шуда истодааст.", tail: "Вақте ки мошин ба роҳ мебарояд, хабар медиҳем." },
+    in_transit: { head: "🚚 Бори шумо дар роҳ аст.", tail: "Вақте ки ба Душанбе мерасад, хабар медиҳем." },
+    arrived: { head: "✅ Бори шумо дар Душанбе расид!", tail: "" },
+  };
+  async function notifyBatch(batchId, status) {
+    const t = BATCH_TEXT[status];
+    if (!t || !batchId) return { sent: 0, reason: "no message for this status" };
+    const batch = (await db(`batches?id=eq.${encodeURIComponent(batchId)}&select=id,name,vehicle,sent_date,arrived_date`))?.[0];
+    if (!batch) return { sent: 0, reason: "batch not found" };
+    const ships = ((await db(`shipments?batch_id=eq.${encodeURIComponent(batchId)}&select=${SHIP_COLS}&order=shipment_date.asc&limit=2000`)) || []).filter(s => s.warehouse_status !== "delivered");
+    if (!ships.length) return { sent: 0, reason: "no loads" };
+    const subs = (await db("telegram_subscribers?active=is.true&select=chat_id,phone_key,code_key")) || [];
+    const byChat = new Map();
+    for (const s of ships) {
+      const code = codeOf(s), key = phoneKey(s.client_phone);
+      subs.filter(x => (x.code_key && x.code_key === code) || (key.length >= 7 && x.phone_key === key))
+        .forEach(x => { if (!byChat.has(x.chat_id)) byChat.set(x.chat_id, []); byChat.get(x.chat_id).push(s); });
+    }
+    if (!byChat.size) return { sent: 0, subscribed: false };
+    const paid = status === "arrived" ? await paidOf(ships.map(s => s.id)) : {};
+    const address = status === "arrived" ? await setting("tg_address") : "";
+    const car = batch.name + (batch.vehicle ? ` (${batch.vehicle})` : "");
+    let sent = 0;
+    for (const [chat, list] of byChat) {
+      const sum = k => list.reduce((n, s) => n + Number(s[k] || 0), 0);
+      const debt = list.reduce((n, s) => n + Math.max(0, Number(s.total_tjs || 0) - (paid[s.id] || 0)), 0);
+      const lines = list.slice(0, 20).map(s => `• ${fmtDate(s.shipment_date)} · ${note(s, "Мол") || s.tracking_no} — ${places(s)} ҷой · ${qty(s.weight_kg, 1)} кг · ${qty(s.volume_m3, 3)} м³`);
+      const text = [
+        `Ассалому алейкум${list[0].client_name ? ", " + list[0].client_name : ""}!`, t.head, "",
+        `Мошин: ${car}`, status === "in_transit" && batch.sent_date ? `Фиристода шуд: ${fmtDate(batch.sent_date)}` : null, status === "arrived" && batch.arrived_date ? `Расид: ${fmtDate(batch.arrived_date)}` : null, "",
+        ...lines, list.length > 20 ? `… ва боз ${list.length - 20} бор` : null, "",
+        `Ҳамагӣ: ${list.length} бор · ${list.reduce((n, s) => n + places(s), 0)} ҷой · ${qty(sum("weight_kg"), 1)} кг · ${qty(sum("volume_m3"), 3)} м³`,
+        status === "arrived" ? (debt > 0.005 ? `Барои пардохт: ${money(debt)} сомонӣ` : "Ҳамааш пардохт шудааст ✅") : null,
+        status === "arrived" && address ? `\n📍 ${address}` : null,
+        t.tail || null, "", "HOJI-NAIM CARGO",
+      ].filter(x => x !== null).join("\n").replace(/\n{3,}/g, "\n\n");
+      try { await tg("sendMessage", { chat_id: chat, text }); sent++; await log(chat, list[0].id, "batch_" + status, text, true); }
+      catch (e) {
+        await log(chat, list[0].id, "batch_" + status, text, false, e.message);
+        if (/blocked|deactivated|chat not found/i.test(e.message)) await db(`telegram_subscribers?chat_id=eq.${chat}`, { method: "PATCH", body: JSON.stringify({ active: false }) }).catch(() => {});
+      }
+    }
+    return { sent, subscribed: true };
+  }
+
   async function staffUser(req) {
     const auth = req.headers.get("authorization") || "";
     if (!auth.startsWith("Bearer ")) return null;
@@ -245,6 +297,7 @@ export function makeHandler(env, fetchFn = fetch) {
           const me = await tg("getMe", {}), info = await tg("getWebhookInfo", {});
           return json({ ok: true, username: me.username, webhook: info.url, pending: info.pending_update_count });
         }
+        if (body.event === "batch") return json({ ok: true, ...(await notifyBatch(body.batch_id, body.status)) });
         return json({ ok: true, ...(await notify(body.event, body.shipment_id, body.payment_id)) });
       }
       // 3. Customer page (public): code + phone → personal bot link. The phone must match a shipment of that code.
@@ -271,6 +324,7 @@ export function makeHandler(env, fetchFn = fetch) {
       const user = await staffUser(req);
       if (!user) return json({ ok: false, error: "Иҷозат нест" }, 401);
       if (body.action === "info") { const me = await tg("getMe", {}); return json({ ok: true, username: me.username }); }
+      if (body.action === "batch") return json({ ok: true, ...(await notifyBatch(body.batch_id, body.status)) });
       if (body.action === "send") {
         const text = String(body.text || "").trim().slice(0, 3500);
         return json({ ok: true, ...(await notify(body.event || "custom", body.shipment_id, null, text || null)) });
