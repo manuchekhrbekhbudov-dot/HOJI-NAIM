@@ -267,6 +267,13 @@
   async function render() {
     const el = root(); if (!el || !S.user) return;
     if (!book) book = loadBook();
+    // After «Аз сифр» (supabase/reset-data.sql) every browser forgets its old notebook.
+    if (S.resetMark && book.resetMark !== S.resetMark) {
+      book = topUp({ sheets: [], active: null, usdRate: book.usdRate || D.usdRate, cnyRate: book.cnyRate || D.cnyRate, resetMark: S.resetMark });
+      book.active = book.sheets[0].id; selected = null; showTotal = false;
+      try { localStorage.removeItem(OLD_DRAFT_KEY); localStorage.removeItem(OLD_META_KEY); } catch {}
+      HN.lsSet(BOOK_KEY, book);
+    }
     if (!ready) { ready = true; await loadRemote(); scheduleAuto(); }
     const sh = activeSheet(); book.active = sh.id;
     const ro = dbRows(sh);
