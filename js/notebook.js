@@ -132,6 +132,99 @@
       });
   }
 
+  /* ---------- One customer = one sheet ---------- */
+  const codeKey = v => String(v || "").trim().toUpperCase().replace(/[^0-9A-ZА-ЯЁӢӮҚҒҲҶ]/g, "");
+  const phoneKey = v => String(v || "").replace(/\D/g, "").slice(-9);
+  const isEmptySheet = sh => !String(sh.code || "").trim() && !String(sh.phone || "").trim() && !sh.rows.some(used) && !N(sh.cargoUsd) && !N(sh.cargoYuan) && !N(sh.cargoPlaces);
+  async function mergeInto(from, to) {
+    const rows = from.rows.filter(used);
+    if (rows.length && !(await HN.confirm(`Коди «${from.code}» аллакай дар варақи «${to.name}» ҳаст. ${rows.length} сатри «${from.name}» ба «${to.name}» гузаронида шаванд?`, { title: "Ҳамон муштарӣ", ok: "Гузаронидан" }))) {
+      HN.toast(`Ин варақ ҳамон коди «${to.name}»-ро дорад — дар Итого ду бор ҳисоб мешавад.`, "error"); render(); return;
+    }
+    to.rows = [...to.rows.filter(used), ...rows];
+    if (!String(to.phone || "").trim() && String(from.phone || "").trim()) to.phone = from.phone;
+    Object.assign(from, { code: "", phone: "", rows: [], cargoUsd: "", cargoYuan: "", cargoPlaces: "" });
+    save(from); save(to); book.active = to.id; showTotal = false; selected = null; await render();
+    HN.toast(rows.length ? `${rows.length} сатр ба варақи «${to.name}» гузаронида шуд.` : `Муштарии «${to.code}» дар варақи «${to.name}» аст — ба он гузаштем.`, "ok");
+  }
+  // Ribbon «Муштарӣ»: code or phone → that customer's sheet; a new code takes the first empty sheet.
+  async function openCustomer(q) {
+    q = String(q || "").trim(); if (!q) return;
+    const digits = phoneKey(q), byPhone = /^[+\d\s()-]+$/.test(q) && digits.length >= 7;
+    let sh = book.sheets.find(x => codeKey(x.code) === codeKey(q)) || (byPhone && book.sheets.find(x => phoneKey(x.phone) === digits));
+    if (!sh) {
+      sh = book.sheets.find(isEmptySheet);
+      if (!sh) { sh = blankSheet(0, { name: nextName() }); book.sheets.push(sh); }
+      if (byPhone) sh.phone = q; else sh.code = q;
+      save(sh); HN.toast(`Муштарии нав: варақи «${sh.name}».`, "ok");
+    }
+    book.active = sh.id; showTotal = false; selected = null; save(); await render();
+  }
+  async function cleanEmpty() {
+    const empty = book.sheets.filter(isEmptySheet), keep = Math.max(0, READY_SHEETS - (book.sheets.length - empty.length));
+    const drop = empty.slice(keep);
+    if (!drop.length) { HN.toast("Варақи холии зиёдатӣ нест."); return; }
+    if (!(await HN.confirm(`${drop.length} варақи холӣ (бе код ва бе сатр) нест карда шаванд? Варақҳои пуршуда намерасанд.`, { title: "Тоза кардани варақҳо", ok: "Тоза кардан" }))) return;
+    const ids = new Set(drop.map(x => x.id));
+    book.sheets = book.sheets.filter(x => !ids.has(x.id));
+    if (!book.sheets.some(x => x.id === book.active)) book.active = book.sheets[0].id;
+    save(); if (S.features.sheetData) await S.db.from("customer_sheets").delete().in("customer_key", [...ids].map(id => "sheet:" + id));
+    await render(); HN.toast(`${drop.length} варақи холӣ тоза шуд.`, "ok");
+  }
+
+  /* ---------- «Ҳамаи борҳои муштарӣ»: one customer by code or phone, from Excel sheets and the system ---------- */
+  function customerHistory(q) {
+    const ck = codeKey(q), pk = phoneKey(q), byPhone = /^[+\d\s()-]+$/.test(String(q).trim()) && pk.length >= 7;
+    const hitCode = c => !!ck && codeKey(c) === ck, hitPhone = p => byPhone && phoneKey(p) === pk;
+    const sheets = book.sheets.filter(sh => hitCode(sh.code) || hitPhone(sh.phone));
+    const sheetOf = new Map();
+    book.sheets.forEach(sh => sh.rows.forEach(r => { if (r.syncTrackingNo && !sheetOf.has(r.syncTrackingNo)) sheetOf.set(r.syncTrackingNo, sh); }));
+    const rows = [];
+    S.shipments.filter(s => hitCode(HN.customerCode(s)) || hitPhone(s.client_phone)).forEach(s => {
+      const sh = sheetOf.get(s.tracking_no), usd = s.currency === "USD" ? HN.num(s.total_original) : HN.total(s) / (book.usdRate || D.usdRate);
+      rows.push({ date: HN.shipmentDate(s), src: sh ? "Excel · " + sh.name : "Система", ship: s, code: HN.customerCode(s), phone: s.client_phone || "", item: HN.noteValue(s, "Мол") || (String(s.tracking_no).startsWith("SHEET-") ? "" : s.tracking_no), places: HN.places(s), cube: HN.num(s.volume_m3), kg: HN.num(s.weight_kg), usd, tjs: HN.total(s), paid: HN.paid(s), debt: HN.debt(s) });
+    });
+    const inSystem = new Set(S.shipments.map(s => s.tracking_no));
+    sheets.forEach(sh => sh.rows.filter(used).forEach(r => {
+      if (r.syncTrackingNo && inSystem.has(r.syncTrackingNo)) return;
+      const x = calc(r);
+      rows.push({ date: toISO(r.date) || "", src: "Excel · " + sh.name + " (ҳанӯз дар система нест)", code: sh.code || "", phone: sh.phone || "", item: r.item || "", places: x.places, cube: x.cube, kg: x.kg, usd: x.price, tjs: x.price * book.usdRate, paid: 0, debt: null, pending: true });
+    }));
+    rows.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+    return { rows, sheets };
+  }
+  function renderHistory(q) {
+    const out = HN.$("custOut"); if (!out) return;
+    q = String(q || "").trim();
+    if (!q) { out.innerHTML = '<p class="muted">Код ё рақами телефонро нависед. Ҳамаи борҳо аз ҳамаи варақҳо ва аз система якҷо нишон дода мешаванд.</p>'; return; }
+    const { rows, sheets } = customerHistory(q);
+    if (!rows.length) { out.innerHTML = `<p class="muted">Бо «${esc(q)}» бор ёфт нашуд.</p>`; return; }
+    const sum = k => rows.reduce((n, r) => n + (Number(r[k]) || 0), 0), days = [...new Set(rows.map(r => r.date).filter(Boolean))];
+    const codes = [...new Set(rows.map(r => r.code).filter(Boolean))], phones = [...new Set(rows.map(r => r.phone).filter(Boolean))];
+    out.innerHTML = `
+      <div class="cust-sum">
+        <div><span>Борҳо</span><b>${rows.length}</b></div><div><span>Место</span><b>${xf(sum("places"), 0)}</b></div>
+        <div><span>Куб</span><b>${xf(sum("cube"), 3)}</b></div><div><span>Кг</span><b>${xf(sum("kg"), 1)}</b></div>
+        <div><span>Ҳамагӣ</span><b>$${xf(sum("usd"))}</b></div><div><span>Пардохт (TJS)</span><b>${HN.money(sum("paid"))}</b></div>
+        <div><span>Қарз (TJS)</span><b class="${sum("debt") > 0.005 ? "neg" : ""}">${HN.money(sum("debt"))}</b></div>
+      </div>
+      <p class="cust-days"><b>Кодҳо:</b> ${esc(codes.join(", ") || "—")} · <b>Телефон:</b> ${esc(phones.join(", ") || "—")} · <b>Варақҳо:</b> ${esc(sheets.map(x => x.name).join(", ") || "—")}<br><b>Рӯзҳои бор (${days.length}):</b> ${days.map(HN.fmtDate).join(", ") || "—"}</p>
+      <div class="table-wrap"><table class="tbl"><thead><tr><th>Сана</th><th>Аз куҷо</th><th>Код</th><th>Мол</th><th class="num">Место</th><th class="num">Куб</th><th class="num">Кг</th><th class="num">$</th><th class="num">TJS</th><th class="num">Пардохт</th><th class="num">Қарз</th></tr></thead>
+      <tbody>${rows.map(r => `<tr${r.ship ? ` data-ship="${esc(r.ship.id)}" class="clickable" title="Барои кушодани бор пахш кунед"` : ' class="muted"'}><td class="nowrap">${r.date ? HN.fmtDate(r.date) : "—"}</td><td>${esc(r.src)}</td><td>${esc(r.code)}</td><td>${esc(r.item)}</td><td class="num">${xf(r.places, 0)}</td><td class="num">${xf(r.cube, 3)}</td><td class="num">${xf(r.kg, 1)}</td><td class="num">${xf(r.usd)}</td><td class="num">${HN.money(r.tjs)}</td><td class="num">${r.pending ? "—" : HN.money(r.paid)}</td><td class="num">${r.pending ? "—" : HN.money(r.debt)}</td></tr>`).join("")}</tbody></table></div>
+      <div class="btn-row"><button class="btn btn-ghost" type="button" id="custXlsx">Excel (.xlsx)</button></div>`;
+    HN.$("custXlsx").onclick = () => HN.exportXlsx(`HOJI-NAIM-Муштарӣ-${q.replace(/[\\/?*[\]:\s]/g, "")}-${HN.today()}.xlsx`, [{ name: "Борҳо", title: `HOJI-NAIM CARGO — ҳамаи борҳои муштарӣ: ${q}`, subtitle: `Кодҳо: ${codes.join(", ") || "—"} · Тел: ${phones.join(", ") || "—"} · ${HN.fmtDate(HN.today())}`, columns: [
+      { header: "Сана", value: r => r.date, type: "date", width: 12 }, { header: "Аз куҷо", value: r => r.src, width: 28 }, { header: "Код", value: r => r.code, width: 12 }, { header: "Мол", value: r => r.item, width: 20 },
+      { header: "Место", value: r => r.places, type: "qty", width: 9, total: true }, { header: "Куб", value: r => Math.round(r.cube * 1000) / 1000, type: "qty", width: 10, total: true }, { header: "Кг", value: r => r.kg, type: "qty", width: 10, total: true },
+      { header: "$", value: r => HN.round2(r.usd), type: "money", width: 12, total: true }, { header: "TJS", value: r => HN.round2(r.tjs), type: "money", width: 13, total: true }, { header: "Пардохт", value: r => r.paid, type: "money", width: 13, total: true }, { header: "Қарз", value: r => r.debt ?? "", type: "money", width: 13, total: true, red: true },
+    ], rows }]);
+  }
+  HN.openCustomerHistory = q => {
+    if (!book) book = loadBook();
+    HN.$("custQ").value = q || ""; renderHistory(q); HN.$("custDialog").showModal(); if (!q) HN.$("custQ").focus();
+  };
+  document.addEventListener("submit", e => { if (e.target.id !== "custForm") return; e.preventDefault(); renderHistory(HN.$("custQ").value); });
+  document.addEventListener("click", e => { const tr = e.target.closest("#custOut tr[data-ship]"); if (tr) { HN.$("custDialog").close(); HN.openDetail(tr.dataset.ship); } });
+
   /* ---------- Rendering ---------- */
   const root = () => HN.$("notebook");
   const activeSheet = () => book.sheets.find(s => s.id === book.active) || book.sheets[0];
@@ -174,7 +267,7 @@
   async function render() {
     const el = root(); if (!el || !S.user) return;
     if (!book) book = loadBook();
-    if (!ready) { ready = true; await loadRemote(); }
+    if (!ready) { ready = true; await loadRemote(); scheduleAuto(); }
     const sh = activeSheet(); book.active = sh.id;
     const ro = dbRows(sh);
     el.innerHTML = `
@@ -191,10 +284,15 @@
             <button class="xl-btn xl-btn-lg" data-xl="sync" ${showTotal ? "disabled" : ""}><svg><use href="#i-refresh"/></svg><span>Сабт дар система</span></button>
             <div class="xl-stack"><button class="xl-btn" data-xl="del-row" ${showTotal ? "disabled" : ""}><svg><use href="#i-trash"/></svg><span>Нест кардани сатр</span></button></div>
           </div><span class="xl-group-label">Сатрҳо</span></div>
+          <div class="xl-group xl-find"><div class="xl-group-btns">
+            <form class="xl-findform" id="xlFind" autocomplete="off"><input id="xlFindIn" placeholder="Код ё телефон" aria-label="Муштарӣ: код ё телефон" maxlength="30"><button class="xl-btn" type="submit"><svg><use href="#i-search"/></svg><span>Кушодан</span></button></form>
+            <button class="xl-btn" data-xl="customer"><svg><use href="#i-box"/></svg><span>Ҳамаи борҳои муштарӣ</span></button>
+          </div><span class="xl-group-label">Муштарӣ</span></div>
           <div class="xl-group"><div class="xl-group-btns">
             <button class="xl-btn xl-btn-lg" data-xl="add-sheet"><svg><use href="#i-sheet"/></svg><span>Варақи нав</span></button>
             <div class="xl-stack"><button class="xl-btn" data-xl="rename" ${showTotal ? "disabled" : ""}><svg><use href="#i-edit"/></svg><span>Номи варақ</span></button>
-            <button class="xl-btn" data-xl="remove-sheet" ${book.sheets.length < 2 || showTotal ? "disabled" : ""}><svg><use href="#i-trash"/></svg><span>Нест кардани варақ</span></button></div>
+            <button class="xl-btn" data-xl="remove-sheet" ${book.sheets.length < 2 || showTotal ? "disabled" : ""}><svg><use href="#i-trash"/></svg><span>Нест кардани варақ</span></button>
+            <button class="xl-btn" data-xl="clean"><svg><use href="#i-trash"/></svg><span>Тоза: варақҳои холӣ</span></button></div>
           </div><span class="xl-group-label">Варақҳо</span></div>
           <div class="xl-group"><div class="xl-group-btns">
             <button class="xl-btn xl-btn-lg" data-xl="export-all"><svg><use href="#i-download"/></svg><span>Ҳамаи дафтар (.xlsx)</span></button>
@@ -279,7 +377,7 @@
       if (hasF) n++;
       tr.querySelectorAll("[data-k]").forEach(cell => {
         const k = cell.dataset.k;
-        cell.textContent = k === "no" ? (hasF ? n : "") : k === "density" ? (x.density === null ? "" : xf(x.density)) : xf(x[k]);
+        cell.textContent = k === "no" ? String(Number(tr.dataset.i) + 1) : k === "density" ? (x.density === null ? "" : xf(x.density)) : xf(x[k]);
       });
     });
     g.querySelectorAll("[data-t]").forEach(cell => {
@@ -323,6 +421,7 @@
     const cell = e.target.closest(".xl-c[data-r]");
     if (cell) selectCell(Number(cell.dataset.r), Number(cell.dataset.c));
   });
+  document.addEventListener("submit", e => { if (e.target.id !== "xlFind") return; e.preventDefault(); openCustomer(HN.$("xlFindIn").value); });
   document.addEventListener("keydown", e => { if (e.shiftKey && e.key === "F11" && HN.$("notebook")?.offsetParent) { e.preventDefault(); action("add-sheet"); } });
   document.addEventListener("click", e => { const m = HN.$("xlSheetMenu"); if (m && !m.classList.contains("hidden") && !e.target.closest("#xlSheetMenu, [data-xl=all-sheets]")) m.classList.add("hidden"); });
   document.addEventListener("dblclick", async e => {
@@ -342,22 +441,21 @@
       const k = input.dataset.meta;
       if (k === "usdRate" || k === "cnyRate") book[k] = N(input.value) || (k === "usdRate" ? D.usdRate : D.cnyRate);
       else sh[k] = input.value;
-      save(sh); refresh(); return;
+      save(sh); refresh(); if (k === "code" || k === "phone") scheduleAuto(); return;
     }
     const i = Number(input.dataset.row);
     while (sh.rows.length <= i) sh.rows.push({});
     sh.rows[i][input.dataset.key] = input.value;
     HN.$("xlFx").value = input.value;
-    save(sh); refresh();
+    save(sh); refresh(); scheduleAuto();
   });
   document.addEventListener("change", e => {
     const d = e.target.closest('#notebook input[data-key="date"]');
     if (d) { const iso = toISO(d.value); const sh = activeSheet(), i = Number(d.dataset.row); if (sh.rows[i]) { sh.rows[i].date = iso || d.value; save(sh); } if (iso) d.value = HN.fmtDate(iso); else if (d.value.trim()) HN.toast("Санаро ба шакли 07.11.2026 нависед.", "error"); return; }
     if (!e.target.closest('#notebook input[data-meta="code"]')) return;
-    // Same code on another sheet → warn (Итого would count that customer twice).
-    const ck = v => String(v || "").trim().toUpperCase().replace(/[^0-9A-ZА-ЯЁӢӮҚҒҲҶ]/g, "");
-    const cur = activeSheet(), dup = ck(cur.code) && book.sheets.find(x => x.id !== cur.id && ck(x.code) === ck(cur.code));
-    if (dup) HN.toast(`Коди «${cur.code}» аллакай дар «${dup.name}» ҳаст. Агар ҳамон муштарӣ бошад, борҳоро дар як варақ нависед.`, "error");
+    // Same code on another sheet → this is the same customer: go there (and move rows) instead of a second sheet.
+    const cur = activeSheet(), dup = codeKey(cur.code) && book.sheets.find(x => x.id !== cur.id && codeKey(x.code) === codeKey(cur.code));
+    if (dup) { mergeInto(cur, dup); return; }
     // A new code may match shipments already in the database → redraw the sheet.
     const pos = selected; render().then(() => { if (pos) selectCell(pos.r, pos.c, true); });
   });
@@ -416,6 +514,8 @@
       book.sheets.splice(book.sheets.indexOf(sh) + 1, 0, n); book.active = n.id; selected = null; save(n); await render();
       setStatus("Варақи «" + n.name + "» илова шуд"); return;
     }
+    if (kind === "clean") { await cleanEmpty(); return; }
+    if (kind === "customer") { HN.openCustomerHistory(showTotal ? "" : (sh.code || sh.phone || "")); return; }
     if (kind === "all-sheets") { HN.$("xlSheetMenu")?.classList.toggle("hidden"); return; }
     if (kind === "rename") { const t = root().querySelector(".xl-tab.on"); if (t) startRename(t); return; }
     if (kind === "remove-sheet") {
@@ -432,7 +532,8 @@
       if (tr.classList.contains("xl-datarow")) { HN.toast("Ин сатр аз база аст. Борро дар қисми «Борҳо» таҳрир ё нест кунед."); return; }
       const li = Number(tr.dataset.i) - dbRows(sh).length, r = sh.rows[li];
       if (!r) return;
-      if (used(r) && !(await HN.confirm(`Сатри ${FIRST + Number(tr.dataset.i)} нест карда шавад?${r.syncTrackingNo ? " Бори аллакай дар система сабтшуда нест намешавад." : ""}`, { ok: "Нест кардан", danger: true }))) return;
+      if (used(r) && !(await HN.confirm(`Сатри ${FIRST + Number(tr.dataset.i)} нест карда шавад?${r.syncTrackingNo ? " Он аз система (борҳо ва ҳисобот) ҳам нест мешавад." : ""}`, { ok: "Нест кардан", danger: true }))) return;
+      const warn = await removeSynced(r); if (warn) HN.toast(warn, "info");
       sh.rows.splice(li, 1); save(sh); await render(); return;
     }
     if (showTotal && ["sync", "del-row", "rename", "remove-sheet"].includes(kind)) { HN.toast("Аввал варақи муштариро (Лист…) интихоб кунед."); return; }
@@ -443,9 +544,28 @@
   }
 
   /* ---------- Save rows into the system as shipments ---------- */
+  // A row is ready for the system when it has a date, a price > 0 and the sheet has a code.
+  const rowReady = r => used(r) && !!toISO(r.date) && calc(r).price > 0;
+  const rowSig = (sh, r) => JSON.stringify([sh.code, sh.phone, ...["date", "shop", "city", "item", "height", "width", "length", "places", "kgPerPlace", "cubePrice", "kgPrice"].map(k => String(r[k] ?? ""))]);
+  async function upsertRow(sh, r, rate) {
+    const x = calc(r), code = String(sh.code || "").trim(), phone = String(sh.phone || "").trim();
+    if (HN.isLocked?.(toISO(r.date) || HN.today())) throw new Error(HN.lockMsg());
+    if (!r.syncTrackingNo) { const d = (toISO(r.date) || HN.today()).replace(/-/g, ""); r.syncTrackingNo = "SHEET-" + d + "-" + (code.replace(/[^a-zA-Z0-9]/g, "").slice(0, 12) || "CLIENT") + "-" + uid().toUpperCase(); }
+    const existing = S.shipments.find(s => s.tracking_no === r.syncTrackingNo);
+    const parts = { "Коди муштарӣ": code, "Телефон": phone, "Ҷойҳо": x.places, "Кг барои ҷой": N(r.kgPerPlace), "Нархи куб": x.cubePrice, "Сумма куб": x.cubeAmount.toFixed(2), "Нархи кг": x.kgPrice, "Сумма кг": x.kgAmount.toFixed(2), "Шаҳр": r.city || "", "Мол": r.item || "", "Андоза": N(r.height) && N(r.width) && N(r.length) ? `${r.height} × ${r.width} × ${r.length} м` : "", "Мағоза": r.shop || "" };
+    const notes = HN.buildNotes(existing ? existing.notes : "Дафтари Excel", parts, existing ? undefined : "");
+    if (existing && N(existing.fx_rate) > 0) rate = N(existing.fx_rate);   // a saved shipment keeps its own rate
+    const tjs = HN.round2(x.price * rate);
+    if (existing && tjs < HN.paid(existing) - 0.005) throw new Error(`бори ${r.syncTrackingNo}: ҳисоби нав аз пардохтшуда кам аст`);
+    const payload = { client_phone: phone, tracking_no: r.syncTrackingNo, shipment_date: toISO(r.date) || HN.today(), billing_type: x.billingType, weight_kg: x.kg, volume_m3: Math.round(x.cube * 10000) / 10000, currency: "USD", unit_price: x.billingType === "kg" ? x.kgPrice : x.cubePrice, fx_rate: rate, total_original: HN.round2(x.price), total_tjs: tjs, notes, client_name: existing?.client_name && existing.client_name !== existing.tracking_no ? existing.client_name : code };
+    if (!existing) payload.created_by = S.user.id;
+    const { error } = await S.db.from("shipments").upsert(payload, { onConflict: "tracking_no" });
+    if (error) throw error;
+    r.syncSig = rowSig(sh, r);
+  }
   async function sync(sh) {
     if (!HN.can("staff")) { HN.toast("Барои сабт дар система иҷозати корманд лозим аст."); return; }
-    const code = String(sh.code || "").trim(), phone = String(sh.phone || "").trim();
+    const code = String(sh.code || "").trim();
     if (!code) { HN.toast("Дар ҳуҷайраи «Код» (B1) коди муштариро нависед.", "error"); root().querySelector('input[data-meta="code"]')?.focus(); return; }
     const rows = sh.rows.filter(used);
     if (!rows.length) { HN.toast("Дар варақ ҳоло сатри пуршуда нест."); return; }
@@ -453,31 +573,58 @@
     if (bad) { HN.toast(`Сатри ${FIRST + dbRows(sh).length + sh.rows.indexOf(bad)}: место, андоза ё кг пур нашудааст — нарх 0 аст.`, "error"); return; }
     const rate = N(book.usdRate);
     if (rate <= 0) { HN.toast("Курси долларро (I1) дуруст нависед.", "error"); return; }
-    if (!(await HN.confirm(`${rows.length} сатри варақи «${sh.name}» (Код: ${code}) ба система сабт шавад? Сатрҳои аллакай сабтшуда нав карда мешаванд, такрор намешаванд.`, { ok: "Сабт дар система" }))) return;
     setStatus("Сабт шуда истодааст…");
     let done = 0;
     try {
-      for (const r of rows) {
-        const x = calc(r);
-        if (HN.isLocked?.(toISO(r.date) || HN.today())) throw new Error(HN.lockMsg());
-        if (!r.syncTrackingNo) { const d = (toISO(r.date) || HN.today()).replace(/-/g, ""); r.syncTrackingNo = "SHEET-" + d + "-" + (code.replace(/[^a-zA-Z0-9]/g, "").slice(0, 12) || "CLIENT") + "-" + uid().toUpperCase(); save(sh); }
-        const existing = S.shipments.find(s => s.tracking_no === r.syncTrackingNo);
-        const parts = { "Коди муштарӣ": code, "Телефон": phone, "Ҷойҳо": x.places, "Кг барои ҷой": N(r.kgPerPlace), "Нархи куб": x.cubePrice, "Сумма куб": x.cubeAmount.toFixed(2), "Нархи кг": x.kgPrice, "Сумма кг": x.kgAmount.toFixed(2), "Шаҳр": r.city || "", "Мол": r.item || "", "Андоза": N(r.height) && N(r.width) && N(r.length) ? `${r.height} × ${r.width} × ${r.length} м` : "", "Мағоза": r.shop || "" };
-        const notes = HN.buildNotes(existing ? existing.notes : "Дафтари Excel", parts, existing ? undefined : "");
-        const tjs = HN.round2(x.price * rate);
-        if (existing && tjs < HN.paid(existing) - 0.005) throw new Error(`бори ${r.syncTrackingNo}: ҳисоби нав аз пардохтшуда кам аст`);
-        const payload = { client_phone: phone, tracking_no: r.syncTrackingNo, shipment_date: toISO(r.date) || HN.today(), billing_type: x.billingType, weight_kg: x.kg, volume_m3: Math.round(x.cube * 10000) / 10000, currency: "USD", unit_price: x.billingType === "kg" ? x.kgPrice : x.cubePrice, fx_rate: rate, total_original: HN.round2(x.price), total_tjs: tjs, notes };
-        if (!existing) Object.assign(payload, { client_name: code, created_by: S.user.id });
-        const { error } = await S.db.from("shipments").upsert(payload, { onConflict: "tracking_no" });
-        if (error) throw error;
-        done++;
-      }
+      for (const r of rows) { await upsertRow(sh, r, rate); done++; }
       save(sh); await HN.reload();
       HN.toast(`Варақи «${sh.name}» ба система сабт шуд: ${done} бор.`, "ok");
     } catch (err) {
       console.error("Notebook sync", err); save(sh);
       HN.toast(`Сабт пас аз ${done} сатр қатъ шуд: ${HN.dbError(err)}`, "error"); setStatus("Хатои сабт");
     }
+  }
+  /* Automatic: what is typed in Excel goes into the system by itself (reports, debts, Telegram).
+     Only finished rows (date + место + size or kg) are written; unchanged rows are skipped. */
+  let autoTimer = null, autoBusy = false, autoWarned = "";
+  function scheduleAuto() { clearTimeout(autoTimer); autoTimer = setTimeout(autoSync, 2500); }
+  async function autoSync() {
+    if (autoBusy) { scheduleAuto(); return; }
+    if (!S.user || !HN.can("staff")) return;
+    const rate = N(book.usdRate); if (rate <= 0) return;
+    const jobs = [];
+    book.sheets.forEach(sh => {
+      if (!String(sh.code || "").trim()) return;
+      sh.rows.forEach(r => {
+        // rows saved earlier with the button: take them as up to date (no re-pricing of old shipments)
+        if (r.syncTrackingNo && !r.syncSig && S.shipments.some(x => x.tracking_no === r.syncTrackingNo)) { r.syncSig = rowSig(sh, r); save(sh); return; }
+        if (rowReady(r) && r.syncSig !== rowSig(sh, r)) jobs.push([sh, r]);
+      });
+    });
+    if (!jobs.length) return;
+    autoBusy = true; setStatus("Ба система сабт шуда истодааст…");
+    let done = 0;
+    try {
+      for (const [sh, r] of jobs) { await upsertRow(sh, r, rate); done++; save(sh); }
+      await HN.reload();
+      setStatus(`Дар система сабт шуд ✓ (${done}) · ` + new Date().toLocaleTimeString("ru-RU").slice(0, 5));
+      autoWarned = "";
+    } catch (err) {
+      console.warn("Auto sync", err); const m = HN.dbError(err);
+      setStatus("Ба система сабт нашуд: " + m);
+      if (autoWarned !== m) { autoWarned = m; HN.toast("Дафтар ба система сабт нашуд: " + m, "error"); }
+    } finally { autoBusy = false; }
+  }
+  HN.notebookAutoSync = autoSync;
+  // Deleting a row that is already in the system also removes that shipment (if it has no payments).
+  async function removeSynced(r) {
+    const s = r.syncTrackingNo && S.shipments.find(x => x.tracking_no === r.syncTrackingNo);
+    if (!s) return "";
+    if (HN.paid(s) > 0.005) return "Бор пардохт дорад, барои ҳамин дар система монд. Онро дар «Борҳо» тағйир диҳед.";
+    if (!HN.can("delete")) return "Бор дар система монд: барои нест кардан иҷозати админ лозим аст.";
+    const res = await S.db.rpc("admin_delete_shipment", { target_shipment_id: s.id });
+    if (res.error) return "Бор дар система монд: " + HN.dbError(res.error);
+    await HN.reload(); return "";
   }
 
   /* ---------- Real .xlsx in the company's template layout («Новый образец 2025») ---------- */
@@ -532,7 +679,7 @@
           }
           if (kind === "f") {
             const f = FORMULA[k](R).slice(1).replace(/;/g, ",");
-            const v = k === "no" ? (r.ro || String(r.height ?? "").trim() !== "" ? i + 1 : "") : k === "density" ? (x.density ?? "") : x[k];
+            const v = k === "no" ? i + 1 : k === "density" ? (x.density ?? "") : x[k];
             const z = k === "no" ? "General" : "#,##0.00";
             put(ref, { t: v === "" ? "s" : "n", v, f, z, s: { ...base, numFmt: z, font: font({ color: RED.has(k) ? { rgb: "FF0000" } : undefined, bold: RED.has(k) || k === "price" }), alignment: { horizontal: k === "no" ? "center" : undefined, vertical: "center" } } });
             return;
