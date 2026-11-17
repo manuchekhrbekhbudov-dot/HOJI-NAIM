@@ -800,3 +800,60 @@ input:focus, select:focus, textarea:focus { border-color: #2c5cc5; box-shadow: 0
 @keyframes viewIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .view.active { animation: none; } }
 @media (max-width: 640px) { .kpi::after { width: 32px; height: 32px; line-height: 32px; font-size: 16px; right: 12px; top: 12px; } }
+
+/* ===== Dark (сиёҳ) inside the app — 🌙 / ☀️ in the top bar; the Excel notebook stays white like Excel ===== */
+.theme-btn { font-size: 17px; }
+.theme-btn .t-day, body.dark .theme-btn .t-night { display: none; }
+body.dark .theme-btn .t-day { display: inline; }
+body.dark {
+  --bg: #0b1220; --surface: #121b2d; --line: #223049; --line-strong: #2e3f5f;
+  --text: #e7edf8; --text-2: #c0cbe0; --muted: #8e9cb8;
+  --navy-50: #18233b; --navy-100: #1f2c49;
+  --ok: #4fd18b; --ok-bg: rgba(79,209,139,.14); --warn: #f6c453; --warn-bg: rgba(246,196,83,.14);
+  --bad: #ff7b6e; --bad-bg: rgba(255,123,110,.14); --info: #8fb3ff; --info-bg: rgba(143,179,255,.14);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.4); --shadow: 0 1px 2px rgba(0,0,0,.35), 0 10px 26px -10px rgba(0,0,0,.55);
+  color-scheme: dark;
+  background: radial-gradient(70% 45% at 100% 0%, rgba(44,92,197,.18) 0%, transparent 60%), radial-gradient(50% 35% at 0% 100%, rgba(201,144,0,.12) 0%, transparent 60%), #0b1220;
+  background-attachment: fixed;
+}
+body.dark .topbar { background: rgba(12,19,34,.78); border-bottom-color: rgba(255,255,255,.06); }
+body.dark .sidebar { background: linear-gradient(180deg, #13244a 0%, #0d1a35 50%, #081226 100%); }
+body.dark input, body.dark select, body.dark textarea { background-color: #0f1727; color: var(--text); border-color: var(--line-strong); }
+body.dark select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238e9cb8' stroke-width='2.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); }
+body.dark input::placeholder, body.dark textarea::placeholder { color: #66749190; }
+body.dark .seg { background: rgba(255,255,255,.06); }
+body.dark .seg button.on { background: #22304f; color: #fff; }
+body.dark .kpi, body.dark .panel, body.dark .mini-kpis, body.dark .calc-grid > div { border-color: rgba(255,255,255,.06); }
+body.dark .kpi.kpi-danger { background: linear-gradient(180deg, #121b2d 0%, #1f1620 100%); }
+body.dark .kpis .kpi:nth-child(2)::after { background: rgba(246,196,83,.14); }
+body.dark .kpis .kpi:nth-child(3)::after { background: rgba(79,209,139,.14); }
+body.dark .kpis .kpi:nth-child(4)::after { background: rgba(255,123,110,.14); }
+body.dark .mini-kpis > div:hover, body.dark .tbl tbody tr:hover { background: #172238; }
+body.dark .tbl thead th { background: #162036; color: #9aa8c4; }
+body.dark .calc-grid > div { background: #0f1727; }
+body.dark .chart .bar-income { fill: #6f95e8; }
+body.dark .icon-btn { background: #121b2d; border-color: var(--line-strong); color: var(--text-2); }
+body.dark .btn-ghost { background: #121b2d; color: var(--text); border-color: var(--line-strong); }
+body.dark .btn-soft { background: #1a2540; color: #cfe0ff; }
+body.dark .modal, body.dark .drawer, body.dark dialog { background: #121b2d; color: var(--text); }
+body.dark #toast { background: #e7edf8; color: #0b1220; }
+body.dark .pill { filter: brightness(1.1); }
+body.dark .notice { background: #18233b; border-color: var(--line-strong); color: var(--text); }
+body.dark a { color: #9fc0ff; }
+body.dark .nav-item, body.dark .sidebar a { color: #b7c3d9; }
+body.dark .nav-item.active { color: #fff; }
+body.dark .xl, body.dark .xl * { color-scheme: light; }
+body.dark .xl input { background-color: transparent; color: #000; }
+body.dark .boot-mark { background: #121b2d; }
+body.dark .tbl td { border-bottom-color: var(--line); }
+body.dark .tbl th { background: #162036; color: #9aa8c4; }
+body.dark .link-btn, body.dark legend { color: #9fc0ff; }
+body.dark .icon-btn svg { color: #c0cbe0; }
+body.dark .role-owner, body.dark .role-admin { background: rgba(143,179,255,.16); color: #b8ccff; }
+body.dark .role-customer { background: rgba(255,255,255,.08); color: #c0cbe0; }
+body.dark .legend .dot-income, body.dark .legend i:first-child { background: #6f95e8 !important; }
+body.dark .lg-income::before { background: #6f95e8; }
+body.dark .tbl tfoot td { background: #162036; color: var(--text); }
+body.dark .tab.on { color: #fff; }
+body.dark .xl input, body.dark .xl-findform input { background-color: #fff; color: #000; border-color: #c8c6c4; }
+body.dark .xl .xl-cellin, body.dark .xl .xl-in input { background-color: transparent; }
