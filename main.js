@@ -60,6 +60,14 @@
     $("authScreen").classList.toggle("hidden", which !== "auth");
     $("app").classList.toggle("hidden", which !== "app");
   }
+  // Login scene: night after 19:00 and before 06:00, or the person's own choice (🌙 / ☀️).
+  (() => {
+    const scr = $("authScreen"), btn = $("scMode"); if (!scr || !btn) return;
+    const h = new Date().getHours(), saved = HN.lsGet("hn-login-mode", "");
+    const set = night => { scr.classList.toggle("night", night); btn.setAttribute("aria-label", night ? "Рӯз" : "Шаб"); };
+    set(saved ? saved === "night" : (h >= 19 || h < 6));
+    btn.addEventListener("click", () => { const night = !scr.classList.contains("night"); set(night); HN.lsSet("hn-login-mode", night ? "night" : "day"); });
+  })();
   $("pwEye").addEventListener("click", () => {
     const pw = $("password"), show = pw.type === "password";
     pw.type = show ? "text" : "password"; $("pwEye").classList.toggle("on", show);
