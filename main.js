@@ -104,14 +104,40 @@
     await S.db?.auth.signOut();
   });
 
+  /* Fast start: the last data of this user is shown at once from the browser, fresh data comes right after.
+     The copy is removed on «Баромадан». */
+  const CACHE_KEY = "hn-cache-v1";
+  const CACHE_STATE = ["profile", "shipments", "payments", "expenses", "sheets", "rates", "batches", "closedUntil", "resetMark", "tgSubs", "tgLog", "tgTexts"];
+  function saveCache() {
+    const c = { uid: S.user?.id, at: Date.now(), features: S.features };
+    CACHE_STATE.forEach(k => (c[k] = S[k]));
+    if (!HN.lsSet(CACHE_KEY, c)) { try { localStorage.removeItem(CACHE_KEY); } catch {} }
+  }
+  function restoreCache(uid) {
+    const c = HN.lsGet(CACHE_KEY, null);
+    if (!c || c.uid !== uid || Date.now() - (c.at || 0) > 7 * 864e5 || !Array.isArray(c.shipments)) return false;
+    CACHE_STATE.forEach(k => { if (c[k] !== undefined) S[k] = c[k]; });
+    Object.assign(S.features, c.features || {});
+    S.fromCache = true; HN.reindex(); paintUser(); applyPermissions(); HN.extras?.applyFeatures?.();
+    if (!HN.can("staff")) return false;
+    $("noAccess").classList.add("hidden"); $("views").classList.remove("hidden");
+    showView(viewFromHash());
+    return true;
+  }
+  HN.clearCache = () => { try { localStorage.removeItem(CACHE_KEY); } catch {} };
+
   async function enterApp(user) {
     if (S.user && user && S.user.id === user.id && S.loadedOnce) return;
     S.user = user;
     showScreen("app");
+    const cached = !S.loadedOnce && restoreCache(user.id);
+    document.body.classList.toggle("is-loading", !cached);
     await loadData();
+    document.body.classList.remove("is-loading");
     if (!S.greeted) { S.greeted = true; HN.toast("Хуш омадед" + (S.profile?.full_name ? ", " + S.profile.full_name : "") + "!", "ok"); }
   }
   function leaveApp() {
+    HN.clearCache();
     Object.assign(S, { user: null, profile: null, shipments: [], payments: [], expenses: [], sheets: [], loadedOnce: false, greeted: false });
     staffLoaded = false;
     showScreen("auth");
@@ -161,7 +187,11 @@
       return;
     }
     applyPermissions();
-    showView(viewFromHash());
+    // same page already open (e.g. shown from the saved copy, or a refresh) → redraw in place, keep the scroll
+    const v = viewFromHash();
+    if (v === current && $("view-" + v)?.classList.contains("active")) { renderView(v); setTopAction(v); }
+    else showView(v);
+    saveCache();
   }
   HN.reload = loadData;
   async function detectFeatures() {
