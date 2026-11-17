@@ -60,29 +60,6 @@
     $("authScreen").classList.toggle("hidden", which !== "auth");
     $("app").classList.toggle("hidden", which !== "app");
   }
-  // Login scene: rotating slogan, light that follows the mouse, slight tilt of the map.
-  (() => {
-    const scr = $("authScreen"), rot = $("authRot"), calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const lines = ["ҳар бор дар назорат.", "ҳар пардохт дар ҳисоб.", "ҳар муштарӣ дар Telegram.", "ҳама дар як система."];
-    let i = 0;
-    if (rot && !calm) setInterval(() => {
-      if (scr.classList.contains("hidden")) return;
-      rot.classList.add("out");
-      setTimeout(() => { i = (i + 1) % lines.length; rot.textContent = lines[i]; rot.classList.remove("out"); }, 350);
-    }, 3200);
-    if (calm) return;
-    const map = scr.querySelector(".auth-map");
-    scr.addEventListener("pointermove", e => {
-      const r = scr.getBoundingClientRect();
-      scr.style.setProperty("--mx", ((e.clientX - r.left) / r.width * 100) + "%");
-      scr.style.setProperty("--my", ((e.clientY - r.top) / r.height * 100) + "%");
-      if (map) {
-        const b = map.getBoundingClientRect(), dx = (e.clientX - (b.left + b.width / 2)) / b.width, dy = (e.clientY - (b.top + b.height / 2)) / b.height;
-        map.style.setProperty("--ry", Math.max(-6, Math.min(6, dx * 8)) + "deg");
-        map.style.setProperty("--rx", Math.max(-6, Math.min(6, -dy * 8)) + "deg");
-      }
-    });
-  })();
   $("pwEye").addEventListener("click", () => {
     const pw = $("password"), show = pw.type === "password";
     pw.type = show ? "text" : "password"; $("pwEye").classList.toggle("on", show);

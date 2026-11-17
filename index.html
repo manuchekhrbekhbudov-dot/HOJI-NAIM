@@ -8,13 +8,13 @@
   <title>HOJI-NAIM CARGO</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://wfxbgkasstkxzmyrjwpi.supabase.co" crossorigin>
-  <link rel="stylesheet" href="style.css?v=20261117-glass">
+  <link rel="stylesheet" href="style.css?v=20261117-scene">
   <script src="vendor/supabase-js-2.118.0.js" defer></script>
-  <script src="js/core.js?v=20261117-glass" defer></script>
-  <script src="js/exporter.js?v=20261117-glass" defer></script>
-  <script src="js/notebook.js?v=20261117-glass" defer></script>
-  <script src="js/extras.js?v=20261117-glass" defer></script>
-  <script src="main.js?v=20261117-glass" defer></script>
+  <script src="js/core.js?v=20261117-scene" defer></script>
+  <script src="js/exporter.js?v=20261117-scene" defer></script>
+  <script src="js/notebook.js?v=20261117-scene" defer></script>
+  <script src="js/extras.js?v=20261117-scene" defer></script>
+  <script src="main.js?v=20261117-scene" defer></script>
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -46,52 +46,42 @@
 
   <!-- ===== Auth ===== -->
   <section id="authScreen" class="auth hidden">
-    <span class="auth-spot" aria-hidden="true"></span>
-    <span class="stars" aria-hidden="true"><i style="left:8%;top:20%;animation-delay:0s"></i><i style="left:22%;top:70%;animation-delay:1.2s"></i><i style="left:35%;top:35%;animation-delay:2.4s"></i><i style="left:48%;top:85%;animation-delay:0.6s"></i><i style="left:58%;top:15%;animation-delay:3s"></i><i style="left:66%;top:60%;animation-delay:1.8s"></i><i style="left:74%;top:30%;animation-delay:4s"></i><i style="left:82%;top:78%;animation-delay:2.2s"></i><i style="left:90%;top:12%;animation-delay:0.9s"></i><i style="left:95%;top:50%;animation-delay:3.6s"></i><i style="left:14%;top:92%;animation-delay:2.8s"></i><i style="left:42%;top:8%;animation-delay:1.5s"></i></span>
-    <div class="auth-side">
-      <span class="aurora a1" aria-hidden="true"></span><span class="aurora a2" aria-hidden="true"></span><span class="aurora a3" aria-hidden="true"></span>
+    <header class="sc-top">
       <div class="brand brand-lg"><span class="brand-mark">H</span><span class="brand-name"><b>HOJI-NAIM</b><small>CARGO</small></span></div>
-      <div class="auth-copy">
-        <p class="auth-badge"><span class="pulse"></span>Системаи идоракунии карго</p>
-        <h1>Аз Хитой то Душанбе —<br><span class="shine rot" id="authRot">ҳар бор дар назорат.</span></h1>
-        <p class="auth-lead">Борҳо, анбор, пардохт, касса, ҳисобот ва Telegram-бот барои муштариён — ҳама дар як система.</p>
+      <a class="sc-tg" href="telegram.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.78 15.27 9.6 19.6c.38 0 .55-.17.75-.36l1.8-1.73 3.73 2.73c.68.38 1.17.18 1.35-.63l2.45-11.5c.25-1.02-.39-1.42-1.05-1.17L3.9 10.5c-.98.39-.97.95-.17 1.2l3.67 1.14 8.52-5.37c.4-.24.77-.11.47.16"/></svg><span>Муштарӣ ҳастед? <b>Telegram</b></span></a>
+    </header>
 
-        <div class="auth-map" aria-hidden="true">
-          <svg viewBox="0 0 520 235" class="map-svg">
-            <defs>
-              <linearGradient id="rtg" x1="0" x2="1"><stop offset="0" stop-color="#8fb3ff"/><stop offset="1" stop-color="#F4B400"/></linearGradient>
-              <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-            </defs>
-            <path id="rtPath" d="M60 190 C 170 95, 330 95, 460 160" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="10" stroke-linecap="round"/>
-            <path d="M60 190 C 170 95, 330 95, 460 160" fill="none" stroke="url(#rtg)" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 10" class="rt-dash"/>
-            <g filter="url(#glow)"><circle cx="60" cy="190" r="7" fill="#8fb3ff"/><circle cx="460" cy="160" r="8" fill="#F4B400"/></g>
-            <circle cx="60" cy="190" r="16" fill="none" stroke="#8fb3ff" stroke-opacity=".5" class="ring"/>
-            <circle cx="460" cy="160" r="18" fill="none" stroke="#F4B400" stroke-opacity=".6" class="ring r2"/>
-            <g class="rt-truck2">
-              <rect x="-17" y="-13" width="34" height="26" rx="8" fill="#F4B400"/>
-              <path d="M-10 -4h11v8h-11zM1 -1h4l3 3v2h-7z" fill="none" stroke="#0E1B33" stroke-width="1.6" stroke-linejoin="round"/>
-              <circle cx="-6" cy="6" r="1.8" fill="#0E1B33"/><circle cx="5" cy="6" r="1.8" fill="#0E1B33"/>
-              <animateMotion dur="7s" repeatCount="indefinite" rotate="0" keyPoints="0;1;1" keyTimes="0;.85;1" calcMode="linear"><mpath href="#rtPath"/></animateMotion>
-            </g>
-          </svg>
-          <span class="map-tag t-cn" style="left:11.5%;top:calc(81% + 4px)">🇨🇳 Хитой</span>
-          <span class="map-tag t-tj" style="left:88.5%;top:calc(68% + 4px)">🇹🇯 Душанбе</span>
-          <div class="float-card fc1"><span class="fc-ic tg">✈</span><span><b>HOJI-NAIM CARGO</b><small>✅ Бори шумо дар Душанбе расид · 4 ҷой · 120 кг</small></span></div>
-          <div class="float-card fc2"><span class="fc-ic ok">✓</span><span><b>Пардохт қабул шуд</b><small>Қарз: 0.00 сомонӣ</small></span></div>
-        </div>
-
-        <ul class="auth-points">
-          <li><svg><use href="#i-box"/></svg><span>Борҳо ва анбор</span></li>
-          <li><svg><use href="#i-wallet"/></svg><span>Пардохт ва касса</span></li>
-          <li><svg><use href="#i-sheet"/></svg><span>Дафтари Excel</span></li>
-          <li><svg><use href="#i-arrow"/></svg><span>Telegram-бот</span></li>
-        </ul>
-      </div>
-      <p class="auth-foot">© 2026 HOJI-NAIM CARGO · Душанбе</p>
+    <div class="sc-scene" aria-hidden="true">
+      <span class="sc-sun"></span>
+      <span class="sc-cloud c1"></span><span class="sc-cloud c2"></span><span class="sc-cloud c3"></span>
+      <svg class="sc-mount" viewBox="0 0 1440 320" preserveAspectRatio="none">
+        <path d="M0 210 L120 150 L210 185 L330 90 L430 160 L540 110 L640 175 L760 70 L880 160 L990 120 L1100 180 L1230 95 L1340 160 L1440 130 L1440 320 L0 320Z" fill="#c9d8f2"/>
+        <path d="M330 90 L362 112 L345 110 L330 120 L318 108 L300 112Z M760 70 L795 96 L776 93 L760 104 L746 92 L728 97Z M1230 95 L1262 118 L1245 116 L1230 126 L1218 114 L1200 118Z" fill="#fff"/>
+        <path d="M0 250 L160 190 L300 235 L450 170 L600 230 L740 185 L900 240 L1050 190 L1200 238 L1330 200 L1440 225 L1440 320 L0 320Z" fill="#9db6e3"/>
+        <path d="M0 285 L200 245 L380 280 L560 250 L760 285 L960 255 L1160 288 L1320 262 L1440 280 L1440 320 L0 320Z" fill="#6f8fcb"/>
+      </svg>
+      <div class="sc-road"><span class="sc-lines"></span></div>
+      <svg class="sc-truck" viewBox="0 0 260 110">
+        <rect x="6" y="14" width="168" height="66" rx="5" fill="#14284B"/>
+        <g style="stroke:#2b4f8f;stroke-width:3">
+          <line x1="28" y1="20" x2="28" y2="74"/><line x1="50" y1="20" x2="50" y2="74"/><line x1="72" y1="20" x2="72" y2="74"/><line x1="94" y1="20" x2="94" y2="74"/><line x1="116" y1="20" x2="116" y2="74"/><line x1="138" y1="20" x2="138" y2="74"/><line x1="160" y1="20" x2="160" y2="74"/>
+        </g>
+        <rect x="18" y="34" width="144" height="26" rx="4" fill="#F4B400"/>
+        <text x="90" y="52" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-weight="800" font-size="15" fill="#14284B">HOJI-NAIM CARGO</text>
+        <path d="M180 34 h38 l22 22 v24 h-60z" fill="#F4B400"/>
+        <path d="M188 40 h26 l15 16 h-41z" fill="#cfe1ff"/>
+        <rect x="174" y="76" width="70" height="6" rx="3" fill="#14284B"/>
+        <rect x="2" y="78" width="176" height="6" rx="3" fill="#0e1b33"/>
+        <g class="wh"><circle cx="40" cy="88" r="13" fill="#1b2433"/><circle cx="40" cy="88" r="5" fill="#cfd6e3"/></g>
+        <g class="wh"><circle cx="140" cy="88" r="13" fill="#1b2433"/><circle cx="140" cy="88" r="5" fill="#cfd6e3"/></g>
+        <g class="wh"><circle cx="216" cy="88" r="13" fill="#1b2433"/><circle cx="216" cy="88" r="5" fill="#cfd6e3"/></g>
+        <circle cx="242" cy="68" r="3" fill="#fff3b0"/>
+      </svg>
     </div>
+
     <div class="auth-main">
       <form id="authForm" class="auth-card" novalidate>
-        <div class="auth-top"><span class="auth-mark" aria-hidden="true">H</span><span class="auth-secure"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></svg>Пайвасти ҳифзшуда</span></div>
+        <span class="auth-mark" aria-hidden="true">H</span>
         <div class="auth-head">
           <h2 id="authHeading">Ворид шудан</h2>
           <p id="authDescription" class="muted">Email ва пароли худро ворид кунед.</p>
@@ -105,11 +95,7 @@
         <p id="authMessage" class="form-msg" role="status"></p>
         <button class="link-btn" id="authModeToggle" type="button">Ҳисоб надоред? Сабти ном</button>
       </form>
-      <a class="customer-card" href="telegram.html">
-        <span class="cc-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.78 15.27 9.6 19.6c.38 0 .55-.17.75-.36l1.8-1.73 3.73 2.73c.68.38 1.17.18 1.35-.63l2.45-11.5c.25-1.02-.39-1.42-1.05-1.17L3.9 10.5c-.98.39-.97.95-.17 1.2l3.67 1.14 8.52-5.37c.4-.24.77-.11.47.16"/></svg></span>
-        <span><b>Муштарӣ ҳастед?</b><small>Бор ва қарзи худро дар Telegram бинед</small></span>
-        <span class="cc-go">→</span>
-      </a>
+      <p class="sc-note">Борҳо · Анбор · Пардохт · Касса · Ҳисобот</p>
       <section id="configNotice" class="notice hidden"><b>Пайвастшавӣ ба база танзим нашудааст.</b><p>Дар <code>js/core.js</code> URL ва publishable key-и Supabase-ро гузоред. Калиди service_role-ро ҳеҷ гоҳ ба браузер нагузоред.</p></section>
     </div>
   </section>
