@@ -60,13 +60,19 @@
     $("authScreen").classList.toggle("hidden", which !== "auth");
     $("app").classList.toggle("hidden", which !== "app");
   }
-  // Login scene: night after 19:00 and before 06:00, or the person's own choice (🌙 / ☀️).
+  // Day / night for the whole site (login scene and inside): own choice (🌙 / ☀️), else night 19:00–06:00.
   (() => {
-    const scr = $("authScreen"), btn = $("scMode"); if (!scr || !btn) return;
-    const h = new Date().getHours(), saved = HN.lsGet("hn-login-mode", "");
-    const set = night => { scr.classList.toggle("night", night); btn.setAttribute("aria-label", night ? "Рӯз" : "Шаб"); };
-    set(saved ? saved === "night" : (h >= 19 || h < 6));
-    btn.addEventListener("click", () => { const night = !scr.classList.contains("night"); set(night); HN.lsSet("hn-login-mode", night ? "night" : "day"); });
+    const scr = $("authScreen");
+    const isNight = () => { const saved = HN.lsGet("hn-login-mode", ""), h = new Date().getHours(); return saved ? saved === "night" : (h >= 19 || h < 6); };
+    const apply = night => {
+      scr?.classList.toggle("night", night); document.body.classList.toggle("dark", night);
+      document.querySelector('meta[name="theme-color"]')?.setAttribute("content", night ? "#0b1220" : "#14284B");
+      ["scMode", "themeBtn"].forEach(id => $(id)?.setAttribute("aria-label", night ? "Рӯз" : "Шаб"));
+    };
+    const toggle = () => { const night = !document.body.classList.contains("dark"); apply(night); HN.lsSet("hn-login-mode", night ? "night" : "day"); };
+    apply(isNight());
+    $("scMode")?.addEventListener("click", toggle);
+    $("themeBtn")?.addEventListener("click", toggle);
   })();
   $("pwEye").addEventListener("click", () => {
     const pw = $("password"), show = pw.type === "password";
