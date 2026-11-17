@@ -8,13 +8,13 @@
   <title>HOJI-NAIM CARGO</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://wfxbgkasstkxzmyrjwpi.supabase.co" crossorigin>
-  <link rel="stylesheet" href="style.css?v=20261117-dark">
+  <link rel="stylesheet" href="style.css?v=20261117-batch">
   <script src="vendor/supabase-js-2.118.0.js" defer></script>
-  <script src="js/core.js?v=20261117-dark" defer></script>
-  <script src="js/exporter.js?v=20261117-dark" defer></script>
-  <script src="js/notebook.js?v=20261117-dark" defer></script>
-  <script src="js/extras.js?v=20261117-dark" defer></script>
-  <script src="main.js?v=20261117-dark" defer></script>
+  <script src="js/core.js?v=20261117-batch" defer></script>
+  <script src="js/exporter.js?v=20261117-batch" defer></script>
+  <script src="js/notebook.js?v=20261117-batch" defer></script>
+  <script src="js/extras.js?v=20261117-batch" defer></script>
+  <script src="main.js?v=20261117-batch" defer></script>
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -450,8 +450,15 @@
         <label class="field"><span>Ҳолат</span><select name="status"><option value="loading">Бор шуда истодааст</option><option value="in_transit">Дар роҳ</option><option value="arrived">Расид</option><option value="closed">Пӯшида</option></select></label>
         <label class="field"><span>Санаи фиристодан</span><input name="sent_date" type="date"></label>
         <label class="field"><span>Санаи расидан</span><input name="arrived_date" type="date"></label>
-        <label class="field"><span>Хароҷоти роҳ, $</span><input name="cost_usd" type="number" min="0" step="any" inputmode="decimal"></label>
+        <label class="field"><span>Хароҷоти мошин (роҳкиро), $ <em class="req-arr">*</em></span><input name="cost_usd" type="number" min="0" step="any" inputmode="decimal" placeholder="Масалан: 3500"></label>
+        <label class="field"><span>Хизмат (гумрук, боркашӣ …), $</span><input name="service_usd" type="number" min="0" step="any" inputmode="decimal" placeholder="0"></label>
         <label class="field"><span>Қурби доллар</span><input name="fx_rate" type="number" min="0.000001" step="any"></label>
+        <label class="field"><span>Аз кадом касса пардохт шуд</span><select name="method"><option value="cash">Нақд</option><option value="online">Онлайн</option><option value="bank_transfer">Интиқоли бонкӣ</option><option value="other">Дигар</option></select></label>
+      </div>
+      <p class="hint" id="bCostHint">Хароҷоти мошин ва хизмат худкор ба «Хароҷот» ва «Касса» сабт мешаванд.</p>
+      <div class="b-loads">
+        <div class="b-loads-head"><b>Борҳои ин мошин <em class="req-arr">*</em></b><span id="bLoadsCount" class="muted"></span><input id="bLoadsQ" placeholder="Ҷустан: код, муштарӣ, рақам" aria-label="Ҷустани бор"></div>
+        <div id="bLoads" class="b-loads-list"></div>
       </div>
       <label class="field"><span>Ёддошт</span><textarea name="notes" rows="2" maxlength="1000"></textarea></label>
       <p id="batchMsg" class="form-msg" role="status"></p>

@@ -857,3 +857,18 @@ body.dark .tbl tfoot td { background: #162036; color: var(--text); }
 body.dark .tab.on { color: #fff; }
 body.dark .xl input, body.dark .xl-findform input { background-color: #fff; color: #000; border-color: #c8c6c4; }
 body.dark .xl .xl-cellin, body.dark .xl .xl-in input { background-color: transparent; }
+
+/* Batch form: loads of the car */
+#batchFormDialog { width: 720px; }
+.req-arr { color: var(--bad); font-style: normal; display: none; }
+#batchForm.is-arrived .req-arr { display: inline; }
+.b-loads { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.b-loads-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; background: var(--navy-50); }
+.b-loads-head input { flex: 1; min-width: 160px; min-height: 34px; }
+.b-loads-list { max-height: 240px; overflow: auto; }
+.b-load { display: grid; grid-template-columns: 22px 1fr auto; gap: 10px; align-items: center; padding: 8px 12px; border-top: 1px solid var(--line); cursor: pointer; }
+.b-load:hover { background: var(--navy-50); }
+.b-load input { width: 18px; height: 18px; min-height: 0; }
+.b-load small { color: var(--muted); display: block; }
+.b-load .b-sum { text-align: right; font-variant-numeric: tabular-nums; }
+.b-load.other { opacity: .55; }

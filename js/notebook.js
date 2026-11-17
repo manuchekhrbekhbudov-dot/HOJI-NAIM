@@ -124,10 +124,11 @@
 
   /* ---------- Database rows of the sheet's customer (read-only) ---------- */
   function dbRows(sh) {
-    const code = String(sh.code || "").trim().toLocaleLowerCase();
-    if (!code) return [];
+    const code = String(sh.code || "").trim().toLocaleLowerCase(), pk = String(sh.phone || "").replace(/\D/g, "").slice(-9);
+    if (!code && pk.length < 7) return [];
     const mine = new Set(sh.rows.map(r => r.syncTrackingNo).filter(Boolean));
-    return S.shipments.filter(s => HN.customerCode(s).toLocaleLowerCase() === code && !mine.has(s.tracking_no))
+    const hit = s => code ? HN.customerCode(s).toLocaleLowerCase() === code : (!HN.customerCode(s) && String(s.client_phone || "").replace(/\D/g, "").slice(-9) === pk);
+    return S.shipments.filter(s => hit(s) && !mine.has(s.tracking_no))
       .sort((a, b) => HN.shipmentDate(a).localeCompare(HN.shipmentDate(b)))
       .map(s => {
         const places = HN.places(s) || 1, dims = String(HN.noteValue(s, "Андоза") || "").replace(/м/g, "").split("×").map(x => N(x.trim()));
@@ -769,6 +770,22 @@
 
   HN.notebook = {
     render,
+    // A load saved in «Бори нав»: make sure its customer has a sheet (by code, else by phone) so the load shows there.
+    ensureSheet(code, phone, name) {
+      if (!book) book = loadBook();
+      code = String(code || "").trim(); phone = String(phone || "").trim();
+      const ck = codeKey(code), pk = phoneKey(phone);
+      if (!ck && pk.length < 7) return null;
+      let sh = ck ? book.sheets.find(x => codeKey(x.code) === ck) : book.sheets.find(x => !codeKey(x.code) && phoneKey(x.phone) === pk);
+      if (sh) { if (!String(sh.phone || "").trim() && phone) { sh.phone = phone; save(sh); } return sh; }
+      sh = book.sheets.find(isEmptySheet);
+      if (!sh) { sh = blankSheet(0, { name: nextName() }); book.sheets.push(sh); savePositions(); }
+      Object.assign(sh, { code, phone });
+      const label = (code || String(name || "").trim()).slice(0, 31);
+      if (label && /^лист\s*\d+$/i.test(sh.name) && !validName(label, sh.id)) sh.name = label;
+      save(sh);
+      return sh;
+    },
     // Open the sheet of a customer (by customer key). Creates one with that code if missing.
     select(key) {
       if (!book) book = loadBook();
