@@ -138,7 +138,8 @@
   const bExps = b => S.expenses.filter(e => String(e.batch_id || "") === String(b.id));
   function bStats(b) {
     const ships = bShips(b), billed = ships.reduce((n, s) => n + HN.total(s), 0), paid = ships.reduce((n, s) => n + HN.paid(s), 0);
-    const cost = HN.num(b.cost_tjs) + bExps(b).reduce((n, e) => n + HN.num(e.amount_tjs), 0);
+    const auto = S.expenses.some(e => String(e.description || "").includes(`[мошин:${b.id}:road]`));
+    const cost = (auto ? 0 : HN.num(b.cost_tjs)) + bExps(b).reduce((n, e) => n + HN.num(e.amount_tjs), 0);
     return { ships, n: ships.length, kg: ships.reduce((n, s) => n + HN.num(s.weight_kg), 0), m3: ships.reduce((n, s) => n + HN.num(s.volume_m3), 0), billed, paid, cost, profit: billed - cost };
   }
   let wtab = HN.lsGet("hn-wh-tab", "stock") === "batches" ? "batches" : "stock", bQuery = "";
@@ -165,26 +166,102 @@
     if ($("bAdd")) $("bAdd").onclick = () => openBatchForm();
     box.querySelectorAll("tr[data-batch]").forEach(tr => (tr.onclick = () => openBatch(tr.dataset.batch)));
   }
+  /* ----- Batch form: loads of the car, costs that go to «Хароҷот» by themselves ----- */
+  // Expenses made by the batch form carry a marker in the description: [мошин:<id>:road] / [мошин:<id>:service]
+  const autoTag = (id, kind) => `[мошин:${id}:${kind}]`;
+  const autoExp = (id, kind) => S.expenses.find(e => String(e.description || "").includes(autoTag(id, kind)));
+  let bSel = new Set(), bQ = "", bEditId = "";
+  function renderBatchLoads() {
+    const box = $("bLoads"); if (!box) return;
+    const list = S.shipments.filter(s => bSel.has(String(s.id)) || !s.batch_id || String(s.batch_id) === bEditId)
+      .filter(s => !bQ || HN.matches(s, bQ) || bSel.has(String(s.id)))
+      .sort((a, b) => (bSel.has(String(b.id)) - bSel.has(String(a.id))) || HN.shipmentDate(b).localeCompare(HN.shipmentDate(a)))
+      .slice(0, 200);
+    box.innerHTML = list.map(s => `<label class="b-load"><input type="checkbox" data-bload="${esc(s.id)}" ${bSel.has(String(s.id)) ? "checked" : ""}>
+      <span><b>${esc(HN.customerCode(s) || s.client_name || "—")}</b> · ${esc(s.client_name || "")}<small>${HN.fmtDate(HN.shipmentDate(s))} · ${esc(HN.noteValue(s, "Мол") || s.tracking_no)} · ${HN.places(s)} ҷой · ${fmt(HN.num(s.weight_kg), 1)} кг · ${fmt(HN.num(s.volume_m3), 3)} м³</small></span>
+      <span class="b-sum">${money(HN.total(s))}</span></label>`).join("") || '<p class="muted" style="padding:10px 12px">Бори озод нест. Аввал борҳоро сабт кунед.</p>';
+    const chosen = S.shipments.filter(s => bSel.has(String(s.id)));
+    $("bLoadsCount").textContent = chosen.length ? `Интихоб: ${chosen.length} бор · ${fmt(chosen.reduce((n, s) => n + HN.num(s.weight_kg), 0), 1)} кг · ${fmt(chosen.reduce((n, s) => n + HN.num(s.volume_m3), 0), 3)} м³` : "Ҳоло ягон бор интихоб нашудааст";
+  }
+  $("bLoads")?.addEventListener("change", e => { const c = e.target.closest("[data-bload]"); if (!c) return; c.checked ? bSel.add(c.dataset.bload) : bSel.delete(c.dataset.bload); renderBatchLoads(); });
+  $("bLoadsQ")?.addEventListener("input", e => { bQ = e.target.value.trim(); renderBatchLoads(); });
+  const markArrived = () => $("batchForm").classList.toggle("is-arrived", $("batchForm").elements.status.value === "arrived");
+  $("batchForm")?.elements.status.addEventListener("change", () => {
+    const f = $("batchForm").elements; markArrived();
+    if (f.status.value === "arrived" && !f.arrived_date.value) f.arrived_date.value = HN.today();
+  });
   function openBatchForm(b) {
-    const f = $("batchForm").elements; $("batchForm").reset(); $("batchMsg").textContent = "";
-    $("batchForm").dataset.id = b ? b.id : "";
+    const form = $("batchForm"), f = form.elements; form.reset(); $("batchMsg").textContent = "";
+    form.dataset.id = b ? b.id : ""; bEditId = b ? String(b.id) : "";
     $("batchFormTitle").textContent = b ? "Таҳрири партия" : "Партияи нав";
     f.name.value = b?.name || "Мошин " + (S.batches.length + 1); f.vehicle.value = b?.vehicle || ""; f.status.value = b?.status || "loading";
     f.sent_date.value = b?.sent_date || HN.today(); f.arrived_date.value = b?.arrived_date || "";
-    f.cost_usd.value = b ? HN.num(b.cost_usd) || "" : ""; f.fx_rate.value = b ? HN.num(b.fx_rate) || HN.rateOn(HN.today()) : HN.rateOn(HN.today()); f.notes.value = b?.notes || "";
+    const road = b && autoExp(b.id, "road"), svc = b && autoExp(b.id, "service");
+    f.cost_usd.value = road ? HN.num(road.amount_original) : b ? HN.num(b.cost_usd) || "" : "";
+    f.service_usd.value = svc ? HN.num(svc.amount_original) : "";
+    f.fx_rate.value = b ? HN.num(b.fx_rate) || HN.rateOn(HN.today()) : HN.rateOn(HN.today()); f.notes.value = b?.notes || "";
+    if (f.method) f.method.value = (road || svc)?.method || "cash";
+    f.method.closest(".field").classList.toggle("hidden", !S.features.expMethod);
+    $("bCostHint").classList.toggle("hidden", !HN.can("finance"));
+    bSel = new Set(b ? bShips(b).map(s => String(s.id)) : []); bQ = ""; $("bLoadsQ").value = "";
+    markArrived(); renderBatchLoads();
     $("batchFormDialog").showModal(); f.name.focus();
+  }
+  // create / update / remove the automatic expense of a batch
+  async function saveAutoExpense(batch, kind, usd, rate, method, date) {
+    const old = autoExp(batch.id, kind), label = kind === "road" ? "Мошин (роҳкиро)" : "Хизмати мошин";
+    if (usd <= 0) { if (old) { const r = await S.db.from("expenses").delete().eq("id", old.id); if (r.error) throw r.error; } return; }
+    const p = { category: label, currency: "USD", amount_original: usd, fx_rate: rate, amount_tjs: HN.round2(usd * rate), expense_date: date, description: `${batch.name}${batch.vehicle ? " · " + batch.vehicle : ""} ${autoTag(batch.id, kind)}` };
+    if (S.features.expMethod) p.method = method || "cash";
+    if (S.features.batches) p.batch_id = batch.id;
+    const r = old ? await S.db.from("expenses").update(p).eq("id", old.id) : await S.db.from("expenses").insert({ ...p, created_by: S.user.id });
+    if (r.error) throw r.error;
   }
   $("batchForm")?.addEventListener("submit", async e => {
     e.preventDefault();
-    const f = e.target.elements, msg = $("batchMsg"), id = e.target.dataset.id;
-    const cost = HN.num(f.cost_usd.value), rate = HN.num(f.fx_rate.value);
-    if (!f.name.value.trim()) { msg.dataset.kind = "error"; msg.textContent = "Номи партияро нависед."; return; }
-    if (cost < 0 || rate <= 0) { msg.dataset.kind = "error"; msg.textContent = "Хароҷот ва қурбро дуруст нависед."; return; }
-    const p = { name: f.name.value.trim(), vehicle: f.vehicle.value.trim(), status: f.status.value, sent_date: f.sent_date.value || null, arrived_date: f.arrived_date.value || null, cost_usd: cost, fx_rate: rate, cost_tjs: HN.round2(cost * rate), notes: f.notes.value.trim() };
-    const r = id ? await S.db.from("batches").update(p).eq("id", id) : await S.db.from("batches").insert({ ...p, created_by: S.user.id });
-    if (r.error) { msg.dataset.kind = "error"; msg.textContent = HN.dbError(r.error); return; }
-    $("batchFormDialog").close(); HN.toast(id ? "Партия нав шуд." : "Партия сохта шуд.", "ok"); await HN.reload();
-    if (id) openBatch(id);
+    const form = e.target, f = form.elements, msg = $("batchMsg"), id = form.dataset.id;
+    const bad = t => { msg.dataset.kind = "error"; msg.textContent = t; };
+    const cost = HN.num(f.cost_usd.value), service = HN.num(f.service_usd.value), rate = HN.num(f.fx_rate.value), status = f.status.value;
+    const chosen = [...bSel];
+    if (!f.name.value.trim()) return bad("Номи партияро нависед.");
+    if (cost < 0 || service < 0 || rate <= 0) return bad("Хароҷот ва қурбро дуруст нависед.");
+    if (status === "arrived") {
+      if (!chosen.length) return bad("Мошин расид: кадом борҳо омаданд? Дар рӯйхати поён борҳоро интихоб кунед.");
+      if (!f.arrived_date.value) return bad("Санаи расиданро нависед.");
+      if (cost <= 0) return bad("Хароҷоти мошинро (роҳкиро, $) нависед — он ба «Хароҷот» меравад.");
+    }
+    const expDate = f.arrived_date.value || f.sent_date.value || HN.today();
+    if ((cost > 0 || service > 0) && HN.can("finance") && HN.isLocked?.(expDate)) return bad(HN.lockMsg());
+    const p = { name: f.name.value.trim(), vehicle: f.vehicle.value.trim(), status, sent_date: f.sent_date.value || null, arrived_date: f.arrived_date.value || null, cost_usd: cost, fx_rate: rate, cost_tjs: HN.round2(cost * rate), notes: f.notes.value.trim() };
+    msg.dataset.kind = ""; msg.textContent = "Сабт шуда истодааст…";
+    try {
+      // 1. the batch (a new one that already «arrived» is first saved as «on the road», so the arrival message sees its loads)
+      let batch;
+      if (id) batch = { ...S.batches.find(x => String(x.id) === String(id)), ...p, id };
+      else {
+        const r = await S.db.from("batches").insert({ ...p, status: status === "arrived" ? "in_transit" : status, created_by: S.user.id }).select().single();
+        if (r.error) throw r.error; batch = { ...r.data, ...p };
+      }
+      // 2. loads: chosen ones join the car, unticked ones leave it
+      const before = S.shipments.filter(s => String(s.batch_id || "") === String(batch.id)).map(s => String(s.id));
+      const add = chosen.filter(x => !before.includes(x)), drop = before.filter(x => !chosen.includes(x));
+      if (add.length) { const r = await S.db.from("shipments").update({ batch_id: batch.id }).in("id", add); if (r.error) throw r.error; }
+      if (drop.length) { const r = await S.db.from("shipments").update({ batch_id: null }).in("id", drop); if (r.error) throw r.error; }
+      // 3. arrived → loads go to the warehouse
+      if (status === "arrived" && S.features.warehouse) {
+        const toStock = S.shipments.filter(s => chosen.includes(String(s.id)) && !["in_warehouse", "delivered"].includes(HN.whStatus(s))).map(s => s.id);
+        if (toStock.length) { const r = await S.db.from("shipments").update({ warehouse_status: "in_warehouse" }).in("id", toStock); if (r.error) throw r.error; }
+      }
+      // 4. the batch itself (status change sends the Telegram message)
+      if (id || status === "arrived") { const r = await S.db.from("batches").update(p).eq("id", batch.id); if (r.error) throw r.error; }
+      // 5. costs → «Хароҷот» and «Касса»
+      let expNote = "";
+      if (HN.can("finance")) { await saveAutoExpense(batch, "road", cost, rate, f.method?.value, expDate); await saveAutoExpense(batch, "service", service, rate, f.method?.value, expDate); if (cost > 0 || service > 0) expNote = ` Хароҷот: $${fmt(cost + service)} ба «Хароҷот» сабт шуд.`; }
+      else if (cost > 0 || service > 0) expNote = " Хароҷотро муҳосиб ба «Хароҷот» сабт мекунад (иҷозати шумо нест).";
+      $("batchFormDialog").close();
+      HN.toast((id ? "Партия нав шуд." : "Партия сохта шуд.") + ` ${chosen.length} бор.` + expNote, "ok");
+      await HN.reload(); if (id) openBatch(batch.id);
+    } catch (err) { bad(HN.dbError(err)); await HN.reload(); }
   });
   let bAddQuery = "";
   function openBatch(id) {
@@ -195,7 +272,7 @@
     $("batchViewBody").innerHTML = `
       <div class="detail-pills"><span class="pill bs-${esc(b.status)}">${BSTATUS[b.status]}</span>${b.vehicle ? `<span class="pill wh-delivered">${esc(b.vehicle)}</span>` : ""}</div>
       <div class="detail-money"><div><small>Ҳисоби борҳо</small><b>${money(x.billed)}</b></div>${fin ? `<div><small>Хароҷот</small><b>${money(x.cost)}</b></div><div><small>Фоида</small><b class="${x.profit < 0 ? "neg" : ""}">${money(x.profit)}</b></div>` : `<div><small>Борҳо</small><b>${x.n}</b></div>`}</div>
-      <p class="muted">Фиристода: ${HN.fmtDate(b.sent_date)} · Расид: ${HN.fmtDate(b.arrived_date)} · ${x.n} бор · ${fmt(x.kg, 1)} кг · ${fmt(x.m3, 3)} м³${fin ? ` · Хароҷоти роҳ: $${fmt(b.cost_usd)} × ${HN.fmtQty(b.fx_rate, 4)} = ${money(b.cost_tjs)} TJS · Хароҷоти дигар: ${money(x.cost - HN.num(b.cost_tjs))} TJS` : ""}</p>
+      <p class="muted">Фиристода: ${HN.fmtDate(b.sent_date)} · Расид: ${HN.fmtDate(b.arrived_date)} · ${x.n} бор · ${fmt(x.kg, 1)} кг · ${fmt(x.m3, 3)} м³${fin ? ` · Хароҷоти мошин: $${fmt(b.cost_usd)} × ${HN.fmtQty(b.fx_rate, 4)} · Ҳамаи хароҷот: ${money(x.cost)} TJS (${bExps(b).length} сабт дар «Хароҷот»)` : ""}</p>
       ${b.notes ? `<div class="detail-notes"><small>Ёддошт</small><p>${esc(b.notes)}</p></div>` : ""}
       <div class="detail-actions">
         ${staff ? `<button class="btn btn-ghost" data-bact="edit"><svg><use href="#i-edit"/></svg><span>Таҳрир</span></button>` : ""}

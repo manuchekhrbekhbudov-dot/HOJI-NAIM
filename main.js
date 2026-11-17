@@ -827,9 +827,10 @@
     btn.disabled = false;
     if (r.error) { msg.dataset.kind = "error"; msg.textContent = HN.dbError(r.error); return; }
     HN.lsSet(RATE_KEY, rate);
+    const sheet = HN.notebook?.ensureSheet?.(code, phone, name);   // the load also shows in the customer's Excel sheet
     const wasEdit = !!editing, id = editing?.id;
     $("shipmentDialog").close();
-    HN.toast(wasEdit ? "Тағйирот сабт шуд." : `Бор «${tracking}» сабт шуд: ${money(c.tjs)} TJS.`, "ok");
+    HN.toast(wasEdit ? "Тағйирот сабт шуд." : `Бор «${tracking}» сабт шуд: ${money(c.tjs)} TJS.${sheet ? ` Дар дафтари Excel: «${sheet.name}».` : ""}`, "ok");
     await loadData();
     if (wasEdit && $("detailDialog").open) openDetail(id);
   });
