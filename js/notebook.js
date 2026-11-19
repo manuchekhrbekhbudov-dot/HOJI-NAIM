@@ -263,6 +263,14 @@
 
   /* ---------- Rendering ---------- */
   const root = () => HN.$("notebook");
+  const FS = typeof window.showSaveFilePicker === "function", PC_NAME = "hn-xlsx-name", PC_ASKED = "hn-xlsx-asked";
+  let pcFile = null;
+  const fileStore = (mode, fn) => new Promise((res, rej) => {
+    const o = indexedDB.open("hn-files", 1);
+    o.onupgradeneeded = () => o.result.createObjectStore("h");
+    o.onerror = () => rej(o.error);
+    o.onsuccess = () => { try { const tx = o.result.transaction("h", mode), r = fn(tx.objectStore("h")); tx.oncomplete = () => res(r?.result); tx.onerror = () => rej(tx.error); } catch (e) { rej(e); } };
+  });
   const activeSheet = () => book.sheets.find(s => s.id === book.active) || book.sheets[0];
   let selected = null, ready = false, showTotal = false;
   // Totals of one sheet (same numbers as its row 7), used by «Итого Куб».
@@ -328,9 +336,9 @@
       <div class="xl">
         <div class="xl-titlebar">
           <span class="xl-logo" aria-hidden="true"><i>X</i></span>
-          <span class="xl-qat" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></svg></span>
+          <button type="button" class="xl-qat" data-xl="pc-save" title="Сабт ба файли Excel дар компютер (Ctrl+S)" aria-label="Сабт ба файли Excel дар компютер"><svg viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></svg></button>
           <b class="xl-docname">Новый образец — HOJI-NAIM CARGO.xlsx <span>— Excel</span></b>
-          <span class="xl-saved" id="xlSaved">${S.features.sheetData ? "Дар база сабт мешавад" : "Дар ҳамин браузер"}</span>
+          <span class="xl-saved" id="xlSaved">${S.features.sheetData ? "Дар база сабт мешавад" : "Дар ҳамин браузер"}${HN.lsGet(PC_NAME, "") ? ` · 💾 ${esc(HN.lsGet(PC_NAME, ""))}` : ""}</span>
         </div>
         <div class="xl-menutabs" aria-hidden="true"><span>Файл</span><span class="on">Асосӣ</span><span>Ворид</span><span>Формулаҳо</span><span>Маълумот</span><span>Намоиш</span></div>
         <div class="xl-ribbon" role="toolbar" aria-label="Амалҳои дафтар">
@@ -350,7 +358,8 @@
           </div><span class="xl-group-label">Варақҳо</span></div>
           <div class="xl-group"><div class="xl-group-btns">
             <button class="xl-btn xl-btn-lg" data-xl="export-all"><svg><use href="#i-download"/></svg><span>Ҳамаи дафтар (.xlsx)</span></button>
-            <div class="xl-stack"><button class="xl-btn" data-xl="export-sheet"><svg><use href="#i-download"/></svg><span>Ин варақ (.xlsx)</span></button></div>
+            <div class="xl-stack"><button class="xl-btn" data-xl="export-sheet"><svg><use href="#i-download"/></svg><span>Ин варақ (.xlsx)</span></button>
+            <button class="xl-btn" data-xl="pc-link" title="Файле, ки ҳангоми «Сабт» дар компютер нав мешавад"><svg viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></svg><span>${HN.lsGet(PC_NAME, "") ? "Файл: " + esc(HN.lsGet(PC_NAME, "")) : "Файли Excel дар компютер"}</span></button></div>
           </div><span class="xl-group-label">Содирот</span></div>
         </div>
         <div class="xl-formula"><span class="xl-namebox" id="xlName">A${FIRST}</span><span class="xl-fxicons" aria-hidden="true"><i>✕</i><i>✓</i><em>fx</em></span><input id="xlFx" readonly aria-label="Сатри формула" value="">
@@ -488,6 +497,7 @@
   });
   document.addEventListener("submit", e => { if (e.target.id !== "xlFind") return; e.preventDefault(); openCustomer(HN.$("xlFindIn").value); });
   document.addEventListener("keydown", e => { if (e.shiftKey && e.key === "F11" && HN.$("notebook")?.offsetParent) { e.preventDefault(); action("add-sheet"); } });
+  document.addEventListener("keydown", e => { if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.code === "KeyS" && HN.$("notebook")?.offsetParent && !document.querySelector("dialog[open]")) { e.preventDefault(); action("pc-save"); } });
   document.addEventListener("click", e => { const m = HN.$("xlSheetMenu"); if (m && !m.classList.contains("hidden") && !e.target.closest("#xlSheetMenu, [data-xl=all-sheets]")) m.classList.add("hidden"); });
   document.addEventListener("dblclick", async e => {
     const go = e.target.closest("#notebook tr[data-goto-sheet]");
@@ -658,6 +668,11 @@
     if (kind === "sync") { await sync(sh); return; }
     if (kind === "export-sheet") { exportBook(showTotal ? book.sheets : [sh]); return; }
     if (kind === "export-all") exportBook(book.sheets);
+    if (kind === "pc-save") { const h = await readyPcFile(true); if (h) await writePcFile(h); else if (!FS) exportBook(book.sheets); return; }
+    if (kind === "pc-link") {
+      if (!FS) { HN.toast("Ин браузер файлро дар компютер нав карда наметавонад. Chrome, Edge ё Yandex-ро истифода баред ё «Ҳамаи дафтар (.xlsx)»-ро пахш кунед."); return; }
+      try { const h = await pickPcFile(); await writePcFile(h); render(); } catch (e) { if (e?.name !== "AbortError") HN.toast("Файл интихоб нашуд: " + (e?.message || e), "error"); }
+    }
   }
 
   /* ---------- Save rows into the system as shipments ---------- */
@@ -719,6 +734,10 @@
     const noDate = p.ready.filter(r => !String(r.date || "").trim()).length;
     const warn = (noDate ? ` ${noDate} сатр сана надорад — санаи имрӯз гузошта мешавад.` : "") + (p.unfinished.length ? ` ${p.unfinished.length} сатр нопурра аст (сатри ${p.unfinished.slice(0, 3).map(rowNo).join(", ")}) ва сабт намешавад.` : "");
     if (!(await HN.confirm(`Варақи «${sh.name}» (Код: ${code}): ${parts} ба система сабт шавад? Ҳамагӣ $${xf(total)}.${warn} Пеш аз сабт рақамҳоро санҷед — баъд онҳо ба ҳисобот, қарз ва Telegram мераванд.`, { title: "Сабт дар система", ok: "Сабт" }))) return;
+    // Still inside the click: the browser lets us ask for the file / permission only now.
+    const firstAsk = FS && !HN.lsGet(PC_ASKED, false);
+    const pcHandle = await readyPcFile(firstAsk);
+    if (firstAsk) HN.lsSet(PC_ASKED, true);
     setStatus("Сабт шуда истодааст…");
     let done = 0;
     try {
@@ -726,6 +745,7 @@
       save(sh); await HN.reload();
       HN.toast(`Варақи «${sh.name}» ба система сабт шуд: ${done} сатр.`, "ok");
       setStatus(`Дар система сабт шуд ✓ (${done}) · ` + new Date().toLocaleTimeString("ru-RU").slice(0, 5));
+      if (pcHandle) await writePcFile(pcHandle);
     } catch (err) {
       console.error("Notebook sync", err); save(sh);
       const why = String(err?.message || "").slice(0, 160);
@@ -746,6 +766,11 @@
 
   /* ---------- Real .xlsx in the company's template layout («Новый образец 2025») ---------- */
   async function exportBook(sheets) {
+    const b = await buildBook(sheets); if (!b) return;
+    b.X.writeFile(b.wb, b.file.replace(/[\\/?*[\]:]/g, "-"), { compression: true, cellStyles: true });
+    setStatus("Файл омода шуд: " + b.file);
+  }
+  async function buildBook(sheets) {
     let X;
     try { if (!window.XLSX?.utils) setStatus("Файли Excel омода мешавад…"); X = await HN.loadXlsx(); }
     catch { HN.toast("Китобхонаи Excel бор нашуд. Интернетро санҷед ва дубора кӯшиш кунед.", "error"); return; }
@@ -847,8 +872,41 @@
       X.utils.book_append_sheet(wb, ws, HN.safeSheetName(TOTAL_NAME, names));
     }
     const file = sheets.length === 1 ? `HOJI-NAIM-${sheets[0].name}-${HN.today()}.xlsx` : `HOJI-NAIM-Дафтар-${HN.today()}.xlsx`;
-    X.writeFile(wb, file.replace(/[\\/?*[\]:]/g, "-"), { compression: true, cellStyles: true });
-    setStatus("Файл омода шуд: " + file);
+    return { X, wb, file };
+  }
+
+  /* ---------- The company's own .xlsx file on this computer (Chrome / Edge / Yandex) ---------- */
+  // The file is chosen once; after that every «Сабт» and 💾 / Ctrl+S overwrite the same file with the whole book.
+  async function pickPcFile() {
+    const h = await window.showSaveFilePicker({ suggestedName: "HOJI-NAIM CARGO.xlsx", types: [{ description: "Excel", accept: { "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"] } }] });
+    pcFile = h; HN.lsSet(PC_NAME, h.name); HN.lsSet(PC_ASKED, true); await fileStore("readwrite", st => st.put(h, "book")).catch(() => {});
+    return h;
+  }
+  // Must run inside a click: asks for the file (when `ask`) or for write permission the browser has forgotten.
+  async function readyPcFile(ask) {
+    if (!FS) return null;
+    try {
+      pcFile = pcFile || await fileStore("readonly", st => st.get("book")).catch(() => null);
+      if (!pcFile) return ask ? await pickPcFile() : null;
+      const o = { mode: "readwrite" };
+      if ((await pcFile.queryPermission(o)) === "granted" || (await pcFile.requestPermission(o)) === "granted") return pcFile;
+    } catch (e) { if (e?.name !== "AbortError") console.warn("Excel file", e); }
+    return null;
+  }
+  async function writePcFile(h) {
+    const b = await buildBook(book.sheets); if (!b) return false;
+    try {
+      const data = b.X.write(b.wb, { bookType: "xlsx", type: "array", compression: true, cellStyles: true });
+      const w = await h.createWritable(); await w.write(new Blob([data])); await w.close();
+      setStatus(`Файли «${h.name}» дар компютер сабт шуд ✓ · ` + new Date().toLocaleTimeString("ru-RU").slice(0, 5));
+      HN.toast(`Файли Excel «${h.name}» нав шуд.`, "ok");
+      const t = HN.$("xlSaved"); if (t && !t.textContent.includes(h.name)) t.textContent += ` · 💾 ${h.name}`;
+      return true;
+    } catch (e) {
+      console.warn("Excel file write", e);
+      HN.toast(`Файли «${h.name}» сабт нашуд. Агар он дар Excel кушода бошад, онро пӯшед ва 💾-ро пахш кунед.`, "error");
+      return false;
+    }
   }
 
   HN.notebook = {
