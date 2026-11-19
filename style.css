@@ -885,3 +885,6 @@ body.dark .xl .xl-cellin, body.dark .xl .xl-in input { background-color: transpa
 .xl-cny > b { font-size: 12px; color: #605e5c; }
 .xl-cnyrow input { width: 70px; min-height: 24px; height: 24px; font-size: 13px; }
 @media (max-width: 640px) { .xl-cny { gap: 6px; padding-left: 6px; } .xl-cny > b { display: none; } .xl-cnyrow input { width: 58px; } }
+
+.staff-mail { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+.staff-in { min-height: 32px; padding: 4px 9px; font-size: 13.5px; max-width: 230px; }
