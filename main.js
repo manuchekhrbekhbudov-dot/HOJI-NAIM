@@ -393,68 +393,132 @@
   /* ----- Payment form ----- */
   const payForm = $("paymentForm");
   let payPreselect = null;
-  function openPayment(shipmentId) {
+  // The form works per customer: type a name, code, phone or load number → pick the customer → their unpaid loads.
+  let payClient = null;
+  const ALL = "__all";
+  const dueShips = () => S.shipments.filter(s => HN.debt(s) > 0.005).sort((a, b) => HN.shipmentDate(a).localeCompare(HN.shipmentDate(b)));
+  const loadName = s => { const t = String(s.tracking_no || ""); return HN.noteValue(s, "Мол") || (t.startsWith("SHEET-") ? "" : t); };
+  const payHit = (s, q) => {
+    if (!q) return true;
+    const low = q.toLocaleLowerCase(), ck = HN.tgCodeKey(q), d = HN.digits(q);
+    return [s.client_name, s.tracking_no, loadName(s), HN.customerCode(s)].some(v => String(v || "").toLocaleLowerCase().includes(low)) ||
+      (ck.length >= 2 && HN.tgCodeKey(HN.customerCode(s)).includes(ck)) || (d.length >= 3 && /^[\d\s+()-]+$/.test(q) && HN.digits(s.client_phone).includes(d));
+  };
+  function payClients(q) {
+    const map = new Map();
+    dueShips().filter(s => payHit(s, q)).forEach(s => {
+      const k = HN.customerKey(s);
+      if (!map.has(k)) map.set(k, { key: k, name: s.client_name || "Муштарӣ", code: HN.customerCode(s), phone: s.client_phone || "", n: 0, debt: 0 });
+      const c = map.get(k); c.n++; c.debt += HN.debt(s);
+    });
+    // a customer whose code is exactly the query comes first
+    const ck = HN.tgCodeKey(q);
+    return [...map.values()].sort((a, b) => (HN.tgCodeKey(b.code) === ck) - (HN.tgCodeKey(a.code) === ck) || b.debt - a.debt);
+  }
+  function showPaySuggest() {
+    const q = $("payShipFilter").value.trim(), box = $("paySuggest");
+    if (!q || payClient) { box.classList.add("hidden"); box.innerHTML = ""; return; }
+    const list = payClients(q).slice(0, 8);
+    box.innerHTML = list.length ? list.map((c, i) => `<button type="button" role="option" class="pay-sug${i ? "" : " on"}" data-client="${esc(c.key)}"><span><b>${esc(c.name)}</b>${c.code ? ` <em>${esc(c.code)}</em>` : ""}${c.phone ? ` <small>${esc(c.phone)}</small>` : ""}</span><span class="pay-sug-r">${c.n} бор · <b class="neg">${money(c.debt)}</b></span></button>`).join("")
+      : '<p class="pay-sug-none">Муштарии қарздор ёфт нашуд.</p>';
+    box.classList.remove("hidden");
+  }
+  function pickPayClient(key) {
+    payClient = key; payPreselect = null;
+    const c = payClients("").find(x => x.key === key);
+    if (c) $("payShipFilter").value = [c.name, c.code].filter(Boolean).join(" · ");
+    $("paySuggest").classList.add("hidden");
+    fillPayOptions();
+    payForm.elements.amount.focus();
+  }
+  function openPayment(shipmentId, clientKey) {
     if (!HN.can("finance")) { HN.toast("Барои сабти пардохт нақши муҳосиб ё админ лозим аст."); return; }
-    const due = S.shipments.filter(s => HN.debt(s) > 0.005);
+    const due = dueShips();
     if (!due.length) { HN.toast("Бори қарздор нест."); return; }
+    if (clientKey && !due.some(s => HN.customerKey(s) === clientKey)) { HN.toast("Ин муштарӣ қарз надорад."); return; }
     payForm.reset(); $("paymentMsg").textContent = ""; $("payShipFilter").value = "";
     payPreselect = shipmentId && due.some(s => String(s.id) === String(shipmentId)) ? String(shipmentId) : null;
-    fillPayOptions();
+    payClient = null;
+    $("paymentDialog").showModal();
     payForm.elements.currency.value = "TJS"; payForm.elements.fx_rate.value = "1"; payForm.elements.method.value = "cash";
     payForm.elements.payment_date.value = HN.today();
-    $("paymentDialog").showModal();
-    payForm.elements.amount.focus();
+    if (payPreselect) pickPayClient(HN.customerKey(HN.shipmentById(payPreselect)));
+    else if (clientKey) pickPayClient(clientKey);
+    else { fillPayOptions(); showPaySuggest(); $("payShipFilter").focus(); }
   }
   function fillPayOptions() {
     const q = $("payShipFilter").value.trim();
-    const sel = $("payShipment"), prev = sel.value || payPreselect;
-    const due = S.shipments.filter(s => HN.debt(s) > 0.005 && (HN.matches(s, q) || String(s.id) === prev));
-    sel.innerHTML = due.map(s => `<option value="${esc(s.id)}">${esc(s.tracking_no || "—")} — ${esc(s.client_name || "Муштарӣ")}${HN.customerCode(s) ? " (" + esc(HN.customerCode(s)) + ")" : ""} · қарз ${money(HN.debt(s))}</option>`).join("");
-    if (prev && due.some(s => String(s.id) === prev)) sel.value = prev;
+    const sel = $("payShipment"), prev = payPreselect || sel.value;
+    const due = dueShips().filter(s => payClient ? HN.customerKey(s) === payClient : payHit(s, q));
+    const opt = s => `<option value="${esc(s.id)}">${esc([HN.customerCode(s) || s.client_name || "Муштарӣ", HN.fmtDate(HN.shipmentDate(s)), loadName(s), `${HN.fmtQty(s.weight_kg, 1)} кг`].filter(Boolean).join(" · "))} — қарз ${money(HN.debt(s))}</option>`;
+    const all = payClient && due.length > 1 ? `<option value="${ALL}">Ҳамаи борҳо (${due.length}) — қарз ${money(due.reduce((n, s) => n + HN.debt(s), 0))}</option>` : "";
+    sel.innerHTML = all + due.map(opt).join("");
+    if (prev && [...sel.options].some(o => o.value === prev)) sel.value = prev;
     updateDebtBox();
   }
+  const payTargets = () => $("payShipment").value === ALL ? dueShips().filter(s => HN.customerKey(s) === payClient) : [HN.shipmentById($("payShipment").value)].filter(Boolean);
   function updateDebtBox() {
-    const s = HN.shipmentById($("payShipment").value);
-    if (!s) { $("payDebtBox").innerHTML = '<span class="muted">Бор ёфт нашуд.</span>'; return; }
-    const pct = HN.total(s) > 0 ? Math.min(100, (HN.paid(s) / HN.total(s)) * 100) : 0;
-    $("payDebtBox").innerHTML = `<div class="debt-row"><span>Ҳисоб</span><b>${money(HN.total(s))}</b></div><div class="debt-row"><span>Пардохт шуд</span><b>${money(HN.paid(s))}</b></div><div class="debt-row big"><span>Қарзи боқимонда</span><b class="neg">${money(HN.debt(s))} TJS</b></div><div class="progress"><i style="width:${pct}%"></i></div>`;
+    const list = payTargets();
+    if (!list.length) { $("payDebtBox").innerHTML = '<span class="muted">Бор ёфт нашуд. Номи муштарӣ, код, телефон ё рақами борро нависед.</span>'; return; }
+    const total = list.reduce((n, s) => n + HN.total(s), 0), paid = list.reduce((n, s) => n + HN.paid(s), 0), debt = list.reduce((n, s) => n + HN.debt(s), 0);
+    const pct = total > 0 ? Math.min(100, (paid / total) * 100) : 0;
+    $("payDebtBox").innerHTML = `${list.length > 1 ? `<div class="debt-row"><span>Борҳо</span><b>${list.length}</b></div>` : ""}<div class="debt-row"><span>Ҳисоб</span><b>${money(total)}</b></div><div class="debt-row"><span>Пардохт шуд</span><b>${money(paid)}</b></div><div class="debt-row big"><span>Қарзи боқимонда</span><b class="neg">${money(debt)} TJS</b></div><div class="progress"><i style="width:${pct}%"></i></div>${list.length > 1 ? '<p class="hint">Пул аз бори кӯҳнатарин сар карда тақсим мешавад.</p>' : ""}`;
   }
-  $("payShipFilter").addEventListener("input", fillPayOptions);
+  $("payShipFilter").addEventListener("input", () => { payClient = null; payPreselect = null; fillPayOptions(); showPaySuggest(); });
+  $("payShipFilter").addEventListener("keydown", e => {
+    const box = $("paySuggest"), items = [...box.querySelectorAll("[data-client]")];
+    if (box.classList.contains("hidden") || !items.length) return;
+    const i = items.findIndex(x => x.classList.contains("on"));
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); const j = (i + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length; items.forEach((x, k) => x.classList.toggle("on", k === j)); }
+    else if (e.key === "Enter") { e.preventDefault(); pickPayClient((items[i] || items[0]).dataset.client); }
+    else if (e.key === "Escape") { e.preventDefault(); box.classList.add("hidden"); }
+  });
+  $("paySuggest").addEventListener("click", e => { const b = e.target.closest("[data-client]"); if (b) pickPayClient(b.dataset.client); });
   $("payShipment").addEventListener("change", () => { payPreselect = $("payShipment").value; updateDebtBox(); });
   payForm.elements.currency.addEventListener("change", () => { payForm.elements.fx_rate.value = String(fxDefault(payForm.elements.currency.value)); });
   $("payFull").addEventListener("click", () => {
-    const s = HN.shipmentById($("payShipment").value); if (!s) return;
+    const list = payTargets(); if (!list.length) return;
     const rate = HN.num(payForm.elements.fx_rate.value) || 1;
-    payForm.elements.amount.value = (Math.floor((HN.debt(s) / rate) * 100) / 100).toFixed(2);
+    payForm.elements.amount.value = (Math.floor((list.reduce((n, s) => n + HN.debt(s), 0) / rate) * 100) / 100).toFixed(2);
   });
   payForm.addEventListener("submit", async e => {
     e.preventDefault();
     const f = payForm.elements, msg = $("paymentMsg"); msg.dataset.kind = "error";
-    const s = HN.shipmentById(f.shipment_id.value);
+    const list = payTargets(), s = list[0];
     const amount = HN.num(f.amount.value), rate = HN.num(f.fx_rate.value);
-    if (!s) { msg.textContent = "Борро интихоб кунед."; return; }
+    if (!s) { msg.textContent = "Муштарӣ ва борро интихоб кунед."; return; }
     if (amount <= 0 || rate <= 0) { msg.textContent = "Маблағ ва қурбро дуруст ворид кунед."; return; }
     if (!f.payment_date.value) { msg.textContent = "Санаро интихоб кунед."; return; }
     if (HN.isLocked?.(f.payment_date.value)) { msg.textContent = HN.lockMsg(); return; }
     let tjs = HN.round2(amount * rate);
-    const debt = HN.debt(s);
+    const debt = HN.round2(list.reduce((n, x) => n + HN.debt(x), 0));
     if (tjs > debt + 0.005) {
       if (tjs - debt > 0.05) { msg.textContent = `Маблағ (${money(tjs)} TJS) аз қарзи боқимонда (${money(debt)} TJS) зиёд аст.`; return; }
-      tjs = HN.round2(debt); // currency rounding of a few dirams
+      tjs = debt; // currency rounding of a few dirams
     }
+    // Oldest load first; each part keeps the same currency and rate.
+    const parts = []; let left = tjs;
+    for (const x of list) { if (left <= 0.005) break; const part = HN.round2(Math.min(left, HN.debt(x))); if (part > 0.005) { parts.push({ s: x, tjs: part }); left = HN.round2(left - part); } }
+    if (left > 0.005 && parts.length) parts[parts.length - 1].tjs = HN.round2(parts[parts.length - 1].tjs + left);
     msg.dataset.kind = ""; msg.textContent = "Сабт шуда истодааст…";
     const btn = payForm.querySelector('[type="submit"]'); btn.disabled = true;
-    const pay = { shipment_id: s.id, currency: f.currency.value, amount_original: amount, fx_rate: rate, amount_tjs: tjs, payment_date: f.payment_date.value, notes: f.notes.value.trim(), created_by: S.user.id };
-    if (S.features.payMethod !== false) pay.method = f.method.value;
-    let r = await S.db.from("payments").insert(pay);
-    if (r.error && /'method' column/i.test(r.error.message || "")) { S.features.payMethod = false; HN.extras?.applyFeatures(); delete pay.method; r = await S.db.from("payments").insert(pay); }
+    const rows = parts.map(p => {
+      const pay = { shipment_id: p.s.id, currency: f.currency.value, amount_original: parts.length > 1 ? HN.round2(p.tjs / rate) : amount, fx_rate: rate, amount_tjs: p.tjs, payment_date: f.payment_date.value, notes: f.notes.value.trim(), created_by: S.user.id };
+      if (S.features.payMethod !== false) pay.method = f.method.value;
+      return pay;
+    });
+    const body = () => (rows.length === 1 ? rows[0] : rows);
+    let r = await S.db.from("payments").insert(body());
+    if (r.error && /'method' column/i.test(r.error.message || "")) { S.features.payMethod = false; HN.extras?.applyFeatures(); rows.forEach(x => delete x.method); r = await S.db.from("payments").insert(body()); }
     btn.disabled = false;
     if (r.error) { msg.dataset.kind = "error"; msg.textContent = HN.dbError(r.error); return; }
     if (f.currency.value === "USD") HN.lsSet(RATE_KEY, rate);
     $("paymentDialog").close();
-    HN.toast(tjs >= debt - 0.005 ? "Пардохт сабт шуд. Бор пурра пардохт шуд." : `Пардохт сабт шуд. Қарзи боқимонда: ${money(debt - tjs)} TJS.`, "ok");
+    const rest = debt - tjs;
+    HN.toast(`${parts.length > 1 ? `Пардохт ба ${parts.length} бор тақсим шуд. ` : "Пардохт сабт шуд. "}${rest <= 0.005 ? "Қарз пурра пардохт шуд." : `Қарзи боқимонда: ${money(rest)} TJS.`}`, "ok");
     await loadData(); if ($("detailDialog").open) openDetail(s.id);
   });
+  HN.openPayment = openPayment;
   $("addPaymentBtn").addEventListener("click", () => openPayment());
 
   /* ----- Expenses ----- */
