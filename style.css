@@ -894,3 +894,21 @@ body.dark details.setup summary, body.dark summary { color: #c0cbe0; }
 body.dark .btn-danger-soft:hover { background: rgba(255,123,110,.18); }
 .auth-private { margin: 2px 0 0; text-align: center; font-size: 12.5px; color: #6b7a96; }
 .auth.night .auth-private { color: #9fb0cf; }
+/* Payment form: customer search with a suggestion list */
+.pay-find { position: relative; }
+.pay-find > label { font-size: 12.5px; font-weight: 600; color: var(--text-2); }
+.pay-suggest { position: absolute; left: 0; right: 0; top: 100%; margin-top: 4px; z-index: 5; background: var(--surface, #fff); border: 1px solid var(--line-strong); border-radius: 12px; box-shadow: 0 12px 30px rgba(15,30,60,.18); max-height: 300px; overflow-y: auto; padding: 4px; }
+.pay-sug { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 10px; border: 0; background: none; border-radius: 8px; cursor: pointer; text-align: left; font: inherit; color: var(--text); }
+.pay-sug:hover, .pay-sug.on { background: var(--navy-50); }
+.pay-sug em { font-style: normal; font-weight: 700; color: var(--navy-600); margin-left: 4px; }
+.pay-sug small { color: var(--muted); margin-left: 6px; }
+.pay-sug-r { white-space: nowrap; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pay-sug-none { margin: 0; padding: 10px; color: var(--muted); font-size: 13px; }
+.debt-box .hint { margin: 4px 0 0; font-size: 12px; }
+body.dark .pay-suggest { background: #141e33; box-shadow: 0 12px 30px rgba(0,0,0,.5); }
+body.dark .pay-sug:hover, body.dark .pay-sug.on { background: #1d2a45; }
+body.dark .pay-sug em { color: #8fb4ff; }
+.xl-paycell { text-align: center; }
+.xl-paybtn { border: 1px solid #1e7145; background: #1e7145; color: #fff; font: 600 12px/1 inherit; padding: 4px 10px; border-radius: 4px; cursor: pointer; }
+.xl-paybtn:hover { background: #185c38; }
+.xl-paid { color: #1e7145; font-weight: 600; font-size: 12px; }

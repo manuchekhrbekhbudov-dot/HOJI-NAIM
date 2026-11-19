@@ -122,6 +122,20 @@
     HN.lsSet(BOOK_KEY, book);
   }
 
+  /* ---------- Money of the sheet's customer: all their loads in the system and the payments on them ---------- */
+  function sheetShips(sh) {
+    const code = String(sh.code || "").trim().toLocaleLowerCase(), pk = String(sh.phone || "").replace(/\D/g, "").slice(-9);
+    const mine = new Set(sh.rows.map(r => r.syncTrackingNo).filter(Boolean));
+    return S.shipments.filter(s => mine.has(s.tracking_no) || (code ? HN.customerCode(s).toLocaleLowerCase() === code : pk.length >= 7 && !HN.customerCode(s) && String(s.client_phone || "").replace(/\D/g, "").slice(-9) === pk));
+  }
+  function moneyCells(sh) {
+    const list = sheetShips(sh);
+    const total = list.reduce((n, s) => n + HN.total(s), 0), paid = list.reduce((n, s) => n + HN.paid(s), 0), debt = list.reduce((n, s) => n + HN.debt(s), 0);
+    const val = (c, v, cls = "") => td(1, c, list.length ? HN.money(v) : "—", `xl-box xl-num xl-b ${cls}`);
+    return td(1, 10, "Ҳисоб", "xl-b xl-right xl-lav") + val(11, total) + td(1, 12, "Пардохт", "xl-b xl-right xl-lav") + val(13, paid) + td(1, 14, "Қарз", "xl-b xl-right xl-lav") + val(15, debt, debt > 0.005 ? "xl-red" : "") +
+      `<td class="xl-c xl-paycell" colspan="2" data-r="1" data-c="16">${debt > 0.005 ? '<button type="button" class="xl-paybtn" data-xl="pay" title="Пардохти ин муштарӣ">+ Пардохт</button>' : list.length ? '<span class="xl-paid">✓ Пардохт шуд</span>' : ""}</td>`;
+  }
+
   /* ---------- Database rows of the sheet's customer (read-only) ---------- */
   function dbRows(sh) {
     const code = String(sh.code || "").trim().toLocaleLowerCase(), pk = String(sh.phone || "").replace(/\D/g, "").slice(-9);
@@ -371,7 +385,7 @@
     const row = (n, cells, cls = "") => `<tr class="${cls}"><th class="xl-rh">${n}</th>${cells}</tr>`;
     const blanks = (from, to, r) => Array.from({ length: to - from + 1 }, (_, i) => td(r, from + i, "", "xl-blank")).join("");
     let h = "";
-    h += row(1, td(1, 0, "Код", "xl-b xl-box") + `<td class="xl-c xl-box xl-in" colspan="5" data-r="1" data-c="1">${metaIn("code", sh.code, "Код")}</td>` + blanks(6, 6, 1) + td(1, 7, "Курс $", "xl-b xl-right") + `<td class="xl-c xl-box xl-in xl-num" data-r="1" data-c="8">${metaIn("usdRate", book.usdRate, "Курси доллар")}</td>` + blanks(9, 17, 1));
+    h += row(1, td(1, 0, "Код", "xl-b xl-box") + `<td class="xl-c xl-box xl-in" colspan="5" data-r="1" data-c="1">${metaIn("code", sh.code, "Код")}</td>` + blanks(6, 6, 1) + td(1, 7, "Курс $", "xl-b xl-right") + `<td class="xl-c xl-box xl-in xl-num" data-r="1" data-c="8">${metaIn("usdRate", book.usdRate, "Курси доллар")}</td>` + blanks(9, 9, 1) + moneyCells(sh));
     h += row(2, td(2, 0, "Тел", "xl-b xl-box") + `<td class="xl-c xl-box xl-in" colspan="5" data-r="2" data-c="1">${metaIn("phone", sh.phone, "Тел")}</td>` + blanks(6, 6, 2) + td(2, 7, "Курс ¥", "xl-b xl-right") + `<td class="xl-c xl-box xl-in xl-num" data-r="2" data-c="8">${metaIn("cnyRate", book.cnyRate, "Курси юан")}</td>` + blanks(9, 17, 2));
     h += row(3, blanks(0, 17, 3));
     h += row(4, blanks(0, 10, 4) + td(4, 11, "", "xl-box xl-lav") + `<td class="xl-c xl-box xl-lav xl-center" colspan="2" data-r="4" data-c="12">Место</td><td class="xl-c xl-box xl-lav xl-center" colspan="2" data-r="4" data-c="14">Юань</td><td class="xl-c xl-box xl-lav xl-center" colspan="2" data-r="4" data-c="16">Доллар</td>`);
@@ -601,6 +615,10 @@
       setStatus("Варақи «" + n.name + "» илова шуд"); return;
     }
     if (kind === "clean") { await cleanEmpty(); return; }
+    if (kind === "pay") {
+      const ship = sheetShips(sh).find(x => HN.debt(x) > 0.005);
+      if (ship) HN.openPayment?.(null, HN.customerKey(ship)); return;
+    }
     if (kind === "customer") { HN.openCustomerHistory(showTotal ? "" : (sh.code || sh.phone || "")); return; }
     if (kind === "all-sheets") { HN.$("xlSheetMenu")?.classList.toggle("hidden"); return; }
     if (kind === "rename") { const t = root().querySelector(".xl-tab.on"); if (t) startRename(t); return; }

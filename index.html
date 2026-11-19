@@ -8,13 +8,13 @@
   <title>HOJI-NAIM CARGO</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://wfxbgkasstkxzmyrjwpi.supabase.co" crossorigin>
-  <link rel="stylesheet" href="style.css?v=20261120-akttg">
+  <link rel="stylesheet" href="style.css?v=20261120-paysearch">
   <script src="vendor/supabase-js-2.118.0.js" defer></script>
-  <script src="js/core.js?v=20261120-akttg" defer></script>
-  <script src="js/exporter.js?v=20261120-akttg" defer></script>
-  <script src="js/notebook.js?v=20261120-akttg" defer></script>
-  <script src="js/extras.js?v=20261120-akttg" defer></script>
-  <script src="main.js?v=20261120-akttg" defer></script>
+  <script src="js/core.js?v=20261120-paysearch" defer></script>
+  <script src="js/exporter.js?v=20261120-paysearch" defer></script>
+  <script src="js/notebook.js?v=20261120-paysearch" defer></script>
+  <script src="js/extras.js?v=20261120-paysearch" defer></script>
+  <script src="main.js?v=20261120-paysearch" defer></script>
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -404,13 +404,14 @@
   <dialog id="paymentDialog" class="modal" aria-labelledby="paymentTitle">
     <form id="paymentForm" class="modal-body" novalidate>
       <div class="modal-head"><div><p class="eyebrow">Муҳосибӣ</p><h2 id="paymentTitle">Сабти пардохт</h2></div><button type="button" class="icon-btn" data-close aria-label="Пӯшидан"><svg><use href="#i-x"/></svg></button></div>
-      <label class="field"><span>Ҷустуҷӯи бор</span><input id="payShipFilter" type="search" placeholder="Муштарӣ, код ё рақами трек…" autocomplete="off"></label>
+      <div class="field pay-find"><label for="payShipFilter">Муштарӣ</label><input id="payShipFilter" type="search" placeholder="Ном, код, телефон ё рақами бор…" autocomplete="off" role="combobox" aria-controls="paySuggest" aria-autocomplete="list">
+        <div id="paySuggest" class="pay-suggest hidden" role="listbox" aria-label="Муштариёни қарздор"></div></div>
       <label class="field"><span>Бор *</span><select name="shipment_id" id="payShipment" required size="1"></select></label>
       <div class="debt-box" id="payDebtBox"></div>
       <div class="grid-fields">
-        <label class="field"><span>Маблағ *</span><input name="amount" type="number" min="0.01" step="0.01" required inputmode="decimal"></label>
+        <label class="field"><span>Маблағ *</span><input name="amount" type="number" min="0.01" step="0.01" required inputmode="decimal" autocomplete="off"></label>
         <label class="field"><span>Асъор</span><select name="currency"><option value="TJS">TJS</option><option value="USD">USD</option><option value="CNY">CNY</option></select></label>
-        <label class="field"><span>Қурб ба сомонӣ</span><input name="fx_rate" type="number" min="0.000001" step="any" value="1" required></label>
+        <label class="field"><span>Қурб ба сомонӣ</span><input name="fx_rate" type="number" min="0.000001" step="any" value="1" required autocomplete="off"></label>
         <label class="field feat-paymethod"><span>Усул</span><select name="method"><option value="cash">Нақд</option><option value="online">Онлайн</option><option value="bank_transfer">Интиқоли бонкӣ</option><option value="other">Дигар</option></select></label>
         <label class="field"><span>Сана</span><input name="payment_date" type="date" required></label>
       </div>
@@ -427,7 +428,7 @@
       <div class="modal-head"><div><p class="eyebrow">Муҳосибӣ</p><h2 id="expenseTitle">Хароҷот</h2></div><button type="button" class="icon-btn" data-close aria-label="Пӯшидан"><svg><use href="#i-x"/></svg></button></div>
       <label class="field"><span>Категория *</span><input name="category" required maxlength="100" list="expenseCategories"></label>
       <div class="grid-fields">
-        <label class="field"><span>Маблағ *</span><input name="amount" type="number" min="0.01" step="0.01" required inputmode="decimal"></label>
+        <label class="field"><span>Маблағ *</span><input name="amount" type="number" min="0.01" step="0.01" required inputmode="decimal" autocomplete="off"></label>
         <label class="field"><span>Асъор</span><select name="currency"><option value="TJS">TJS</option><option value="USD">USD</option><option value="CNY">CNY</option></select></label>
         <label class="field"><span>Қурб ба сомонӣ</span><input name="fx_rate" type="number" min="0.000001" step="any" value="1" required></label>
         <label class="field"><span>Сана *</span><input name="expense_date" type="date" required></label>
