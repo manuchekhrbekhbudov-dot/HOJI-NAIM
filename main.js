@@ -674,21 +674,39 @@
   async function loadStaff() {
     if (!HN.can("admin")) return;
     const body = $("staffRows"); body.innerHTML = '<tr><td colspan="5" class="muted">Бор шуда истодааст…</td></tr>';
-    const r = await S.db.from("profiles").select("id,full_name,phone,role,created_at").order("created_at", { ascending: true });
+    const [r, em] = await Promise.all([
+      S.db.from("profiles").select("id,full_name,phone,role,created_at").order("created_at", { ascending: true }),
+      S.db.rpc("admin_staff_emails"),   // supabase/staff-emails.sql
+    ]);
     if (r.error) { body.innerHTML = `<tr><td colspan="5" class="neg">Хато: ${esc(HN.dbError(r.error))}</td></tr>`; return; }
     staffLoaded = true; staffList = r.data || [];
+    const emails = new Map((em.error ? [] : em.data || []).map(x => [x.id, x]));
+    staffEmails = !em.error;
+    $("staffEmailHint")?.classList.toggle("hidden", staffEmails);
     const mine = HN.role();
     body.innerHTML = staffList.map(p => {
       const role = String(p.role || "customer");
       const roles = ["customer", "operator", "accountant", "admin", ...(mine === "owner" ? ["owner"] : [])];
       const locked = p.id === S.user.id || (role === "owner" && mine !== "owner");
-      return `<tr>${td(`<b>${esc(p.full_name || "—")}</b>${p.id === S.user.id ? ' <span class="pill pay-paid">Шумо</span>' : ""}`)}${td(esc(p.phone || "—"), "nowrap")}${td(`<span class="pill role-${esc(role)}">${esc(HN.roleText[role] || role)}</span>`)}<td><select class="role-select" data-staff="${esc(p.id)}" ${locked ? "disabled" : ""} aria-label="Нақши нав">${roles.map(x => `<option value="${x}" ${x === role ? "selected" : ""}>${HN.roleText[x]}</option>`).join("")}</select></td><td class="acts"><button class="btn btn-xs btn-soft" data-act="save-role" data-id="${esc(p.id)}" ${locked ? "disabled" : ""}>Сабт</button><button class="icon-btn sm danger" data-act="del-profile" data-id="${esc(p.id)}" ${locked ? "disabled" : ""} title="Нест кардани профил" aria-label="Нест кардани профил"><svg><use href="#i-trash"/></svg></button></td></tr>`;
+      const u = emails.get(p.id), mailLine = u ? `<small class="staff-mail">${esc(u.email || "—")}${u.last_sign_in_at ? ` · охирин: ${HN.fmtDateTime(u.last_sign_in_at)}` : " · ҳанӯз ворид нашудааст"}</small>` : "";
+      const nameCell = staffEmails && !locked ? `<input class="staff-in" data-sname="${esc(p.id)}" value="${esc(p.full_name || "")}" placeholder="Ном, масалан Бахтиёр" maxlength="120">` : `<b>${esc(p.full_name || u?.email || "—")}</b>`;
+      const phoneCell = staffEmails && !locked ? `<input class="staff-in" data-sphone="${esc(p.id)}" value="${esc(p.phone || "")}" placeholder="+992 …" maxlength="40">` : esc(p.phone || "—");
+      return `<tr>${td(`${nameCell}${p.id === S.user.id ? ' <span class="pill pay-paid">Шумо</span>' : ""}${mailLine}`)}${td(phoneCell, "nowrap")}${td(`<span class="pill role-${esc(role)}">${esc(HN.roleText[role] || role)}</span>`)}<td><select class="role-select" data-staff="${esc(p.id)}" ${locked ? "disabled" : ""} aria-label="Нақши нав">${roles.map(x => `<option value="${x}" ${x === role ? "selected" : ""}>${HN.roleText[x]}</option>`).join("")}</select></td><td class="acts"><button class="btn btn-xs btn-soft" data-act="save-role" data-id="${esc(p.id)}" ${locked ? "disabled" : ""}>Сабт</button><button class="icon-btn sm danger" data-act="del-profile" data-id="${esc(p.id)}" ${locked ? "disabled" : ""} title="Нест кардани профил" aria-label="Нест кардани профил"><svg><use href="#i-trash"/></svg></button></td></tr>`;
     }).join("") || '<tr><td colspan="5" class="muted">Аккаунт ёфт нашуд.</td></tr>';
   }
+  let staffEmails = false;
   $("refreshStaffBtn").addEventListener("click", loadStaff);
   async function saveRole(id) {
     const sel = document.querySelector(`.role-select[data-staff="${CSS.escape(id)}"]`); if (!sel) return;
     const p = staffList.find(x => x.id === id);
+    // name / phone typed in the row
+    const nm = document.querySelector(`[data-sname="${CSS.escape(id)}"]`), ph = document.querySelector(`[data-sphone="${CSS.escape(id)}"]`);
+    if (nm && ph && (nm.value.trim() !== (p?.full_name || "") || ph.value.trim() !== (p?.phone || ""))) {
+      const r0 = await S.db.rpc("admin_set_profile_info", { target_user_id: id, new_name: nm.value.trim(), new_phone: ph.value.trim() });
+      if (r0.error) { HN.toast("Ном сабт нашуд: " + HN.dbError(r0.error), "error"); return; }
+      if (p) { p.full_name = nm.value.trim(); p.phone = ph.value.trim(); }
+      if (sel.value === String(p?.role || "customer")) { HN.toast("Ном ва телефон сабт шуд.", "ok"); loadStaff(); return; }
+    }
     if (!(await HN.confirm(`Нақши «${p?.full_name || "корманд"}» ба «${HN.roleText[sel.value]}» иваз карда шавад?`, { ok: "Иваз кардан" }))) return;
     const r = await S.db.rpc("admin_set_profile_role", { target_user_id: id, new_role: sel.value });
     if (r.error) { HN.toast("Нақш иваз нашуд: " + HN.dbError(r.error), "error"); return; }

@@ -8,13 +8,13 @@
   <title>HOJI-NAIM CARGO</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://wfxbgkasstkxzmyrjwpi.supabase.co" crossorigin>
-  <link rel="stylesheet" href="style.css?v=20261119-cnybox">
+  <link rel="stylesheet" href="style.css?v=20261119-staff">
   <script src="vendor/supabase-js-2.118.0.js" defer></script>
-  <script src="js/core.js?v=20261119-cnybox" defer></script>
-  <script src="js/exporter.js?v=20261119-cnybox" defer></script>
-  <script src="js/notebook.js?v=20261119-cnybox" defer></script>
-  <script src="js/extras.js?v=20261119-cnybox" defer></script>
-  <script src="main.js?v=20261119-cnybox" defer></script>
+  <script src="js/core.js?v=20261119-staff" defer></script>
+  <script src="js/exporter.js?v=20261119-staff" defer></script>
+  <script src="js/notebook.js?v=20261119-staff" defer></script>
+  <script src="js/extras.js?v=20261119-staff" defer></script>
+  <script src="main.js?v=20261119-staff" defer></script>
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -327,7 +327,7 @@
           <article class="kpi"><span>Муштариён</span><strong id="aCustomers">—</strong><small>ҳамагӣ</small></article>
         </div>
         <div class="panel flush">
-          <div class="panel-head pad"><div><h3>Кормандон ва нақшҳо</h3><p class="muted">Нақшро интихоб кунед ва «Сабт»-ро пахш кунед. Нақши худатонро иваз карда наметавонед.</p></div><button class="btn btn-ghost" id="refreshStaffBtn"><svg><use href="#i-refresh"/></svg><span>Навсозӣ</span></button></div>
+          <div class="panel-head pad"><div><h3>Кормандон ва нақшҳо</h3><p class="muted">Ном, телефон ва нақшро нависед/интихоб кунед ва «Сабт»-ро пахш кунед. Нақши худатонро иваз карда наметавонед.</p><p class="hint hidden" id="staffEmailHint">Барои дидани email-и ҳар корманд ва навиштани номҳо як бор дар Supabase → SQL Editor файли <code>supabase/staff-emails.sql</code>-ро иҷро кунед.</p></div><button class="btn btn-ghost" id="refreshStaffBtn"><svg><use href="#i-refresh"/></svg><span>Навсозӣ</span></button></div>
           <div class="table-wrap"><table class="tbl"><thead><tr><th>Ном</th><th>Телефон</th><th>Нақши ҳозира</th><th>Нақши нав</th><th></th></tr></thead><tbody id="staffRows"></tbody></table></div>
         </div>
         <div class="grid-2">
