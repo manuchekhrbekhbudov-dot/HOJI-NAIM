@@ -57,6 +57,7 @@
   };
   HN.latestUsd = () => { const l = allRates(); return l.length ? HN.num(l[l.length - 1].usd) : 0; };
   HN.latestCny = () => { const l = allRates(); return l.length ? HN.num(l[l.length - 1].cny) : 0; };
+  HN.latestRate = () => { const l = allRates(); return l.length ? l[l.length - 1] : null; };
   // Money in the currency chosen for reports (TJS or USD at the rate of that day).
   HN.cur = HN.lsGet("hn-report-cur", "TJS") === "USD" ? "USD" : "TJS";
   HN.val = {
@@ -71,7 +72,10 @@
 
   async function saveRate(date, usd, cny) {
     if (S.features.rates) {
-      const r = await S.db.from("fx_rates").upsert({ rate_date: date, usd, cny: cny || null }, { onConflict: "rate_date" });
+      // update the day, else add it (plain update/insert — the database may refuse «upsert»)
+      const row = { rate_date: date, usd, cny: cny || null };
+      let r = await S.db.from("fx_rates").update({ usd, cny: cny || null }).eq("rate_date", date).select("rate_date");
+      if (!r.error && !(r.data || []).length) { r = await S.db.from("fx_rates").insert(row); if (r.error?.code === "23505") r = await S.db.from("fx_rates").update({ usd, cny: cny || null }).eq("rate_date", date); }
       if (r.error) throw r.error;
       const i = S.rates.findIndex(x => x.rate_date === date);
       if (i >= 0) S.rates[i] = { ...S.rates[i], usd, cny }; else S.rates.push({ rate_date: date, usd, cny });
@@ -595,7 +599,7 @@
     const st = e.target.closest("[data-statement]"); if (st) { e.stopPropagation(); openStatement(st.dataset.statement); }
   }, true);
   HN.extras = {
-    load, applyFeatures, renderKassa, renderBatches, openStatement, openBatch, openBatchForm,
+    load, applyFeatures, renderKassa, renderBatches, openStatement, openBatch, openBatchForm, saveRate,
     afterRender(view) {
       if (view === "warehouse") setWtab(wtab);
       if (view === "admin") renderAdminExtras();

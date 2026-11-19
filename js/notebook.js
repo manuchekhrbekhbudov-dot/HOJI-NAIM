@@ -287,7 +287,14 @@
       try { localStorage.removeItem(OLD_DRAFT_KEY); localStorage.removeItem(OLD_META_KEY); } catch {}
       HN.lsSet(BOOK_KEY, book);
     }
-    if (!ready) { ready = true; await loadRemote(); scheduleAuto(); }
+    if (!ready) {
+      ready = true; await loadRemote(); scheduleAuto();
+      // newest daily rate from the database (shared by all computers) wins over an older local one
+      const l = HN.latestRate?.();
+      if (l && N(l.usd) > 0 && N(l.cny) > 0 && (!book.rateDate || String(l.rate_date) >= String(book.rateDate))) {
+        book.usdRate = N(l.usd); setYuanRate(N(l.usd) / N(l.cny), true); book.rateDate = String(l.rate_date);
+      }
+    }
     const sh = activeSheet(); book.active = sh.id;
     const ro = dbRows(sh);
     el.innerHTML = `
@@ -319,7 +326,9 @@
             <div class="xl-stack"><button class="xl-btn" data-xl="export-sheet"><svg><use href="#i-download"/></svg><span>Ин варақ (.xlsx)</span></button></div>
           </div><span class="xl-group-label">Содирот</span></div>
         </div>
-        <div class="xl-formula"><span class="xl-namebox" id="xlName">A${FIRST}</span><span class="xl-fxicons" aria-hidden="true"><i>✕</i><i>✓</i><em>fx</em></span><input id="xlFx" readonly aria-label="Сатри формула" value=""></div>
+        <div class="xl-formula"><span class="xl-namebox" id="xlName">A${FIRST}</span><span class="xl-fxicons" aria-hidden="true"><i>✕</i><i>✓</i><em>fx</em></span><input id="xlFx" readonly aria-label="Сатри формула" value="">
+          <span class="xl-cny" title="Курби юан${book.rateDate ? " · " + HN.fmtDate(book.rateDate) : ""}"><b>Курби юан</b><label class="xl-cnyrow"><span>1 $ =</span><input id="xlCny" type="text" inputmode="decimal" value="${esc(cnyPerUsd())}" aria-label="Курби юан: чанд юан барои 1 доллар"><span>¥</span></label>
+          <label class="xl-cnyrow"><input id="xlYuanCalc" type="text" inputmode="decimal" placeholder="юан" aria-label="Ҳисоби юан ба доллар"><span>¥ =</span><b id="xlYuanOut">0 $</b></label></span></div>
         <div class="xl-gridwrap" id="xlGridWrap">${showTotal ? totalGrid() : grid(sh, ro)}</div>
         <div class="xl-tabsbar">
           <button class="xl-tabnav" data-xl="tabs-left" aria-label="Варақҳои пешина">◀</button><button class="xl-tabnav" data-xl="tabs-right" aria-label="Варақҳои баъдина">▶</button>
@@ -465,6 +474,29 @@
   });
   // Карго: dollars = yuan × Курс ¥ ÷ Курс $ (both rates from I1 / I2 of the sheet)
   const yuanToUsd = y => { const v = N(y) * N(book.cnyRate) / (N(book.usdRate) || D.usdRate); return String(Math.round(v * 100) / 100); };
+  const cnyPerUsd = () => { const v = N(book.usdRate) / (N(book.cnyRate) || D.cnyRate); return String(Math.round(v * 10000) / 10000); };
+  function setYuanRate(perUsd, fromDb) {
+    book.cnyRate = N(book.usdRate) / perUsd;
+    book.sheets.forEach(x => { if (x.usdAuto && String(x.cargoYuan ?? "").trim() !== "") { x.cargoUsd = yuanToUsd(x.cargoYuan); save(x); } });
+    if (!fromDb) book.rateDate = HN.today();
+    save();
+  }
+  document.addEventListener("change", async e => {
+    if (e.target.id !== "xlCny") return;
+    const v = N(e.target.value);
+    if (v <= 0) { HN.toast("Курби юанро дуруст нависед, масалан 7.2", "error"); e.target.value = cnyPerUsd(); return; }
+    setYuanRate(v); await render();
+    // the same rate for every computer (daily rates table)
+    if (HN.can("finance") && HN.extras?.saveRate) {
+      try { await HN.extras.saveRate(HN.today(), N(book.usdRate), Math.round(N(book.cnyRate) * 1e6) / 1e6); HN.toast(`Курби юан: 1 $ = ${cnyPerUsd()} ¥ — барои ҳама сабт шуд.`, "ok"); }
+      catch (err) { HN.toast("Курб дар ҳамин компютер иваз шуд, вале барои ҳама сабт нашуд: " + HN.dbError(err), "error"); }
+    } else HN.toast(`Курби юан: 1 $ = ${cnyPerUsd()} ¥`, "ok");
+  });
+  document.addEventListener("input", e => {
+    if (e.target.id !== "xlYuanCalc") return;
+    const y = N(e.target.value), out = HN.$("xlYuanOut");
+    if (out) out.textContent = (y ? xf(y / (N(cnyPerUsd()) || 1)) : "0") + " $";
+  });
   function showCargoUsd(sh) { const el = root()?.querySelector('input[data-meta="cargoUsd"]'); if (el && document.activeElement !== el) el.value = sh.cargoUsd ?? ""; }
   document.addEventListener("input", e => {
     const input = e.target.closest("#notebook .xl-c input"); if (!input) return;
@@ -472,7 +504,7 @@
     if (input.dataset.meta) {
       const k = input.dataset.meta;
       if (k === "usdRate" || k === "cnyRate") {
-        book[k] = N(input.value) || (k === "usdRate" ? D.usdRate : D.cnyRate);
+        book[k] = N(input.value) || (k === "usdRate" ? D.usdRate : D.cnyRate); book.rateDate = HN.today();
         // new rate → the cargo dollars typed as yuan follow it (all sheets)
         book.sheets.forEach(x => { if (x.usdAuto && String(x.cargoYuan ?? "").trim() !== "") { x.cargoUsd = yuanToUsd(x.cargoYuan); save(x); } });
         showCargoUsd(sh);
