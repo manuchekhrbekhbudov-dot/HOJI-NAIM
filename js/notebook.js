@@ -734,10 +734,6 @@
     const noDate = p.ready.filter(r => !String(r.date || "").trim()).length;
     const warn = (noDate ? ` ${noDate} сатр сана надорад — санаи имрӯз гузошта мешавад.` : "") + (p.unfinished.length ? ` ${p.unfinished.length} сатр нопурра аст (сатри ${p.unfinished.slice(0, 3).map(rowNo).join(", ")}) ва сабт намешавад.` : "");
     if (!(await HN.confirm(`Варақи «${sh.name}» (Код: ${code}): ${parts} ба система сабт шавад? Ҳамагӣ $${xf(total)}.${warn} Пеш аз сабт рақамҳоро санҷед — баъд онҳо ба ҳисобот, қарз ва Telegram мераванд.`, { title: "Сабт дар система", ok: "Сабт" }))) return;
-    // Still inside the click: the browser lets us ask for the file / permission only now.
-    const firstAsk = FS && !HN.lsGet(PC_ASKED, false);
-    const pcHandle = await readyPcFile(firstAsk);
-    if (firstAsk) HN.lsSet(PC_ASKED, true);
     setStatus("Сабт шуда истодааст…");
     let done = 0;
     try {
@@ -745,7 +741,6 @@
       save(sh); await HN.reload();
       HN.toast(`Варақи «${sh.name}» ба система сабт шуд: ${done} сатр.`, "ok");
       setStatus(`Дар система сабт шуд ✓ (${done}) · ` + new Date().toLocaleTimeString("ru-RU").slice(0, 5));
-      if (pcHandle) await writePcFile(pcHandle);
     } catch (err) {
       console.error("Notebook sync", err); save(sh);
       const why = String(err?.message || "").slice(0, 160);
