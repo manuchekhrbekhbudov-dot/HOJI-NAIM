@@ -103,6 +103,17 @@
   HN.LOGIN_DOMAIN = "hoji-naim.local";
   HN.loginEmail = v => { v = String(v || "").trim().toLowerCase(); return v.includes("@") ? v : v + "@" + HN.LOGIN_DOMAIN; };
   HN.loginName = e => { e = String(e || ""); return e.endsWith("@" + HN.LOGIN_DOMAIN) ? e.slice(0, -HN.LOGIN_DOMAIN.length - 1) : e; };
+  // Save one row by its key: update it, else insert it. The live database refuses «upsert» (INSERT … ON CONFLICT).
+  HN.putRow = async (table, keyCol, row) => {
+    const { [keyCol]: key, ...rest } = row;
+    let r = await HN.state.db.from(table).update(rest).eq(keyCol, key).select(keyCol);
+    if (!r.error && !(r.data || []).length) {
+      r = await HN.state.db.from(table).insert(row);
+      if (r.error?.code === "23505") r = await HN.state.db.from(table).update(rest).eq(keyCol, key);   // someone added it meanwhile
+    }
+    return r;
+  };
+  HN.putRows = async (table, keyCol, rows) => { for (const row of rows) { const r = await HN.putRow(table, keyCol, row); if (r.error) return r; } return { error: null }; };
   HN.digits = s => String(s || "").replace(/\D/g, "");
 
   /* ---------- Money ---------- */
