@@ -391,6 +391,16 @@
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(statementText(d))}`, "_blank", "noopener");
   });
 
+  // Акт сверки to the customer's Telegram through the bot (same text as WhatsApp, for the chosen dates).
+  $("stTelegram")?.addEventListener("click", async () => {
+    const d = statementData(stKey, $("stFrom").value, $("stTo").value);
+    const ship = S.shipments.filter(s => HN.customerKey(s) === stKey).sort((a, b) => String(HN.shipmentDate(b)).localeCompare(String(HN.shipmentDate(a))))[0];
+    if (!ship) { HN.toast("Барои ин муштарӣ бор нест."); return; }
+    if (!(await HN.confirm(`Акт сверки ба Telegram-и «${d.c.name}» фиристода шавад?`, { ok: "Фиристодан" }))) return;
+    const btn = $("stTelegram"); btn.disabled = true;
+    try { await HN.tgSend(ship.id, "akt", statementText(d)); } finally { btn.disabled = false; }
+  });
+
   /* ================= Telegram ================= */
   const phoneKey = p => HN.digits(p).slice(-9);
   // Same normalisation as the bot: "S-50", "s 50", Cyrillic "С-50" → "S50".
