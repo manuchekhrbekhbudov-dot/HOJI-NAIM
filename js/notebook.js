@@ -599,8 +599,10 @@
     if (existing && tjs < HN.paid(existing) - 0.005) throw new Error(`бори ${r.syncTrackingNo}: ҳисоби нав аз пардохтшуда кам аст`);
     const payload = { client_phone: phone, tracking_no: r.syncTrackingNo, shipment_date: toISO(r.date) || HN.today(), billing_type: x.billingType, weight_kg: x.kg, volume_m3: Math.round(x.cube * 10000) / 10000, currency: "USD", unit_price: x.billingType === "kg" ? x.kgPrice : x.cubePrice, fx_rate: rate, total_original: HN.round2(x.price), total_tjs: tjs, notes, client_name: existing?.client_name && existing.client_name !== existing.tracking_no ? existing.client_name : code };
     if (!existing) payload.created_by = S.user.id;
-    const { error } = await S.db.from("shipments").upsert(payload, { onConflict: "tracking_no" });
-    if (error) throw error;
+    // plain insert / update, the same way as the «Бори нав» form (no «upsert», which needs extra rights in the database)
+    let res = existing ? await S.db.from("shipments").update(payload).eq("id", existing.id) : await S.db.from("shipments").insert(payload);
+    if (res.error && !existing && res.error.code === "23505") res = await S.db.from("shipments").update(payload).eq("tracking_no", r.syncTrackingNo);   // saved before from another computer
+    if (res.error) throw res.error;
     r.syncSig = rowSig(sh, r);
   }
   /* Saving to the system is done by the person, with the «Сабт дар система» button and a confirmation —
@@ -648,7 +650,8 @@
       setStatus(`Дар система сабт шуд ✓ (${done}) · ` + new Date().toLocaleTimeString("ru-RU").slice(0, 5));
     } catch (err) {
       console.error("Notebook sync", err); save(sh);
-      HN.toast(`Сабт пас аз ${done} сатр қатъ шуд: ${HN.dbError(err)}`, "error"); setStatus("Хатои сабт");
+      const why = String(err?.message || "").slice(0, 160);
+      HN.toast(`Сабт пас аз ${done} сатр қатъ шуд: ${HN.dbError(err)}${why && !HN.dbError(err).includes(why) ? ` (${why})` : ""}`, "error"); setStatus("Хатои сабт: " + why);
     }
     showPending();
   }
