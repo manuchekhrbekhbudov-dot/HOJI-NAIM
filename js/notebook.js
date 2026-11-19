@@ -128,12 +128,25 @@
     const mine = new Set(sh.rows.map(r => r.syncTrackingNo).filter(Boolean));
     return S.shipments.filter(s => mine.has(s.tracking_no) || (code ? HN.customerCode(s).toLocaleLowerCase() === code : pk.length >= 7 && !HN.customerCode(s) && String(s.client_phone || "").replace(/\D/g, "").slice(-9) === pk));
   }
-  function moneyCells(sh) {
-    const list = sheetShips(sh);
-    const total = list.reduce((n, s) => n + HN.total(s), 0), paid = list.reduce((n, s) => n + HN.paid(s), 0), debt = list.reduce((n, s) => n + HN.debt(s), 0);
-    const val = (c, v, cls = "") => td(1, c, list.length ? HN.money(v) : "—", `xl-box xl-num xl-b ${cls}`);
-    return td(1, 10, "Ҳисоб", "xl-b xl-right xl-lav") + val(11, total) + td(1, 12, "Пардохт", "xl-b xl-right xl-lav") + val(13, paid) + td(1, 14, "Қарз", "xl-b xl-right xl-lav") + val(15, debt, debt > 0.005 ? "xl-red" : "") +
-      `<td class="xl-c xl-paycell" colspan="2" data-r="1" data-c="16">${debt > 0.005 ? '<button type="button" class="xl-paybtn" data-xl="pay" title="Пардохти ин муштарӣ">+ Пардохт</button>' : list.length ? '<span class="xl-paid">✓ Пардохт шуд</span>' : ""}</td>`;
+  // Row 1: dollars (like the sheet's prices), row 2: the same in somoni.
+  function sheetMoney(sh) {
+    const list = sheetShips(sh), m = { n: list.length, total: 0, paid: 0, debt: 0, totalUsd: 0, paidUsd: 0, debtUsd: 0 };
+    list.forEach(s => {
+      const t = HN.total(s), usd = s.currency === "USD" ? HN.num(s.total_original) : t / (book.usdRate || D.usdRate), k = t > 0 ? usd / t : 0;
+      m.total += t; m.paid += HN.paid(s); m.debt += HN.debt(s);
+      m.totalUsd += usd; m.paidUsd += HN.paid(s) * k; m.debtUsd += HN.debt(s) * k;
+    });
+    return m;
+  }
+  function moneyCells(sh, r) {
+    const m = sheetMoney(sh), red = m.debt > 0.005 ? "xl-red" : "";
+    if (r === 2) {
+      const som = (c, v, cls = "") => td(2, c, m.n ? HN.money(v) + " сом." : "", `xl-num xl-som ${cls}`);
+      return td(2, 10, "", "") + som(11, m.total) + td(2, 12, "", "") + som(13, m.paid) + td(2, 14, "", "") + som(15, m.debt, red) + td(2, 16, "", "xl-blank") + td(2, 17, "", "xl-blank");
+    }
+    const usd = (c, v, cls = "") => td(1, c, m.n ? "$" + xf(v) : "—", `xl-box xl-num xl-b ${cls}`);
+    return td(1, 10, "Ҳисоб", "xl-b xl-right xl-lav") + usd(11, m.totalUsd) + td(1, 12, "Пардохт", "xl-b xl-right xl-lav") + usd(13, m.paidUsd) + td(1, 14, "Қарз", "xl-b xl-right xl-lav") + usd(15, m.debtUsd, red) +
+      `<td class="xl-c xl-paycell" colspan="2" data-r="1" data-c="16">${m.debt > 0.005 ? '<button type="button" class="xl-paybtn" data-xl="pay" title="Пардохти ин муштарӣ">+ Пардохт</button>' : m.n ? '<span class="xl-paid">✓ Пардохт шуд</span>' : ""}</td>`;
   }
 
   /* ---------- Database rows of the sheet's customer (read-only) ---------- */
@@ -385,8 +398,8 @@
     const row = (n, cells, cls = "") => `<tr class="${cls}"><th class="xl-rh">${n}</th>${cells}</tr>`;
     const blanks = (from, to, r) => Array.from({ length: to - from + 1 }, (_, i) => td(r, from + i, "", "xl-blank")).join("");
     let h = "";
-    h += row(1, td(1, 0, "Код", "xl-b xl-box") + `<td class="xl-c xl-box xl-in" colspan="5" data-r="1" data-c="1">${metaIn("code", sh.code, "Код")}</td>` + blanks(6, 6, 1) + td(1, 7, "Курс $", "xl-b xl-right") + `<td class="xl-c xl-box xl-in xl-num" data-r="1" data-c="8">${metaIn("usdRate", book.usdRate, "Курси доллар")}</td>` + blanks(9, 9, 1) + moneyCells(sh));
-    h += row(2, td(2, 0, "Тел", "xl-b xl-box") + `<td class="xl-c xl-box xl-in" colspan="5" data-r="2" data-c="1">${metaIn("phone", sh.phone, "Тел")}</td>` + blanks(6, 6, 2) + td(2, 7, "Курс ¥", "xl-b xl-right") + `<td class="xl-c xl-box xl-in xl-num" data-r="2" data-c="8">${metaIn("cnyRate", book.cnyRate, "Курси юан")}</td>` + blanks(9, 17, 2));
+    h += row(1, td(1, 0, "Код", "xl-b xl-box") + `<td class="xl-c xl-box xl-in" colspan="5" data-r="1" data-c="1">${metaIn("code", sh.code, "Код")}</td>` + blanks(6, 6, 1) + td(1, 7, "Курс $", "xl-b xl-right") + `<td class="xl-c xl-box xl-in xl-num" data-r="1" data-c="8">${metaIn("usdRate", book.usdRate, "Курси доллар")}</td>` + blanks(9, 9, 1) + moneyCells(sh, 1));
+    h += row(2, td(2, 0, "Тел", "xl-b xl-box") + `<td class="xl-c xl-box xl-in" colspan="5" data-r="2" data-c="1">${metaIn("phone", sh.phone, "Тел")}</td>` + blanks(6, 6, 2) + td(2, 7, "Курс ¥", "xl-b xl-right") + `<td class="xl-c xl-box xl-in xl-num" data-r="2" data-c="8">${metaIn("cnyRate", book.cnyRate, "Курси юан")}</td>` + blanks(9, 9, 2) + moneyCells(sh, 2));
     h += row(3, blanks(0, 17, 3));
     h += row(4, blanks(0, 10, 4) + td(4, 11, "", "xl-box xl-lav") + `<td class="xl-c xl-box xl-lav xl-center" colspan="2" data-r="4" data-c="12">Место</td><td class="xl-c xl-box xl-lav xl-center" colspan="2" data-r="4" data-c="14">Юань</td><td class="xl-c xl-box xl-lav xl-center" colspan="2" data-r="4" data-c="16">Доллар</td>`);
     const cargoIn = (f, c, label) => `<td class="xl-c xl-box xl-in xl-center" colspan="2" data-r="5" data-c="${c}"${f === "cargoUsd" ? ' title="Юанро дар O5 нависед — доллар худаш ҳисоб мешавад (юан × Курс ¥ ÷ Курс $)"' : ""}>${metaIn(f, sh[f] ?? "", label, "xl-center-in")}</td>`;

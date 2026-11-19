@@ -912,3 +912,6 @@ body.dark .pay-sug em { color: #8fb4ff; }
 .xl-paybtn { border: 1px solid #1e7145; background: #1e7145; color: #fff; font: 600 12px/1 inherit; padding: 4px 10px; border-radius: 4px; cursor: pointer; }
 .xl-paybtn:hover { background: #185c38; }
 .xl-paid { color: #1e7145; font-weight: 600; font-size: 12px; }
+.xl-som { font-size: 11px; color: #5f6b7a; }
+.xl-som.xl-red { color: #c00000; }
+body.dark .xl-som { color: #9aa6bb; }
