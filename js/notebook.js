@@ -366,7 +366,7 @@
     h += row(2, td(2, 0, "Тел", "xl-b xl-box") + `<td class="xl-c xl-box xl-in" colspan="5" data-r="2" data-c="1">${metaIn("phone", sh.phone, "Тел")}</td>` + blanks(6, 6, 2) + td(2, 7, "Курс ¥", "xl-b xl-right") + `<td class="xl-c xl-box xl-in xl-num" data-r="2" data-c="8">${metaIn("cnyRate", book.cnyRate, "Курси юан")}</td>` + blanks(9, 17, 2));
     h += row(3, blanks(0, 17, 3));
     h += row(4, blanks(0, 10, 4) + td(4, 11, "", "xl-box xl-lav") + `<td class="xl-c xl-box xl-lav xl-center" colspan="2" data-r="4" data-c="12">Место</td><td class="xl-c xl-box xl-lav xl-center" colspan="2" data-r="4" data-c="14">Юань</td><td class="xl-c xl-box xl-lav xl-center" colspan="2" data-r="4" data-c="16">Доллар</td>`);
-    const cargoIn = (f, c, label) => `<td class="xl-c xl-box xl-in xl-center" colspan="2" data-r="5" data-c="${c}">${metaIn(f, sh[f] ?? "", label, "xl-center-in")}</td>`;
+    const cargoIn = (f, c, label) => `<td class="xl-c xl-box xl-in xl-center" colspan="2" data-r="5" data-c="${c}"${f === "cargoUsd" ? ' title="Юанро дар O5 нависед — доллар худаш ҳисоб мешавад (юан × Курс ¥ ÷ Курс $)"' : ""}>${metaIn(f, sh[f] ?? "", label, "xl-center-in")}</td>`;
     h += row(5, blanks(0, 10, 5) + td(5, 11, "Карго", "xl-box") + cargoIn("cargoPlaces", 12, "Карго: место") + cargoIn("cargoYuan", 14, "Карго: юань") + cargoIn("cargoUsd", 16, "Карго: доллар"));
     const itogo = new Set(["places", "cube", "kg", "cubeAmount", "kgAmount", "price", "density"]);
     h += row(6, COLS.map(([k], c) => itogo.has(k) ? td(6, c, "Итого:", "xl-b xl-box xl-center") : td(6, c, "", "xl-box")).join(""), "xl-r6");
@@ -463,13 +463,28 @@
     const input = e.target.closest("#notebook .xl-c input"); if (!input) return;
     const cell = input.closest(".xl-c"); selectCell(Number(cell.dataset.r), Number(cell.dataset.c));
   });
+  // Карго: dollars = yuan × Курс ¥ ÷ Курс $ (both rates from I1 / I2 of the sheet)
+  const yuanToUsd = y => { const v = N(y) * N(book.cnyRate) / (N(book.usdRate) || D.usdRate); return String(Math.round(v * 100) / 100); };
+  function showCargoUsd(sh) { const el = root()?.querySelector('input[data-meta="cargoUsd"]'); if (el && document.activeElement !== el) el.value = sh.cargoUsd ?? ""; }
   document.addEventListener("input", e => {
     const input = e.target.closest("#notebook .xl-c input"); if (!input) return;
     const sh = activeSheet();
     if (input.dataset.meta) {
       const k = input.dataset.meta;
-      if (k === "usdRate" || k === "cnyRate") book[k] = N(input.value) || (k === "usdRate" ? D.usdRate : D.cnyRate);
-      else sh[k] = input.value;
+      if (k === "usdRate" || k === "cnyRate") {
+        book[k] = N(input.value) || (k === "usdRate" ? D.usdRate : D.cnyRate);
+        // new rate → the cargo dollars typed as yuan follow it (all sheets)
+        book.sheets.forEach(x => { if (x.usdAuto && String(x.cargoYuan ?? "").trim() !== "") { x.cargoUsd = yuanToUsd(x.cargoYuan); save(x); } });
+        showCargoUsd(sh);
+      } else if (k === "cargoYuan") {
+        sh.cargoYuan = input.value;
+        if (String(input.value).trim() !== "") { sh.cargoUsd = yuanToUsd(input.value); sh.usdAuto = true; }
+        else if (sh.usdAuto) sh.cargoUsd = "";
+        showCargoUsd(sh);
+      } else {
+        sh[k] = input.value;
+        if (k === "cargoUsd") sh.usdAuto = false;   // dollars typed by hand win
+      }
       save(sh); refresh(); if (k === "code" || k === "phone") scheduleAuto(); return;
     }
     const i = Number(input.dataset.row);
@@ -693,7 +708,9 @@
       [["M4", "N4", "Место"], ["O4", "P4", "Юань"], ["Q4", "R4", "Доллар"]].forEach(([a, b, t]) => { txt(a, t, { border: B, alignment: ctr, fill: fill("CCCCFF") }); txt(b, "", { border: B, fill: fill("CCCCFF") }); merge(a + ":" + b); });
       txt("L5", "Карго", { border: B });
       [["M5", "N5", "cargoPlaces", "General"], ["O5", "P5", "cargoYuan", "General"], ["Q5", "R5", "cargoUsd", '0"$"']].forEach(([a, b, k, z]) => {
-        const v = sh[k]; if (String(v ?? "").trim() !== "" && Number.isFinite(Number(String(v).replace(",", ".")))) put(a, { t: "n", v: N(v), z, s: { font: font(), border: B, numFmt: z, alignment: ctr } }); else txt(a, String(v ?? ""), { border: B, alignment: ctr });
+        const v = sh[k];
+        if (k === "cargoUsd" && sh.usdAuto && String(sh.cargoYuan ?? "").trim() !== "") put(a, { t: "n", f: "ROUND(O5*$I$2/$I$1,2)", v: N(v), z, s: { font: font(), border: B, numFmt: z, alignment: ctr } });
+        else if (String(v ?? "").trim() !== "" && Number.isFinite(Number(String(v).replace(",", ".")))) put(a, { t: "n", v: N(v), z, s: { font: font(), border: B, numFmt: z, alignment: ctr } }); else txt(a, String(v ?? ""), { border: B, alignment: ctr });
         txt(b, "", { border: B }); merge(a + ":" + b);
       });
       const T = all.reduce((t, r) => { const x = r.ro ? r.c : calc(r); ["places", "cube", "kg", "cubeAmount", "kgAmount", "price"].forEach(k => (t[k] += x[k] || 0)); return t; }, { places: 0, cube: 0, kg: 0, cubeAmount: 0, kgAmount: 0, price: 0 });
