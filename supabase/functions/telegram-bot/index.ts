@@ -121,7 +121,11 @@ export function makeHandler(env, fetchFn = fetch) {
   const note = (s, key) => { const m = String(s.notes || "").split(";").map(x => x.trim()).find(x => x.toLowerCase().startsWith(key.toLowerCase() + ":")); return m ? m.slice(m.indexOf(":") + 1).trim() : ""; };
   const places = s => Number(note(s, "Ҷойҳо")) || 1;
   const fmtDate = d => { const v = String(d || "").slice(0, 10).split("-"); return v.length === 3 ? `${v[2]}.${v[1]}.${v[0]}` : ""; };
-  const today = () => new Date().toISOString().slice(0, 10);
+  // Dushanbe time (UTC+5): after midnight there the date must already be the new day.
+  const localDate = (d) => new Date(new Date(d).getTime() + 5 * 3600e3).toISOString().slice(0, 10);
+  const today = () => localDate(Date.now());
+  // The date a customer sees for a load = the day it was saved in the system (not the «Дата» typed in the sheet).
+  const regDate = (s) => (s.created_at ? localDate(s.created_at) : String(s.shipment_date || "").slice(0, 10));
   // Customer code as typed ("S-50", "s 50", Cyrillic "С-50" → "S50"): Cyrillic letters map to Latin by sound.
   const LOOK = { "А": "A", "Б": "B", "В": "V", "Д": "D", "Е": "E", "З": "Z", "И": "I", "К": "K", "Л": "L", "М": "M", "Н": "N", "О": "O", "П": "P", "Р": "R", "С": "S", "Т": "T", "У": "U", "Ф": "F" };
   const codeKey = v => String(v || "").toUpperCase().replace(/[АБВДЕЗИКЛМНОПРСТУФ]/g, c => LOOK[c]).replace(/[^0-9A-ZА-ЯЁӢӮҚҒҲҶ]/g, "").slice(0, 30);
@@ -153,7 +157,7 @@ export function makeHandler(env, fetchFn = fetch) {
     if (key.length >= 7) (await subscribers(`phone_key=eq.${key}`)).forEach(x => out.set(x.chat_id, x));
     return [...out.values()];
   }
-  const SHIP_COLS = "id,tracking_no,client_name,client_phone,shipment_date,weight_kg,volume_m3,total_tjs,total_original,currency,fx_rate,warehouse_status,notes";
+  const SHIP_COLS = "id,tracking_no,client_name,client_phone,shipment_date,created_at,weight_kg,volume_m3,total_tjs,total_original,currency,fx_rate,warehouse_status,notes";
   async function shipmentsByCode(code) {
     // narrow with the longest part of the code (digits usually), then match exactly
     const part = (String(code).match(/[0-9]+|[^0-9]+/g) || [code]).sort((a, b) => b.length - a.length)[0];
@@ -191,7 +195,7 @@ export function makeHandler(env, fetchFn = fetch) {
     const usd = s.currency === "USD" ? ` ($${money(s.total_original)})` : "";
     const dims = `${T.places}: ${places(s)} · ${T.weight}: ${qty(s.weight_kg, 1)} ${T.kg} · ${T.volume}: ${qty(s.volume_m3, 3)} м³`;
     const debtUsd = usdOf(s, debt);
-    if (event === "registered") return ["📝 " + T.hi(s.client_name), T.registered, "", note(s, "Мол") ? `${T.item}: ${note(s, "Мол")}` : null, `${T.date}: ${fmtDate(s.shipment_date)}`, dims, `${T.sum}: ${money(s.total_tjs)} ${T.som}${usd}`, "", T.registeredTail, "", "HOJI-NAIM CARGO"].filter(x => x !== null).join("\n");
+    if (event === "registered") return ["📝 " + T.hi(s.client_name), T.registered, "", note(s, "Мол") ? `${T.item}: ${note(s, "Мол")}` : null, `${T.date}: ${fmtDate(regDate(s))}`, dims, `${T.sum}: ${money(s.total_tjs)} ${T.som}${usd}`, "", T.registeredTail, "", "HOJI-NAIM CARGO"].filter(x => x !== null).join("\n");
     if (event === "arrived") return ["📦 " + T.hi(s.client_name), T.arrived, "", `${T.number}: ${s.tracking_no}`, dims, `${T.sum}: ${money(s.total_tjs)} ${T.som}${usd}`, paidTotal > 0 ? `${T.paidSoFar}: ${money(paidTotal)} ${T.som}` : null, debt > 0.005 ? `${T.toPay}: ${withUsd(debt, debtUsd, T)}` : T.allPaid, "", "HOJI-NAIM CARGO"].filter(x => x !== null).join("\n");
     const left = debt > 0.005 ? `${T.left}: ${withUsd(debt, debtUsd, T)}` : T.fullyPaid;
     if (event === "paid") return ["✅ " + T.hi(s.client_name), `${T.paidHead}: ${money(payment?.amount_tjs)} ${T.som}.`, "", `${T.load}: ${s.tracking_no}`, T.paidOf(money(paidTotal), `${money(s.total_tjs)} ${T.som}`), left, "", `${T.thanks} HOJI-NAIM CARGO`].join("\n");
@@ -239,7 +243,7 @@ export function makeHandler(env, fetchFn = fetch) {
       const sum = k => list.reduce((n, s) => n + Number(s[k] || 0), 0);
       const debt = list.reduce((n, s) => n + Math.max(0, Number(s.total_tjs || 0) - (paid[s.id] || 0)), 0);
       const debtUsd = list.reduce((n, s) => n + (usdOf(s, Math.max(0, Number(s.total_tjs || 0) - (paid[s.id] || 0))) || 0), 0);
-      const lines = list.slice(0, 20).map(s => `• ${fmtDate(s.shipment_date)} · ${note(s, "Мол") || s.tracking_no} — ${places(s)} · ${qty(s.weight_kg, 1)} ${T.kg} · ${qty(s.volume_m3, 3)} м³`);
+      const lines = list.slice(0, 20).map(s => `• ${fmtDate(regDate(s))} · ${note(s, "Мол") || s.tracking_no} — ${places(s)} · ${qty(s.weight_kg, 1)} ${T.kg} · ${qty(s.volume_m3, 3)} м³`);
       const text = [
         T.hi(list[0].client_name), head, "",
         `${T.car}: ${car}`, status === "in_transit" && batch.sent_date ? `${T.sentOn}: ${fmtDate(batch.sent_date)}` : null, status === "arrived" && batch.arrived_date ? `${T.arrivedOn}: ${fmtDate(batch.arrived_date)}` : null, "",
@@ -271,7 +275,7 @@ export function makeHandler(env, fetchFn = fetch) {
       const T = L[sub.lang] || L.tg, d = await debtsOf(sub);
       if (!d.owing.length) continue;
       owing++;
-      const lines = d.owing.slice(0, 10).map(r => `• ${fmtDate(r.s.shipment_date)} · ${note(r.s, "Мол") || r.s.tracking_no} — ${withUsd(r.debt, r.usd, T)}`).join("\n");
+      const lines = d.owing.slice(0, 10).map(r => `• ${fmtDate(regDate(r.s))} · ${note(r.s, "Мол") || r.s.tracking_no} — ${withUsd(r.debt, r.usd, T)}`).join("\n");
       if (await deliver(sub.chat_id, T.remind(lines, withUsd(d.total, d.totalUsd || null, T)), "remind", d.owing[0].s.id)) sent++;
     }
     return { sent, owing };
@@ -290,7 +294,7 @@ export function makeHandler(env, fetchFn = fetch) {
     const pays = await paymentsOf(d.ships.map(s => s.id));
     const byId = new Map(d.ships.map(s => [s.id, s]));
     const lines = [
-      ...d.ships.map(s => ({ date: s.shipment_date, text: `${T.load} ${note(s, "Мол") || s.tracking_no} (${places(s)} · ${qty(s.weight_kg, 1)} ${T.kg} · ${qty(s.volume_m3, 3)} м³)`, debit: Number(s.total_tjs || 0), credit: 0 })),
+      ...d.ships.map(s => ({ date: regDate(s), text: `${T.load} ${note(s, "Мол") || s.tracking_no} (${places(s)} · ${qty(s.weight_kg, 1)} ${T.kg} · ${qty(s.volume_m3, 3)} м³)`, debit: Number(s.total_tjs || 0), credit: 0 })),
       ...pays.map(p => ({ date: p.payment_date || "", text: `${T.paidHead} — ${byId.get(p.shipment_id)?.tracking_no || ""}`, debit: 0, credit: Number(p.amount_tjs || 0) })),
     ].sort((a, b) => String(a.date).localeCompare(String(b.date)) || b.debit - a.debit);
     let bal = 0;
@@ -413,12 +417,12 @@ export function makeHandler(env, fetchFn = fetch) {
       if (act === "ships") {
         const lines = d.rows.slice(0, 15).map(({ s, debt, usd }) => {
           const st = T.status[s.warehouse_status] || T.status.other;
-          return `📦 ${fmtDate(s.shipment_date)} · ${note(s, "Мол") || s.tracking_no}\n   ${T.places}: ${places(s)} · ${qty(s.weight_kg, 1)} ${T.kg} · ${qty(s.volume_m3, 3)} м³ · ${st}\n   ${money(s.total_tjs)} ${T.som}${debt > 0.005 ? ` · ${T.debtWord} ${withUsd(debt, usd, T)}` : " · " + T.paidOk}`;
+          return `📦 ${fmtDate(regDate(s))} · ${note(s, "Мол") || s.tracking_no}\n   ${T.places}: ${places(s)} · ${qty(s.weight_kg, 1)} ${T.kg} · ${qty(s.volume_m3, 3)} м³ · ${st}\n   ${money(s.total_tjs)} ${T.som}${debt > 0.005 ? ` · ${T.debtWord} ${withUsd(debt, usd, T)}` : " · " + T.paidOk}`;
         });
         return say(`${T.shipsHead(d.ships.length, d.ships.length > 15)}\n\n${lines.join("\n\n")}\n\n${T.totalDebt}: ${withUsd(d.total, d.totalUsd || null, T)}`, { reply_markup: kbMenu(T) });
       }
       if (!d.owing.length) return say(T.noDebt(d.ships.length), { reply_markup: kbMenu(T) });
-      const lines = d.owing.slice(0, 30).map(r => `• ${fmtDate(r.s.shipment_date)} · ${note(r.s, "Мол") || r.s.tracking_no} — ${withUsd(r.debt, r.usd, T)}`);
+      const lines = d.owing.slice(0, 30).map(r => `• ${fmtDate(regDate(r.s))} · ${note(r.s, "Мол") || r.s.tracking_no} — ${withUsd(r.debt, r.usd, T)}`);
       return say(`${T.debtHead}\n\n${lines.join("\n")}\n\n${T.totalDebt}: ${withUsd(d.total, d.totalUsd || null, T)}`, { reply_markup: kbMenu(T) });
     }
     if (text && !text.startsWith("/")) { const r = await byCode(text); if (r !== null) return r; }
