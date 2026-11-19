@@ -8,13 +8,13 @@
   <title>HOJI-NAIM CARGO</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://wfxbgkasstkxzmyrjwpi.supabase.co" crossorigin>
-  <link rel="stylesheet" href="style.css?v=20261120-pcfile">
+  <link rel="stylesheet" href="style.css?v=20261120-login">
   <script src="vendor/supabase-js-2.118.0.js" defer></script>
-  <script src="js/core.js?v=20261120-pcfile" defer></script>
-  <script src="js/exporter.js?v=20261120-pcfile" defer></script>
-  <script src="js/notebook.js?v=20261120-pcfile" defer></script>
-  <script src="js/extras.js?v=20261120-pcfile" defer></script>
-  <script src="main.js?v=20261120-pcfile" defer></script>
+  <script src="js/core.js?v=20261120-login" defer></script>
+  <script src="js/exporter.js?v=20261120-login" defer></script>
+  <script src="js/notebook.js?v=20261120-login" defer></script>
+  <script src="js/extras.js?v=20261120-login" defer></script>
+  <script src="main.js?v=20261120-login" defer></script>
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -87,10 +87,10 @@
         <span class="auth-mark" aria-hidden="true">H</span>
         <div class="auth-head">
           <h2 id="authHeading">Ворид шудан</h2>
-          <p id="authDescription" class="muted">Email ва пароли худро ворид кунед.</p>
+          <p id="authDescription" class="muted">Логин ва пароли худро ворид кунед.</p>
         </div>
-        <label class="field auth-field"><span>Email</span>
-          <span class="in-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="m4 7 8 6 8-6"/></svg><input id="email" type="email" placeholder="name@example.com" autocomplete="username" required></span></label>
+        <label class="field auth-field"><span>Логин ё Email</span>
+          <span class="in-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="m4 7 8 6 8-6"/></svg><input id="email" type="text" placeholder="логин ё name@example.com" autocomplete="username" autocapitalize="none" spellcheck="false" required></span></label>
         <label class="field auth-field"><span>Парол</span>
           <span class="in-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></svg><input id="password" type="password" minlength="8" autocomplete="current-password" placeholder="Ҳадди ақал 8 аломат" required>
           <button type="button" class="eye" id="pwEye" aria-label="Паролро нишон додан"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg></button></span></label>

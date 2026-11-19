@@ -81,14 +81,14 @@
   $("authForm").addEventListener("submit", async e => {
     e.preventDefault();
     if (!S.db) return;
-    const email = $("email").value.trim(), password = $("password").value, msg = $("authMessage");
-    if (!/^\S+@\S+\.\S+$/.test(email)) { msg.textContent = "Email-ро дуруст нависед."; return; }
+    const login = $("email").value.trim(), email = HN.loginEmail(login), password = $("password").value, msg = $("authMessage");
+    if (login.includes("@") ? !/^\S+@\S+\.\S+$/.test(login) : !/^[a-z0-9._-]{3,40}$/i.test(login)) { msg.textContent = "Логин ё Email-ро дуруст нависед."; return; }
     if (password.length < 8) { msg.textContent = "Парол бояд ҳадди ақал 8 аломат бошад."; return; }
     msg.dataset.kind = ""; msg.textContent = "Ворид шуда истодааст…";
     $("authSubmit").disabled = true;
     try {
       const r = await S.db.auth.signInWithPassword({ email, password });
-      if (r.error) { msg.dataset.kind = "error"; msg.textContent = /invalid login/i.test(r.error.message) ? "Email ё парол нодуруст аст." : r.error.message; return; }
+      if (r.error) { msg.dataset.kind = "error"; msg.textContent = /invalid login/i.test(r.error.message) ? "Логин ё парол нодуруст аст." : r.error.message; return; }
       if (r.data.session) { msg.textContent = ""; await enterApp(r.data.session.user || r.data.user); }
     } catch (err) { msg.dataset.kind = "error"; msg.textContent = err.message || "Хатои номаълум."; }
     finally { $("authSubmit").disabled = false; }
@@ -200,11 +200,11 @@
   }
   function setConn(kind, text) { $("connDot").dataset.kind = kind; $("connectionStatus").textContent = text; }
   function paintUser() {
-    const name = S.profile?.full_name || S.user?.email || "Корманд";
+    const name = S.profile?.full_name || HN.loginName(S.user?.email) || "Корманд";
     $("userName").textContent = name;
     $("userAvatar").textContent = name.trim().charAt(0).toUpperCase() || "?";
     $("connectionStatus").title = HN.roleText[HN.role()] || "";
-    $("userName").title = (HN.roleText[HN.role()] || "") + " · " + (S.user?.email || "");
+    $("userName").title = (HN.roleText[HN.role()] || "") + " · " + HN.loginName(S.user?.email || "");
   }
   $("reloadBtn").addEventListener("click", async () => { $("reloadBtn").classList.add("spin"); await loadData(); $("reloadBtn").classList.remove("spin"); HN.toast("Маълумот нав шуд."); });
 
@@ -740,8 +740,8 @@
       const role = String(p.role || "customer");
       const roles = ["customer", "operator", "accountant", "admin", ...(mine === "owner" ? ["owner"] : [])];
       const locked = p.id === S.user.id || (role === "owner" && mine !== "owner");
-      const u = emails.get(p.id), mailLine = u ? `<small class="staff-mail">${esc(u.email || "—")}${u.last_sign_in_at ? ` · охирин: ${HN.fmtDateTime(u.last_sign_in_at)}` : " · ҳанӯз ворид нашудааст"}</small>` : "";
-      const nameCell = staffEmails && !locked ? `<input class="staff-in" data-sname="${esc(p.id)}" value="${esc(p.full_name || "")}" placeholder="Ном, масалан Бахтиёр" maxlength="120">` : `<b>${esc(p.full_name || u?.email || "—")}</b>`;
+      const u = emails.get(p.id), mailLine = u ? `<small class="staff-mail">${esc(HN.loginName(u.email) || "—")}${u.last_sign_in_at ? ` · охирин: ${HN.fmtDateTime(u.last_sign_in_at)}` : " · ҳанӯз ворид нашудааст"}</small>` : "";
+      const nameCell = staffEmails && !locked ? `<input class="staff-in" data-sname="${esc(p.id)}" value="${esc(p.full_name || "")}" placeholder="Ном, масалан Бахтиёр" maxlength="120">` : `<b>${esc(p.full_name || HN.loginName(u?.email) || "—")}</b>`;
       const phoneCell = staffEmails && !locked ? `<input class="staff-in" data-sphone="${esc(p.id)}" value="${esc(p.phone || "")}" placeholder="+992 …" maxlength="40">` : esc(p.phone || "—");
       return `<tr>${td(`${nameCell}${p.id === S.user.id ? ' <span class="pill pay-paid">Шумо</span>' : ""}${mailLine}`)}${td(phoneCell, "nowrap")}${td(`<span class="pill role-${esc(role)}">${esc(HN.roleText[role] || role)}</span>`)}<td><select class="role-select" data-staff="${esc(p.id)}" ${locked ? "disabled" : ""} aria-label="Нақши нав">${roles.map(x => `<option value="${x}" ${x === role ? "selected" : ""}>${HN.roleText[x]}</option>`).join("")}</select></td><td class="acts"><button class="btn btn-xs btn-soft" data-act="save-role" data-id="${esc(p.id)}" ${locked ? "disabled" : ""}>Сабт</button><button class="icon-btn sm danger" data-act="del-profile" data-id="${esc(p.id)}" ${locked ? "disabled" : ""} title="Нест кардани профил" aria-label="Нест кардани профил"><svg><use href="#i-trash"/></svg></button></td></tr>`;
     }).join("") || '<tr><td colspan="5" class="muted">Аккаунт ёфт нашуд.</td></tr>';

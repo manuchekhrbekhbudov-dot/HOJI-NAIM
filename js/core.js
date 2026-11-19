@@ -99,6 +99,10 @@
     const code = HN.customerCode(s), phone = String(s.client_phone || "").trim(), name = String(s.client_name || "").trim();
     return code ? "code:" + code.toLocaleLowerCase() : phone ? "phone:" + phone.toLocaleLowerCase() : "name:" + (name || "Муштарӣ").toLocaleLowerCase();
   };
+  // Short staff logins: «bakha0101» is the account bakha0101@hoji-naim.local in Supabase Auth.
+  HN.LOGIN_DOMAIN = "hoji-naim.local";
+  HN.loginEmail = v => { v = String(v || "").trim().toLowerCase(); return v.includes("@") ? v : v + "@" + HN.LOGIN_DOMAIN; };
+  HN.loginName = e => { e = String(e || ""); return e.endsWith("@" + HN.LOGIN_DOMAIN) ? e.slice(0, -HN.LOGIN_DOMAIN.length - 1) : e; };
   HN.digits = s => String(s || "").replace(/\D/g, "");
 
   /* ---------- Money ---------- */
