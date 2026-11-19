@@ -93,6 +93,51 @@
     } catch (err) { msg.dataset.kind = "error"; msg.textContent = err.message || "Хатои номаълум."; }
     finally { $("authSubmit").disabled = false; }
   });
+  /* ----- My account: name, login, password ----- */
+  const accForm = $("accountForm");
+  $("accountBtn").addEventListener("click", () => {
+    if (!S.user) return;
+    accForm.reset(); $("accountMsg").textContent = "";
+    accForm.elements.name.value = S.profile?.full_name || "";
+    accForm.elements.login.value = HN.loginName(S.user.email || "");
+    $("accountDialog").showModal(); accForm.elements.name.focus();
+  });
+  accForm.addEventListener("submit", async e => {
+    e.preventDefault();
+    const f = accForm.elements, msg = $("accountMsg"); msg.dataset.kind = "error";
+    const name = f.name.value.trim(), login = f.login.value.trim().toLowerCase(), pw = f.password.value, pw2 = f.password2.value;
+    const oldLogin = HN.loginName(S.user.email || ""), nameChanged = name !== (S.profile?.full_name || ""), loginChanged = login !== oldLogin.toLowerCase();
+    if (loginChanged && (login.includes("@") ? !/^\S+@\S+\.\S+$/.test(login) : !/^[a-z0-9._-]{3,40}$/.test(login))) { msg.textContent = "Логин: ҳадди ақал 3 аломат — ҳарфҳои лотинӣ, рақам ва . _ -"; return; }
+    if (pw || pw2) {
+      if (pw.length < 8) { msg.textContent = "Парол бояд ҳадди ақал 8 аломат бошад."; return; }
+      if (pw !== pw2) { msg.textContent = "Паролҳо якхела нестанд."; return; }
+    }
+    if (!nameChanged && !loginChanged && !pw) { $("accountDialog").close(); return; }
+    const btn = accForm.querySelector('[type="submit"]'); btn.disabled = true; msg.dataset.kind = ""; msg.textContent = "Сабт шуда истодааст…";
+    const done = [];
+    try {
+      if (nameChanged || loginChanged) {
+        const r = await S.db.rpc("hn_update_my_account", { new_name: name, new_login: loginChanged ? login : "" });
+        if (r.error) {
+          msg.dataset.kind = "error";
+          msg.textContent = r.error.code === "PGRST202" || /hn_update_my_account/.test(r.error.message || "") ? "Барои ивази ном ва логин як бор supabase/account.sql-ро дар Supabase → SQL Editor иҷро кунед." : ["22023", "23505"].includes(r.error.code) ? r.error.message : HN.dbError(r.error);
+          return;
+        }
+        if (loginChanged) { S.user.email = r.data || HN.loginEmail(login); done.push("логин: " + HN.loginName(S.user.email)); }
+        if (nameChanged) { if (S.profile) S.profile.full_name = name; done.push("ном"); }
+      }
+      if (pw) {
+        const r = await S.db.auth.updateUser({ password: pw });
+        if (r.error) { msg.dataset.kind = "error"; msg.textContent = (done.length ? "Ном/логин сабт шуд, вале парол не: " : "Парол иваз нашуд: ") + (/different from the old/i.test(r.error.message) ? "пароли нав бояд аз пароли куҳна фарқ кунад." : r.error.message); return; }
+        done.push("парол");
+      }
+      const shown = S.profile?.full_name || HN.loginName(S.user.email) || "Корманд";
+      $("userName").textContent = shown; $("userAvatar").textContent = shown.trim().charAt(0).toUpperCase() || "?";
+      $("userName").title = (HN.roleText[HN.role()] || "") + " · " + HN.loginName(S.user.email || "");
+      $("accountDialog").close();
+      HN.toast("Сабт шуд: " + done.join(", ") + (loginChanged || pw ? ". Дафъаи оянда бо маълумоти нав ворид шавед." : "."), "ok");
+    } finally { btn.disabled = false; }
+  });
   $("logoutBtn").addEventListener("click", async () => {
     if (!(await HN.confirm("Аз система баромадан мехоҳед?", { ok: "Баромадан" }))) return;
     await S.db?.auth.signOut();

@@ -8,13 +8,13 @@
   <title>HOJI-NAIM CARGO</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://wfxbgkasstkxzmyrjwpi.supabase.co" crossorigin>
-  <link rel="stylesheet" href="style.css?v=20261120-noupsert">
+  <link rel="stylesheet" href="style.css?v=20261120-account">
   <script src="vendor/supabase-js-2.118.0.js" defer></script>
-  <script src="js/core.js?v=20261120-noupsert" defer></script>
-  <script src="js/exporter.js?v=20261120-noupsert" defer></script>
-  <script src="js/notebook.js?v=20261120-noupsert" defer></script>
-  <script src="js/extras.js?v=20261120-noupsert" defer></script>
-  <script src="main.js?v=20261120-noupsert" defer></script>
+  <script src="js/core.js?v=20261120-account" defer></script>
+  <script src="js/exporter.js?v=20261120-account" defer></script>
+  <script src="js/notebook.js?v=20261120-account" defer></script>
+  <script src="js/extras.js?v=20261120-account" defer></script>
+  <script src="main.js?v=20261120-account" defer></script>
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -119,8 +119,8 @@
         <a class="nav-item" href="#admin" data-view="admin" data-perm="admin"><svg><use href="#i-shield"/></svg><span>Админ-панел</span></a>
       </nav>
       <div class="side-user">
-        <div class="avatar" id="userAvatar">?</div>
-        <div class="side-user-text"><b id="userName">—</b><small><span class="dot" id="connDot"></span><span id="connectionStatus">Пайвастшавӣ…</span></small></div>
+        <button type="button" class="side-user-btn" id="accountBtn" title="Ҳисоби ман: ном, логин, парол"><span class="avatar" id="userAvatar">?</span>
+        <span class="side-user-text"><b id="userName">—</b><small><span class="dot" id="connDot"></span><span id="connectionStatus">Пайвастшавӣ…</span></small></span></button>
         <button class="icon-btn on-dark" id="logoutBtn" title="Баромадан" aria-label="Баромадан"><svg><use href="#i-logout"/></svg></button>
       </div>
     </aside>
@@ -482,6 +482,20 @@
         <button class="btn btn-ghost" id="stCopy">Нусхаи матн</button><button class="btn btn-ghost" id="stWhatsapp">WhatsApp</button><button class="btn btn-primary" id="stTelegram">Telegram</button></div>
       <div id="stBody"></div>
     </div>
+  </dialog>
+
+  <!-- ===== My account ===== -->
+  <dialog id="accountDialog" class="modal modal-sm" aria-labelledby="accountTitle">
+    <form id="accountForm" class="modal-body" novalidate autocomplete="off">
+      <div class="modal-head"><div><p class="eyebrow">Ҳисоби ман</p><h2 id="accountTitle">Ном, логин ва парол</h2></div><button type="button" class="icon-btn" data-close aria-label="Пӯшидан"><svg><use href="#i-x"/></svg></button></div>
+      <label class="field"><span>Ном</span><input name="name" maxlength="120" placeholder="Масалан: Бахтиёр"></label>
+      <label class="field"><span>Логин</span><input name="login" maxlength="80" autocapitalize="none" spellcheck="false" autocomplete="username" placeholder="масалан bakha0101"></label>
+      <p class="hint">Бо ин логин ворид мешавед. Ҳарфҳои лотинӣ, рақам ва . _ - (ҳадди ақал 3). Email ҳам мумкин.</p>
+      <label class="field"><span>Пароли нав</span><input name="password" type="password" minlength="8" autocomplete="new-password" placeholder="Агар иваз намекунед, холӣ монед"></label>
+      <label class="field"><span>Такрори пароли нав</span><input name="password2" type="password" minlength="8" autocomplete="new-password"></label>
+      <p id="accountMsg" class="form-msg" role="status"></p>
+      <div class="modal-foot"><button type="button" class="btn btn-ghost" data-close>Бекор</button><button class="btn btn-primary" type="submit">Сабт</button></div>
+    </form>
   </dialog>
 
   <!-- ===== Confirm ===== -->

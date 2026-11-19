@@ -917,3 +917,8 @@ body.dark .pay-sug em { color: #8fb4ff; }
 body.dark .xl-som { color: #9aa6bb; }
 button.xl-qat { background: none; border: 0; padding: 3px; border-radius: 4px; cursor: pointer; display: inline-flex; }
 button.xl-qat:hover { background: rgba(255,255,255,.18); }
+/* Sidebar user block opens «Ҳисоби ман» */
+.side-user-btn { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; background: none; border: 0; padding: 4px; margin: -4px; border-radius: 10px; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.side-user-btn:hover { background: rgba(255,255,255,.08); }
+.side-user-btn .avatar { flex: none; }
+.side-user-btn .side-user-text { display: block; }
