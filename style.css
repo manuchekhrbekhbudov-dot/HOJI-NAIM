@@ -872,3 +872,16 @@ body.dark .xl .xl-cellin, body.dark .xl .xl-in input { background-color: transpa
 .b-load small { color: var(--muted); display: block; }
 .b-load .b-sum { text-align: right; font-variant-numeric: tabular-nums; }
 .b-load.other { opacity: .55; }
+
+/* Excel ribbon: yuan rate and quick yuan → dollar */
+.xl-cny .xl-group-btns { display: grid; gap: 6px; align-content: center; }
+.xl-cnyrow { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #323130; }
+.xl-cnyrow input { width: 86px; min-height: 28px; padding: 3px 8px; font-size: 14px; font-weight: 700; text-align: right; border-radius: 4px; border: 1px solid #c8c6c4; background: #fff; color: #000; }
+#xlCny { border-color: #e0b100; background: #fffbe8; }
+.xl-cnyrow b { min-width: 70px; font-size: 14px; color: #107c41; }
+.xl-formula { height: auto; min-height: 30px; flex-wrap: wrap; }
+.xl-formula #xlFx { flex: 1 1 200px; }
+.xl-cny { display: flex; align-items: center; gap: 12px; padding: 0 4px 0 12px; border-left: 1px solid #e1dfdd; white-space: nowrap; }
+.xl-cny > b { font-size: 12px; color: #605e5c; }
+.xl-cnyrow input { width: 70px; min-height: 24px; height: 24px; font-size: 13px; }
+@media (max-width: 640px) { .xl-cny { gap: 6px; padding-left: 6px; } .xl-cny > b { display: none; } .xl-cnyrow input { width: 58px; } }
