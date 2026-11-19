@@ -97,7 +97,7 @@
     const ids = [...dirty]; dirty.clear();
     for (const id of ids) {
       const sh = book.sheets.find(x => x.id === id); if (!sh) continue;
-      const r = await S.db.from("customer_sheets").upsert({ customer_key: "sheet:" + sh.id, sheet_name: sh.name, client_code: sh.code || "", phone: sh.phone || "", customer_name: sh.code || "", data: { rows: sh.rows }, position: book.sheets.indexOf(sh) }, { onConflict: "customer_key" });
+      const r = await HN.putRow("customer_sheets", "customer_key", { customer_key: "sheet:" + sh.id, sheet_name: sh.name, client_code: sh.code || "", phone: sh.phone || "", customer_name: sh.code || "", data: { rows: sh.rows }, position: book.sheets.indexOf(sh) });
       if (r.error) { console.warn("Sheet sync", r.error); setStatus("Дар база сабт нашуд — дар браузер нигоҳ дошта шуд"); }
     }
   }

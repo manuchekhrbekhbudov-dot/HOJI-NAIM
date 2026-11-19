@@ -477,11 +477,11 @@
     if (tf) tf.onsubmit = async e => {
       e.preventDefault();
       const rows = ["tg_prices", "tg_address", "tg_contact", "tg_payment"].map(key => ({ key, value: tf.elements[key].value.trim() }));
-      const r = await S.db.from("app_settings").upsert(rows, { onConflict: "key" });
+      const r = await HN.putRows("app_settings", "key", rows);
       if (r.error) { HN.toast(HN.dbError(r.error), "error"); return; }
       rows.forEach(x => (S.tgTexts[x.key] = x.value)); HN.toast("Матнҳои бот сабт шуданд.", "ok");
     };
-    const setSetting = async (key, value) => { const r = await S.db.from("app_settings").upsert({ key, value }, { onConflict: "key" }); if (r.error) { HN.toast(HN.dbError(r.error), "error"); return false; } S.tgTexts[key] = value; return true; };
+    const setSetting = async (key, value) => { const r = await HN.putRow("app_settings", "key", { key, value }); if (r.error) { HN.toast(HN.dbError(r.error), "error"); return false; } S.tgTexts[key] = value; return true; };
     const invoke = async (body, okMsg) => {
       const r = await S.db.functions.invoke(HN.config.tgFunction, { body });
       if (r.error || !r.data?.ok) { HN.toast("Нарафт: " + (r.data?.error || r.error?.message || "бот ҷавоб надод"), "error"); return null; }
@@ -591,7 +591,7 @@
       const m = $("lockMonth").value; if (!m) return;
       const [y, mo] = m.split("-").map(Number), until = HN.isoDate(new Date(y, mo, 0));
       if (!(await HN.confirm(`Ҳамаи сабтҳо то ${HN.fmtDate(until)} пӯшида шаванд? Баъд онҳоро иваз ё нест кардан мумкин нест, то админ давраро накушояд.`, { title: "Пӯшидани давра", ok: "Пӯшидан" }))) return;
-      const r = await S.db.from("app_settings").upsert({ key: "closed_until", value: until }, { onConflict: "key" });
+      const r = await HN.putRow("app_settings", "key", { key: "closed_until", value: until });
       if (r.error) return HN.toast(HN.dbError(r.error), "error");
       HN.toast("Давра то " + HN.fmtDate(until) + " пӯшида шуд.", "ok"); await HN.reload();
     };
