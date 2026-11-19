@@ -58,17 +58,30 @@
   HN.latestUsd = () => { const l = allRates(); return l.length ? HN.num(l[l.length - 1].usd) : 0; };
   HN.latestCny = () => { const l = allRates(); return l.length ? HN.num(l[l.length - 1].cny) : 0; };
   HN.latestRate = () => { const l = allRates(); return l.length ? l[l.length - 1] : null; };
-  // Money in the currency chosen for reports (TJS or USD at the rate of that day).
-  HN.cur = HN.lsGet("hn-report-cur", "TJS") === "USD" ? "USD" : "TJS";
+  // TJS for one yuan on a date (the rate saved in «Курби асъор»; else the latest; else the default).
+  HN.cnyOn = date => {
+    const list = allRates().filter(x => HN.num(x.cny) > 0); let r = null;
+    for (const x of list) { if (!date || String(x.rate_date) <= String(date)) r = x; else break; }
+    r = r || list[0];
+    return HN.num(r?.cny) || D.cnyRate;
+  };
+  // Money in the currency chosen for reports: TJS, USD or CNY at the rate of that day.
+  // A record made in the same currency keeps its own amount.
+  HN.cur = ["USD", "CNY"].includes(HN.lsGet("hn-report-cur", "TJS")) ? HN.lsGet("hn-report-cur", "TJS") : "TJS";
+  const conv = (tjs, cur, orig, date) => {
+    if (HN.cur === "TJS") return HN.num(tjs);
+    if (cur === HN.cur) return HN.num(orig);
+    return HN.num(tjs) / (HN.cur === "USD" ? HN.rateOn(date) : HN.cnyOn(date));
+  };
   HN.val = {
-    ship: s => (HN.cur === "TJS" ? HN.total(s) : s.currency === "USD" ? HN.num(s.total_original) : HN.total(s) / HN.rateOn(HN.shipmentDate(s))),
-    pay: p => (HN.cur === "TJS" ? HN.num(p.amount_tjs) : p.currency === "USD" ? HN.num(p.amount_original) : HN.num(p.amount_tjs) / HN.rateOn(String(p.payment_date).slice(0, 10))),
-    exp: e => (HN.cur === "TJS" ? HN.num(e.amount_tjs) : e.currency === "USD" ? HN.num(e.amount_original) : HN.num(e.amount_tjs) / HN.rateOn(String(e.expense_date).slice(0, 10))),
+    ship: s => conv(HN.total(s), s.currency, s.total_original, HN.shipmentDate(s)),
+    pay: p => conv(p.amount_tjs, p.currency, p.amount_original, String(p.payment_date).slice(0, 10)),
+    exp: e => conv(e.amount_tjs, e.currency, e.amount_original, String(e.expense_date).slice(0, 10)),
     // debt of a shipment, valued at that shipment's own rate
     debt: s => { const t = HN.total(s); return HN.cur === "TJS" || t <= 0 ? HN.debt(s) : (HN.debt(s) * HN.val.ship(s)) / t; },
     paid: s => { const t = HN.total(s); return HN.cur === "TJS" || t <= 0 ? HN.paid(s) : HN.val.ship(s) - HN.val.debt(s); },
   };
-  HN.curLabel = () => (HN.cur === "USD" ? "$" : "TJS");
+  HN.curLabel = () => ({ USD: "$", CNY: "¥" })[HN.cur] || "TJS";
 
   async function saveRate(date, usd, cny) {
     if (S.features.rates) {
