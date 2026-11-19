@@ -54,7 +54,6 @@
   }
 
   /* ================= Auth ================= */
-  let authMode = "signin";
   function showScreen(which) {
     $("boot").classList.add("hidden");
     $("authScreen").classList.toggle("hidden", which !== "auth");
@@ -79,28 +78,17 @@
     pw.type = show ? "text" : "password"; $("pwEye").classList.toggle("on", show);
     $("pwEye").setAttribute("aria-label", show ? "Паролро пинҳон кардан" : "Паролро нишон додан"); pw.focus();
   });
-  $("authModeToggle").addEventListener("click", () => {
-    authMode = authMode === "signin" ? "signup" : "signin";
-    const up = authMode === "signup";
-    $("authHeading").textContent = up ? "Сохтани ҳисоб" : "Ворид шудан";
-    $("authDescription").textContent = up ? "Email ва пароли нав ворид кунед. Пас аз тасдиқи Email админ ба шумо нақш медиҳад." : "Email ва пароли худро ворид кунед.";
-    $("authSubmit").textContent = up ? "Сабти ном" : "Ворид шудан";
-    $("password").autocomplete = up ? "new-password" : "current-password";
-    $("authModeToggle").textContent = up ? "Ҳисоб доред? Ворид шудан" : "Ҳисоб надоред? Сабти ном";
-    $("authMessage").textContent = "";
-  });
   $("authForm").addEventListener("submit", async e => {
     e.preventDefault();
     if (!S.db) return;
     const email = $("email").value.trim(), password = $("password").value, msg = $("authMessage");
     if (!/^\S+@\S+\.\S+$/.test(email)) { msg.textContent = "Email-ро дуруст нависед."; return; }
     if (password.length < 8) { msg.textContent = "Парол бояд ҳадди ақал 8 аломат бошад."; return; }
-    msg.dataset.kind = ""; msg.textContent = authMode === "signin" ? "Ворид шуда истодааст…" : "Ҳисоб сохта шуда истодааст…";
+    msg.dataset.kind = ""; msg.textContent = "Ворид шуда истодааст…";
     $("authSubmit").disabled = true;
     try {
-      const r = authMode === "signin" ? await S.db.auth.signInWithPassword({ email, password }) : await S.db.auth.signUp({ email, password });
+      const r = await S.db.auth.signInWithPassword({ email, password });
       if (r.error) { msg.dataset.kind = "error"; msg.textContent = /invalid login/i.test(r.error.message) ? "Email ё парол нодуруст аст." : r.error.message; return; }
-      if (authMode === "signup" && !r.data.session) { msg.dataset.kind = "ok"; msg.textContent = "Ҳисоб сохта шуд. Email-ро тасдиқ кунед, баъд ворид шавед."; return; }
       if (r.data.session) { msg.textContent = ""; await enterApp(r.data.session.user || r.data.user); }
     } catch (err) { msg.dataset.kind = "error"; msg.textContent = err.message || "Хатои номаълум."; }
     finally { $("authSubmit").disabled = false; }
