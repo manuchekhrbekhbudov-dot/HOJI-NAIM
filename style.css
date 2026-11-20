@@ -925,3 +925,10 @@ body.dark .pay-sug em { color: #8fb4ff; }
 body.dark .xl-som { color: #9aa6bb; }
 button.xl-qat { background: none; border: 0; padding: 3px; border-radius: 4px; cursor: pointer; display: inline-flex; }
 button.xl-qat:hover { background: rgba(255,255,255,.18); }
+
+/* Logo: the gold seal (assets/logo.svg) everywhere the letter mark was */
+.brand-mark, .auth .auth-mark, .auth.night .auth-mark, .boot-mark { background: none !important; border-radius: 50% !important; padding: 0; color: transparent; }
+.brand-mark img, .auth-mark img, .boot-mark img { width: 100%; height: 100%; display: block; }
+.brand-mark { box-shadow: 0 4px 12px rgba(0,0,0,.25) !important; }
+.auth .auth-mark { box-shadow: 0 10px 24px rgba(245,183,0,.3) !important; }
+.boot-mark { width: 84px; height: 84px; box-shadow: 0 14px 34px rgba(245,183,0,.35); }
