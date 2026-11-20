@@ -31,8 +31,17 @@ a { color: var(--navy-600); }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 
 /* ---------- Boot ---------- */
-.boot { position: fixed; inset: 0; display: grid; place-content: center; justify-items: center; gap: 14px; background: var(--navy-800); color: #C9D4E8; z-index: 50; }
-.boot-mark { width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; background: #fff; color: var(--navy-800); font-weight: 800; font-size: 26px; box-shadow: inset 0 -4px 0 var(--gold); animation: pulse 1.2s ease-in-out infinite; }
+/* Loading screen: logo inside two turning rings (gold and light blue) */
+.boot { position: fixed; inset: 0; display: grid; place-content: center; justify-items: center; gap: 0; background: radial-gradient(circle at 50% 45%, #1B3463, #0B1730 70%); color: #C9D4E8; z-index: 50; text-align: center; }
+.boot-ring { position: relative; width: 150px; height: 150px; display: grid; place-items: center; }
+.boot-ring::before, .boot-ring::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 4px solid transparent; border-top-color: #F5B700; border-right-color: #F5B700; animation: bootSpin 1.1s linear infinite; }
+.boot-ring::after { inset: 16px; border-top-color: #7DD3FC; border-right-color: transparent; border-left-color: #7DD3FC; animation-duration: 1.6s; animation-direction: reverse; }
+.boot-mark { width: 72px; height: 72px; border-radius: 20px; display: grid; place-items: center; background: #F5B700; color: #0E1F3D; font-weight: 900; font-size: 36px; box-shadow: 0 14px 34px rgba(245,183,0,.35); }
+.boot-name { margin-top: 26px; color: #fff; font-weight: 900; font-size: 20px; letter-spacing: .14em; }
+.boot-name small { display: block; margin-top: 4px; color: #F5B700; font-size: 11px; letter-spacing: .5em; }
+.boot > span { margin-top: 16px; font-size: 14px; letter-spacing: .03em; opacity: .85; }
+@keyframes bootSpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .boot-ring::before, .boot-ring::after { animation-duration: 3s; } }
 @keyframes pulse { 50% { transform: scale(.94); opacity: .8; } }
 
 /* ---------- Buttons & fields ---------- */
@@ -844,7 +853,6 @@ body.dark .nav-item, body.dark .sidebar a { color: #b7c3d9; }
 body.dark .nav-item.active { color: #fff; }
 body.dark .xl, body.dark .xl * { color-scheme: light; }
 body.dark .xl input { background-color: transparent; color: #000; }
-body.dark .boot-mark { background: #121b2d; }
 body.dark .tbl td { border-bottom-color: var(--line); }
 body.dark .tbl th { background: #162036; color: #9aa8c4; }
 body.dark .link-btn, body.dark legend { color: #9fc0ff; }
