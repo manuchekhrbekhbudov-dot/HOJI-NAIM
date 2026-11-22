@@ -17,7 +17,7 @@
   const D = HN.config.defaults;
   // Where a load came from: the Urumqi notebook marks its loads; everything else is Yiwu.
   HN.originOf = s => (/^URU-/i.test(String(s?.tracking_no || "")) || HN.noteValue(s, "Аз") === "Урумчи" ? "uru" : "iwu");
-  HN.ORIGINS = { iwu: "Иу", uru: "Урумчи" };
+  HN.ORIGINS = { iwu: "Иву", uru: "Урумчи" };
 
 // Two separate notebooks with the same template: «Дафтари Excel» (Yiwu) and «Дафтари Урумчи Excel».
 function makeNotebook(cfg) {
@@ -1072,7 +1072,7 @@ function makeNotebook(cfg) {
 }
 
   HN.notebook = makeNotebook({ main: true, el: "notebook", key: "hn-workbook-v3", prefix: "sheet:", track: "SHEET-", origin: "iwu", fileKey: "book",
-    label: "Иу", docTitle: "Новый образец — HOJI-NAIM CARGO.xlsx", docFile: "HOJI-NAIM CARGO.xlsx", filePrefix: "HOJI-NAIM-Дафтар", docLabel: "Дафтари Excel" });
+    label: "Иву", docTitle: "Новый образец — HOJI-NAIM CARGO.xlsx", docFile: "HOJI-NAIM CARGO.xlsx", filePrefix: "HOJI-NAIM-Дафтар", docLabel: "Дафтари Excel" });
   HN.notebookUru = makeNotebook({ main: false, el: "notebookUru", key: "hn-workbook-uru", prefix: "uru:", track: "URU-", origin: "uru", fileKey: "uru",
     label: "Урумчи", docTitle: "Урумчи — HOJI-NAIM CARGO.xlsx", docFile: "HOJI-NAIM CARGO Урумчи.xlsx", filePrefix: "HOJI-NAIM-Урумчи", docLabel: "Дафтари Урумчи Excel" });
 })();

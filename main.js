@@ -18,7 +18,7 @@
     expenses: ["Хароҷот", "Хароҷоти ҳаррӯзаи ширкат", "finance"],
     reports: ["Ҳисобот", "Ҳисоботи давравӣ: борҳо, пардохтҳо, хароҷот, муштариён"],
     kassa: ["Касса", "Пули нақд ва бонк: даромад, хароҷот ва бақия", "finance"],
-    excel: ["Дафтари Excel", "Борҳои Иу: варақҳои муштариён (Лист1, Лист2 …). Пас аз санҷиш «Сабт дар система»-ро пахш кунед"],
+    excel: ["Дафтари Excel", "Борҳои Иву: варақҳои муштариён (Лист1, Лист2 …). Пас аз санҷиш «Сабт дар система»-ро пахш кунед"],
     "excel-uru": ["Дафтари Урумчи Excel", "Борҳои Урумчи: варақҳо ва ҳисоби алоҳида. Пас аз санҷиш «Сабт дар система»-ро пахш кунед"],
     admin: ["Админ-панел", "Кормандон, нусхаи эҳтиётӣ ва ҳолати система", "admin"],
   };
@@ -614,10 +614,10 @@
   $("repGroup").addEventListener("click", e => { const b = e.target.closest("[data-group]"); if (!b) return; repGroup = b.dataset.group; $("repGroup").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); renderAnalysis(); });
   ["repFrom", "repTo"].forEach(id => $(id).addEventListener("input", renderAnalysis));
   $("repCustomer").addEventListener("change", renderAnalysis);
-  // Иу and Урумчи come on separate cars and are counted separately.
+  // Иву and Урумчи come on separate cars and are counted separately.
   let repOrigin = "";
   $("repOrigin").addEventListener("click", e => { const b = e.target.closest("[data-origin]"); if (!b) return; repOrigin = b.dataset.origin; $("repOrigin").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); renderAnalysis(); });
-  // a car (batch) belongs to Иу or Урумчи by the loads on it; its expenses follow it
+  // a car (batch) belongs to Иву or Урумчи by the loads on it; its expenses follow it
   const batchOrigin = id => { const l = S.shipments.filter(s => String(s.batch_id || "") === String(id)); if (!l.length) return ""; const u = l.filter(s => HN.originOf(s) === "uru").length; return u * 2 >= l.length ? "uru" : "iwu"; };
   $("repCur").addEventListener("click", e => { const b = e.target.closest("[data-cur]"); if (!b) return; HN.cur = b.dataset.cur; HN.lsSet("hn-report-cur", HN.cur); renderAnalysis(); });
   $("custSearch").addEventListener("input", renderAnalysis);

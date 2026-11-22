@@ -9,13 +9,13 @@
   <link rel="icon" href="assets/favicon.svg?v=2" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <link rel="preconnect" href="https://wfxbgkasstkxzmyrjwpi.supabase.co" crossorigin>
-  <link rel="stylesheet" href="style.css?v=20261122-month">
+  <link rel="stylesheet" href="style.css?v=20261122-ivu">
   <script src="vendor/supabase-js-2.118.0.js" defer></script>
-  <script src="js/core.js?v=20261122-month" defer></script>
-  <script src="js/exporter.js?v=20261122-month" defer></script>
-  <script src="js/notebook.js?v=20261122-month" defer></script>
-  <script src="js/extras.js?v=20261122-month" defer></script>
-  <script src="main.js?v=20261122-month" defer></script>
+  <script src="js/core.js?v=20261122-ivu" defer></script>
+  <script src="js/exporter.js?v=20261122-ivu" defer></script>
+  <script src="js/notebook.js?v=20261122-ivu" defer></script>
+  <script src="js/extras.js?v=20261122-ivu" defer></script>
+  <script src="main.js?v=20261122-ivu" defer></script>
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -190,7 +190,7 @@
         <div class="toolbar">
           <label class="search"><svg><use href="#i-search"/></svg><input id="shipSearch" type="search" placeholder="Код, муштарӣ, телефон ё рақами трек…" aria-label="Ҷустуҷӯ"></label>
           <select id="shipPay" aria-label="Ҳолати пардохт"><option value="">Ҳамаи пардохтҳо</option><option value="unpaid">Қарздор</option><option value="partial">Қисман</option><option value="paid">Пардохт шуд</option></select>
-          <select id="shipOrigin" aria-label="Аз куҷо"><option value="">Иу ва Урумчи</option><option value="iwu">Иу</option><option value="uru">Урумчи</option></select>
+          <select id="shipOrigin" aria-label="Аз куҷо"><option value="">Иву ва Урумчи</option><option value="iwu">Иву</option><option value="uru">Урумчи</option></select>
           <select id="shipWh" aria-label="Ҳолати анбор"><option value="">Ҳамаи ҳолатҳо</option><option value="in_warehouse">Дар анбор</option><option value="delivered">Супурда шуд</option><option value="unknown">Номуайян</option></select>
           <label class="date-range"><input id="shipFrom" type="date" aria-label="Аз сана"><span>—</span><input id="shipTo" type="date" aria-label="То сана"></label>
           <button class="btn btn-ghost" id="shipExport"><svg><use href="#i-download"/></svg><span>Excel</span></button>
@@ -289,7 +289,7 @@
             <div class="seg" id="repGroup" role="tablist" aria-label="Гурӯҳбандӣ"><button data-group="day">Рӯзона</button><button data-group="week">Ҳафтаина</button><button data-group="month" class="on">Моҳона</button></div>
             <label class="date-range"><input id="repFrom" type="date" aria-label="Аз сана"><span>—</span><input id="repTo" type="date" aria-label="То сана"></label>
             <select id="repCustomer" aria-label="Муштарӣ"><option value="">Ҳамаи муштариён</option></select>
-            <div class="seg" id="repOrigin" role="tablist" aria-label="Аз куҷо"><button data-origin="" class="on">Ҳама</button><button data-origin="iwu">Иу</button><button data-origin="uru">Урумчи</button></div>
+            <div class="seg" id="repOrigin" role="tablist" aria-label="Аз куҷо"><button data-origin="" class="on">Ҳама</button><button data-origin="iwu">Иву</button><button data-origin="uru">Урумчи</button></div>
             <div class="seg" id="repCur" role="tablist" aria-label="Асъор"><button data-cur="TJS">TJS</button><button data-cur="USD">$ USD</button><button data-cur="CNY">¥ YUAN</button></div>
             <button class="btn btn-primary" id="repExport"><svg><use href="#i-download"/></svg><span>Содирот ба Excel</span></button>
           </div>

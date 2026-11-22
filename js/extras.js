@@ -196,7 +196,7 @@
       .sort((a, b) => (bSel.has(String(b.id)) - bSel.has(String(a.id))) || HN.shipmentDate(b).localeCompare(HN.shipmentDate(a)))
       .slice(0, 200);
     box.innerHTML = list.map(s => `<label class="b-load"><input type="checkbox" data-bload="${esc(s.id)}" ${bSel.has(String(s.id)) ? "checked" : ""}>
-      <span><b>${esc(HN.customerCode(s) || s.client_name || "—")}</b> · ${esc(s.client_name || "")}${HN.originOf(s) === "uru" ? ' <em class="og-uru">Урумчи</em>' : ' <em class="og-iwu">Иу</em>'}<small>${HN.fmtDate(HN.shipmentDate(s))} · ${esc(HN.noteValue(s, "Мол") || s.tracking_no)} · ${HN.places(s)} ҷой · ${fmt(HN.num(s.weight_kg), 1)} кг · ${fmt(HN.num(s.volume_m3), 3)} м³</small></span>
+      <span><b>${esc(HN.customerCode(s) || s.client_name || "—")}</b> · ${esc(s.client_name || "")}${HN.originOf(s) === "uru" ? ' <em class="og-uru">Урумчи</em>' : ' <em class="og-iwu">Иву</em>'}<small>${HN.fmtDate(HN.shipmentDate(s))} · ${esc(HN.noteValue(s, "Мол") || s.tracking_no)} · ${HN.places(s)} ҷой · ${fmt(HN.num(s.weight_kg), 1)} кг · ${fmt(HN.num(s.volume_m3), 3)} м³</small></span>
       <span class="b-sum">${money(HN.total(s))}</span></label>`).join("") || '<p class="muted" style="padding:10px 12px">Бори озод нест. Аввал борҳоро сабт кунед.</p>';
     const chosen = S.shipments.filter(s => bSel.has(String(s.id)));
     $("bLoadsCount").textContent = chosen.length ? `Интихоб: ${chosen.length} бор · ${fmt(chosen.reduce((n, s) => n + HN.num(s.weight_kg), 0), 1)} кг · ${fmt(chosen.reduce((n, s) => n + HN.num(s.volume_m3), 0), 3)} м³` : "Ҳоло ягон бор интихоб нашудааст";
@@ -587,7 +587,7 @@
         <ul class="rate-list">${last.map(r => `<li><span>${HN.fmtDate(r.rate_date)}</span><b>$1 = ${HN.fmtQty(r.usd, 4)}</b>${r.cny ? `<small>¥1 = ${HN.fmtQty(r.cny, 4)}</small>` : ""}</li>`).join("") || '<li class="muted">Ҳоло қурб сабт нашудааст.</li>'}</ul>
       </div>
       <div class="panel">
-        <div class="panel-head"><div><h3>Пӯшидани моҳ</h3><p class="muted">Варақҳои Excel-и моҳ (Иу ва Урумчи) ба «Бойгонӣ» мераванд ва дафтари нави холӣ барои моҳи оянда кушода мешавад. Қарзи муштариён гум намешавад. Борҳо, пардохтҳо ва хароҷоти моҳи пӯшида иваз ё нест намешаванд.</p></div></div>
+        <div class="panel-head"><div><h3>Пӯшидани моҳ</h3><p class="muted">Варақҳои Excel-и моҳ (Иву ва Урумчи) ба «Бойгонӣ» мераванд ва дафтари нави холӣ барои моҳи оянда кушода мешавад. Қарзи муштариён гум намешавад. Борҳо, пардохтҳо ва хароҷоти моҳи пӯшида иваз ё нест намешаванд.</p></div></div>
         ${!S.features.lock ? '<p class="hint">Барои ин қисм SQL-и supabase/SETUP-ALL.sql-ро иҷро кунед.</p>' : `
         <p>${S.closedUntil ? `Ҳоло пӯшида то: <b>${HN.fmtDate(S.closedUntil)}</b>` : "Ҳоло ягон давра пӯшида нест."}${S.bookMonth ? ` · Дафтари ҳозира: <b>${HN.monthLabel(S.bookMonth)}</b>` : ""}</p>
         <p><button type="button" class="link-btn" id="archOpenBtn">Бойгонӣ: моҳҳои пӯшида →</button></p>
@@ -613,7 +613,7 @@
       const text = archive
         ? `Моҳи «${label}» пӯшида шавад?
 
-1) Варақҳои Excel (Иу ва Урумчи) ба «Бойгонӣ» мераванд — дидан ва .xlsx гирифтан мумкин, иваз кардан не.
+1) Варақҳои Excel (Иву ва Урумчи) ба «Бойгонӣ» мераванд — дидан ва .xlsx гирифтан мумкин, иваз кардан не.
 2) Дафтари нави холӣ барои «${HN.monthLabel(next)}» кушода мешавад.
 3) Қарзи муштариён гум намешавад — дар варақи нав «Қарзи моҳҳои гузашта» нишон дода мешавад.
 4) Борҳо, пардохтҳо ва хароҷот то ${HN.fmtDate(until)} иваз ё нест намешаванд.`
