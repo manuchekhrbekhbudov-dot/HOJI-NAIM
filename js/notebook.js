@@ -279,6 +279,39 @@ function makeNotebook(cfg) {
   });
   const activeSheet = () => book.sheets.find(s => s.id === book.active) || book.sheets[0];
   let selected = null, ready = false, showTotal = false;
+  // Excel menu (Файл · Асосӣ · Ворид · Формулаҳо · Маълумот · Намоиш), size of the grid and «show formulas»
+  const MENUS = [["file", "Файл"], ["home", "Асосӣ"], ["insert", "Ворид"], ["formulas", "Формулаҳо"], ["data", "Маълумот"], ["view", "Намоиш"]];
+  let rtab = HN.lsGet(BOOK_KEY + "-menu", "home"), zoom = Number(HN.lsGet(BOOK_KEY + "-zoom", 100)) || 100, showF = false;
+  const ico = (id, t, act, opt = {}) => `<button class="xl-btn${opt.lg ? " xl-btn-lg" : ""}" data-xl="${act}" ${opt.off ? "disabled" : ""}${opt.title ? ` title="${esc(opt.title)}"` : ""}>${id.startsWith("<") ? id : `<svg><use href="#${id}"/></svg>`}<span>${t}</span></button>`;
+  const grp = (label, big, small = "", cls = "") => `<div class="xl-group ${cls}"><div class="xl-group-btns">${big}${small ? `<div class="xl-stack">${small}</div>` : ""}</div><span class="xl-group-label">${label}</span></div>`;
+  const SAVE_ICO = '<svg viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></svg>';
+  function ribbon(sh) {
+    const off = showTotal, pcName = HN.lsGet(PC_NAME, "");
+    const find = `<form class="xl-findform" id="xlFind" autocomplete="off"><input id="xlFindIn" placeholder="Код ё телефон" aria-label="Муштарӣ: код ё телефон" maxlength="30"><button class="xl-btn" type="submit"><svg><use href="#i-search"/></svg><span>Кушодан</span></button></form>` + ico("i-box", "Ҳамаи борҳои муштарӣ", "customer");
+    const R = {
+      file: grp("Файл", ico(SAVE_ICO, "Сабт ба компютер (Ctrl+S)", "pc-save", { lg: true }), ico(SAVE_ICO, pcName ? "Файл: " + esc(pcName) : "Файли Excel дар компютер", "pc-link", { title: "Файле, ки 💾 ва Ctrl+S нав мекунанд" }))
+        + grp("Содирот", ico("i-download", "Ҳамаи дафтар (.xlsx)", "export-all", { lg: true }), ico("i-download", "Ин варақ (.xlsx)", "export-sheet"))
+        + grp("Чоп", ico('<svg viewBox="0 0 24 24"><path d="M7 9V3h10v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/></svg>', "Чоп / PDF", "print", { lg: true })),
+      home: grp("Сатрҳо", ico("i-refresh", "Сабт дар система", "sync", { lg: true, off }), ico("i-trash", "Нест кардани сатр", "del-row", { off }))
+        + grp("Муштарӣ", find, "", "xl-find")
+        + grp("Варақҳо", ico("i-sheet", "Варақи нав", "add-sheet", { lg: true }), ico("i-edit", "Номи варақ", "rename", { off }) + ico("i-trash", "Нест кардани варақ", "remove-sheet", { off: off || book.sheets.length < 2 }) + ico("i-trash", "Тоза: варақҳои холӣ", "clean"))
+        + grp("Содирот", ico("i-download", "Ҳамаи дафтар (.xlsx)", "export-all", { lg: true }), ico("i-download", "Ин варақ (.xlsx)", "export-sheet") + ico(SAVE_ICO, pcName ? "Файл: " + esc(pcName) : "Файли Excel дар компютер", "pc-link")),
+      insert: grp("Сатрҳо", ico("i-plus", "Сатри нав (болои сатри интихобшуда)", "ins-row", { lg: true, off }), ico("i-trash", "Нест кардани сатр", "del-row", { off }))
+        + grp("Варақҳо", ico("i-sheet", "Варақи нав", "add-sheet", { lg: true }), ico("i-edit", "Номи варақ", "rename", { off }) + ico("i-trash", "Нест кардани варақ", "remove-sheet", { off: off || book.sheets.length < 2 })),
+      formulas: grp("Формулаҳо", ico('<svg viewBox="0 0 24 24"><path d="M9 4h8M12 4c-2 0-3 1.5-3 4v8c0 2.5-1 4-3 4M6 11h8"/></svg>', showF ? "Нишон додани рақамҳо" : "Нишон додани формулаҳо", "formulas", { lg: true, off }))
+        + `<div class="xl-group xl-fhelp"><div class="xl-group-btns"><ul>
+            <li><b>Общий объем, куб</b> = высота × ширина × длина × место</li><li><b>Общий объем, кг</b> = кг × место</li>
+            <li><b>Сумма за куб</b> = куб × цена куб · <b>Сумма за кг</b> = кг × цена кг</li><li><b>итоговая цена</b> = калонтарини «Сумма за куб» ва «Сумма за кг»</li>
+            <li><b>кг в одном кубе</b> = кг ÷ куб · <b>Карго $</b> = юан × Курс ¥ ÷ Курс $</li></ul></div><span class="xl-group-label">Чӣ тавр ҳисоб мешавад</span></div>`,
+      data: grp("Система", ico("i-refresh", "Сабт дар система", "sync", { lg: true, off }), ico("i-refresh", "Навсозӣ аз база", "reload"))
+        + grp("Муштарӣ", find, "", "xl-find")
+        + grp("Тоза кардан", ico("i-trash", "Тоза: варақҳои холӣ", "clean", { lg: true })),
+      view: grp("Намоиш", ico("i-sheet", showTotal ? "Варақи муштарӣ" : TOTAL_NAME, "toggle-total", { lg: true }), ico('<svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>', "Пурраи экран", "fullscreen"))
+        + grp("Андоза", `<div class="xl-zoomctl"><button class="xl-btn" data-xl="zoom-out" aria-label="Хурдтар">−</button><button class="xl-btn xl-zoomval" data-xl="zoom-reset" title="100%">${zoom}%</button><button class="xl-btn" data-xl="zoom-in" aria-label="Калонтар">+</button></div>`)
+        + grp("Ранг", ico('<svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>', "Шаб / Рӯз", "theme", { lg: true })),
+    };
+    return R[rtab] || R.home;
+  }
   // Totals of one sheet (same numbers as its row 7), used by «Итого Куб».
   function sheetTotals(sh) {
     const all = [...dbRows(sh), ...sh.rows.filter(used)];
@@ -347,32 +380,12 @@ function makeNotebook(cfg) {
           <b class="xl-docname">${esc(cfg.docTitle)} <span>— Excel</span></b>
           <span class="xl-saved" id="xlSaved">${S.features.sheetData ? "Дар база сабт мешавад" : "Дар ҳамин браузер"}${HN.lsGet(PC_NAME, "") ? ` · 💾 ${esc(HN.lsGet(PC_NAME, ""))}` : ""}</span>
         </div>
-        <div class="xl-menutabs" aria-hidden="true"><span>Файл</span><span class="on">Асосӣ</span><span>Ворид</span><span>Формулаҳо</span><span>Маълумот</span><span>Намоиш</span></div>
-        <div class="xl-ribbon" role="toolbar" aria-label="Амалҳои дафтар">
-          <div class="xl-group"><div class="xl-group-btns">
-            <button class="xl-btn xl-btn-lg" data-xl="sync" ${showTotal ? "disabled" : ""}><svg><use href="#i-refresh"/></svg><span>Сабт дар система</span></button>
-            <div class="xl-stack"><button class="xl-btn" data-xl="del-row" ${showTotal ? "disabled" : ""}><svg><use href="#i-trash"/></svg><span>Нест кардани сатр</span></button></div>
-          </div><span class="xl-group-label">Сатрҳо</span></div>
-          <div class="xl-group xl-find"><div class="xl-group-btns">
-            <form class="xl-findform" id="xlFind" autocomplete="off"><input id="xlFindIn" placeholder="Код ё телефон" aria-label="Муштарӣ: код ё телефон" maxlength="30"><button class="xl-btn" type="submit"><svg><use href="#i-search"/></svg><span>Кушодан</span></button></form>
-            <button class="xl-btn" data-xl="customer"><svg><use href="#i-box"/></svg><span>Ҳамаи борҳои муштарӣ</span></button>
-          </div><span class="xl-group-label">Муштарӣ</span></div>
-          <div class="xl-group"><div class="xl-group-btns">
-            <button class="xl-btn xl-btn-lg" data-xl="add-sheet"><svg><use href="#i-sheet"/></svg><span>Варақи нав</span></button>
-            <div class="xl-stack"><button class="xl-btn" data-xl="rename" ${showTotal ? "disabled" : ""}><svg><use href="#i-edit"/></svg><span>Номи варақ</span></button>
-            <button class="xl-btn" data-xl="remove-sheet" ${book.sheets.length < 2 || showTotal ? "disabled" : ""}><svg><use href="#i-trash"/></svg><span>Нест кардани варақ</span></button>
-            <button class="xl-btn" data-xl="clean"><svg><use href="#i-trash"/></svg><span>Тоза: варақҳои холӣ</span></button></div>
-          </div><span class="xl-group-label">Варақҳо</span></div>
-          <div class="xl-group"><div class="xl-group-btns">
-            <button class="xl-btn xl-btn-lg" data-xl="export-all"><svg><use href="#i-download"/></svg><span>Ҳамаи дафтар (.xlsx)</span></button>
-            <div class="xl-stack"><button class="xl-btn" data-xl="export-sheet"><svg><use href="#i-download"/></svg><span>Ин варақ (.xlsx)</span></button>
-            <button class="xl-btn" data-xl="pc-link" title="Файле, ки ҳангоми «Сабт» дар компютер нав мешавад"><svg viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></svg><span>${HN.lsGet(PC_NAME, "") ? "Файл: " + esc(HN.lsGet(PC_NAME, "")) : "Файли Excel дар компютер"}</span></button></div>
-          </div><span class="xl-group-label">Содирот</span></div>
-        </div>
+        <div class="xl-menutabs" role="tablist" aria-label="Менюи Excel">${MENUS.map(([k, t]) => `<button type="button" role="tab" data-xltab="${k}" aria-selected="${k === rtab}" class="${k === rtab ? "on" : ""}">${t}</button>`).join("")}</div>
+        <div class="xl-ribbon" role="toolbar" aria-label="Амалҳои дафтар">${ribbon(sh)}</div>
         <div class="xl-formula"><span class="xl-namebox" id="xlName">A${FIRST}</span><span class="xl-fxicons" aria-hidden="true"><i>✕</i><i>✓</i><em>fx</em></span><input id="xlFx" readonly aria-label="Сатри формула" value="">
           <span class="xl-cny" title="Курби юан${book.rateDate ? " · " + HN.fmtDate(book.rateDate) : ""}"><b>Курби юан</b><label class="xl-cnyrow"><span>1 $ =</span><input id="xlCny" type="text" inputmode="decimal" value="${esc(cnyPerUsd())}" aria-label="Курби юан: чанд юан барои 1 доллар"><span>¥</span></label>
           <label class="xl-cnyrow"><input id="xlYuanCalc" type="text" inputmode="decimal" placeholder="юан" aria-label="Ҳисоби юан ба доллар"><span>¥ =</span><b id="xlYuanOut">0 $</b></label></span></div>
-        <div class="xl-gridwrap" id="xlGridWrap">${showTotal ? totalGrid() : grid(sh, ro)}</div>
+        <div class="xl-gridwrap" id="xlGridWrap" style="--xl-zoom:${zoom / 100}">${showTotal ? totalGrid() : grid(sh, ro)}</div>
         <div class="xl-tabsbar">
           <button class="xl-tabnav" data-xl="tabs-left" aria-label="Варақҳои пешина">◀</button><button class="xl-tabnav" data-xl="tabs-right" aria-label="Варақҳои баъдина">▶</button>
           <div class="xl-tabs" id="xlTabs" role="tablist" aria-label="Варақҳо">
@@ -383,7 +396,7 @@ function makeNotebook(cfg) {
           <button class="xl-addtab" data-xl="add-sheet" title="Варақи нав (Shift+F11)" aria-label="Варақи нав">+</button>
           <div class="xl-sheetmenu hidden" id="xlSheetMenu" role="menu">${book.sheets.map(x => `<button role="menuitem" data-sheet="${esc(x.id)}" class="${x.id === sh.id ? "on" : ""}">${esc(x.name)}${x.code ? ` <small>${esc(x.code)}</small>` : ""}</button>`).join("")}</div>
         </div>
-        <div class="xl-status"><span id="xlStatus">Омода</span><span id="xlAgg"></span><span class="xl-sheetcount">${book.sheets.length} варақ</span><span class="xl-zoom" aria-hidden="true"><i class="xl-view on"></i><i class="xl-view v2"></i><i class="xl-view v3"></i><b>−</b><span class="xl-slider"><i></i></span><b>+</b>100%</span></div>
+        <div class="xl-status"><span id="xlStatus">Омода</span><span id="xlAgg"></span><span class="xl-sheetcount">${book.sheets.length} варақ</span><span class="xl-zoom"><button type="button" data-xl="zoom-out" aria-label="Хурдтар">−</button><span class="xl-slider"><i style="left:${Math.round((zoom - 50) / 1.5)}%"></i></span><button type="button" data-xl="zoom-in" aria-label="Калонтар">+</button><button type="button" data-xl="zoom-reset">${zoom}%</button></span></div>
       </div>`;
     const tab = el.querySelector(".xl-tab.on"), bar = el.querySelector(".xl-tabs");
     if (tab && bar && (tab.offsetLeft < bar.scrollLeft || tab.offsetLeft + tab.offsetWidth > bar.scrollLeft + bar.clientWidth)) bar.scrollLeft = tab.offsetLeft - 40;
@@ -458,7 +471,8 @@ function makeNotebook(cfg) {
       if (hasF) n++;
       tr.querySelectorAll("[data-k]").forEach(cell => {
         const k = cell.dataset.k;
-        cell.textContent = k === "no" ? String(Number(tr.dataset.i) + 1) : k === "density" ? (x.density === null ? "" : xf(x.density)) : xf(x[k]);
+        cell.textContent = showF && k !== "no" ? cell.dataset.f : k === "no" ? String(Number(tr.dataset.i) + 1) : k === "density" ? (x.density === null ? "" : xf(x.density)) : xf(x[k]);
+        cell.classList.toggle("xl-ftext", showF && k !== "no");
       });
     });
     g.querySelectorAll("[data-t]").forEach(cell => {
@@ -489,6 +503,8 @@ function makeNotebook(cfg) {
   /* ---------- Events ---------- */
   document.addEventListener("click", async e => {
     if (!mine(e)) return;
+    const mt = e.target.closest("[data-xltab]");
+    if (mt) { rtab = mt.dataset.xltab; HN.lsSet(BOOK_KEY + "-menu", rtab); await render(); return; }
     if (e.target.closest("[data-total]")) { if (!showTotal) { showTotal = true; selected = null; await render(); } return; }
     const tab = e.target.closest("[data-sheet]");
     if (tab && !tab.querySelector("input")) {
@@ -645,6 +661,25 @@ function makeNotebook(cfg) {
       setStatus("Варақи «" + n.name + "» илова шуд"); return;
     }
     if (kind === "clean") { await cleanEmpty(); return; }
+    if (kind === "zoom-in" || kind === "zoom-out" || kind === "zoom-reset") {
+      zoom = kind === "zoom-reset" ? 100 : Math.max(50, Math.min(200, zoom + (kind === "zoom-in" ? 10 : -10)));
+      HN.lsSet(BOOK_KEY + "-zoom", zoom); await render(); return;
+    }
+    if (kind === "formulas") { showF = !showF; await render(); return; }
+    if (kind === "toggle-total") { showTotal = !showTotal; selected = null; await render(); return; }
+    if (kind === "fullscreen") { const x = root()?.querySelector(".xl"); if (document.fullscreenElement) document.exitFullscreen?.(); else x?.requestFullscreen?.().catch(() => HN.toast("Браузер пурраи экранро иҷозат надод.")); return; }
+    if (kind === "theme") { HN.$("themeBtn")?.click(); return; }
+    if (kind === "reload") { setStatus("Навсозӣ…"); await HN.reload(); await render(); setStatus("Аз база нав шуд ✓"); return; }
+    if (kind === "print") { document.body.classList.add("print-xl"); window.print(); setTimeout(() => document.body.classList.remove("print-xl"), 500); return; }
+    if (kind === "ins-row") {
+      const tr = root().querySelector(".xl-c.sel")?.closest("tr.xl-data");
+      if (!tr) { HN.toast("Аввал ҳуҷайраеро дар сатр интихоб кунед — сатри нав болои он илова мешавад."); return; }
+      if (tr.classList.contains("xl-datarow")) { HN.toast("Ин сатр аз база аст. Сатрҳои нав дар поёни онҳо илова мешаванд."); return; }
+      const li = Math.max(0, Number(tr.dataset.i) - dbRows(sh).length), pos = selected;
+      if (li < sh.rows.length) sh.rows.splice(li, 0, {});
+      save(sh); await render(); if (pos) selectCell(pos.r, pos.c, true);
+      setStatus(`Сатри нав илова шуд (сатри ${FIRST + Number(tr.dataset.i)})`); return;
+    }
     if (kind === "pay") {
       const ship = sheetShips(sh).find(x => HN.debt(x) > 0.005);
       if (ship) HN.openPayment?.(null, HN.customerKey(ship)); return;
