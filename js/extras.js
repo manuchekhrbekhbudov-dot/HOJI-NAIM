@@ -195,7 +195,7 @@
       .sort((a, b) => (bSel.has(String(b.id)) - bSel.has(String(a.id))) || HN.shipmentDate(b).localeCompare(HN.shipmentDate(a)))
       .slice(0, 200);
     box.innerHTML = list.map(s => `<label class="b-load"><input type="checkbox" data-bload="${esc(s.id)}" ${bSel.has(String(s.id)) ? "checked" : ""}>
-      <span><b>${esc(HN.customerCode(s) || s.client_name || "—")}</b> · ${esc(s.client_name || "")}<small>${HN.fmtDate(HN.shipmentDate(s))} · ${esc(HN.noteValue(s, "Мол") || s.tracking_no)} · ${HN.places(s)} ҷой · ${fmt(HN.num(s.weight_kg), 1)} кг · ${fmt(HN.num(s.volume_m3), 3)} м³</small></span>
+      <span><b>${esc(HN.customerCode(s) || s.client_name || "—")}</b> · ${esc(s.client_name || "")}${HN.originOf(s) === "uru" ? ' <em class="og-uru">Урумчи</em>' : ' <em class="og-iwu">Иу</em>'}<small>${HN.fmtDate(HN.shipmentDate(s))} · ${esc(HN.noteValue(s, "Мол") || s.tracking_no)} · ${HN.places(s)} ҷой · ${fmt(HN.num(s.weight_kg), 1)} кг · ${fmt(HN.num(s.volume_m3), 3)} м³</small></span>
       <span class="b-sum">${money(HN.total(s))}</span></label>`).join("") || '<p class="muted" style="padding:10px 12px">Бори озод нест. Аввал борҳоро сабт кунед.</p>';
     const chosen = S.shipments.filter(s => bSel.has(String(s.id)));
     $("bLoadsCount").textContent = chosen.length ? `Интихоб: ${chosen.length} бор · ${fmt(chosen.reduce((n, s) => n + HN.num(s.weight_kg), 0), 1)} кг · ${fmt(chosen.reduce((n, s) => n + HN.num(s.volume_m3), 0), 3)} м³` : "Ҳоло ягон бор интихоб нашудааст";
