@@ -573,6 +573,9 @@
   };
 
   /* ================= Admin cards: rates, period lock, backup ================= */
+  const shiftMonth = (m, n) => { const [y, mo] = m.split("-").map(Number); return HN.isoDate(new Date(y, mo - 1 + n, 1)).slice(0, 7); };
+  // the month the next notebook is for: this calendar month, or the one after the open notebook if that is already this month
+  const nextBookMonth = () => { const cur = HN.today().slice(0, 7); return !S.bookMonth || S.bookMonth < cur ? cur : shiftMonth(S.bookMonth, 1); };
   function renderAdminExtras() {
     const box = $("adminExtras"); if (!box) return;
     const last = allRates().slice(-8).reverse();
@@ -589,7 +592,11 @@
       <div class="panel">
         <div class="panel-head"><div><h3>Пӯшидани моҳ</h3><p class="muted">Варақҳои Excel-и моҳ (Иву ва Урумчи) ба «Бойгонӣ» мераванд ва дафтари нави холӣ барои моҳи оянда кушода мешавад. Қарзи муштариён гум намешавад. Борҳо, пардохтҳо ва хароҷоти моҳи пӯшида иваз ё нест намешаванд.</p></div></div>
         ${!S.features.lock ? '<p class="hint">Барои ин қисм SQL-и supabase/SETUP-ALL.sql-ро иҷро кунед.</p>' : `
-        <p>${S.closedUntil ? `Ҳоло пӯшида то: <b>${HN.fmtDate(S.closedUntil)}</b>` : "Ҳоло ягон давра пӯшида нест."}${S.bookMonth ? ` · Дафтари ҳозира: <b>${HN.monthLabel(S.bookMonth)}</b>` : ""}</p>
+        <p>${S.closedUntil ? `Ҳоло пӯшида то: <b>${HN.fmtDate(S.closedUntil)}</b>` : "Ҳоло ягон давра пӯшида нест."}</p>
+        <div class="newmonth">
+          <div><span class="muted">Дафтари Excel-и ҳозира</span><b>${S.bookMonth ? HN.monthLabel(S.bookMonth) : "моҳ ҳанӯз интихоб нашудааст"}</b></div>
+          ${admin ? `<button class="btn btn-gold" id="newMonthBtn" type="button"><svg><use href="#i-plus"/></svg><span>Моҳи навро кушодан · ${HN.monthLabel(nextBookMonth())}</span></button>` : ""}
+        </div>
         <p><button type="button" class="link-btn" id="archOpenBtn">Бойгонӣ: моҳҳои пӯшида →</button></p>
         ${admin ? `<div class="btn-row"><label class="field"><span>Моҳ</span><input id="lockMonth" type="month" value="${prevMonth}"></label><button class="btn btn-primary" id="lockBtn"><svg><use href="#i-shield"/></svg><span>Пӯшидан</span></button>${S.closedUntil ? '<button class="btn btn-ghost" id="unlockBtn">Кушодан</button>' : ""}</div>` : '<p class="muted">Танҳо админ давраро мепӯшад.</p>'}`}
       </div>
@@ -634,6 +641,23 @@
       await HN.reload();
     };
     if ($("archOpenBtn")) $("archOpenBtn").onclick = () => HN.notebook?.openArchive();
+    // «Моҳи навро кушодан»: the open Excel notebooks go to the archive under the month before, a new empty one starts.
+    if ($("newMonthBtn")) $("newMonthBtn").onclick = async () => {
+      const next = nextBookMonth(), prev = shiftMonth(next, -1), nb = [HN.notebook, HN.notebookUru].filter(Boolean);
+      const pend = nb.reduce((n, x) => n + (x.pendingCount?.() || 0), 0);
+      if (pend) return HN.toast(`${pend} сатр дар дафтари Excel ҳанӯз «Сабт дар система» нашудааст. Аввал онҳоро сабт кунед, баъд моҳи навро кушоед.`, "error");
+      if (!(await HN.confirm(`Моҳи нав «${HN.monthLabel(next)}» кушода шавад?\n\n1) Варақҳои ҳозираи Excel (Иву ва Урумчи) бо номи «${HN.monthLabel(prev)}» ба «Бойгонӣ» мераванд — дидан ва .xlsx гирифтан мумкин.\n2) Дафтари нави холӣ (Лист1 … Лист10) барои «${HN.monthLabel(next)}» кушода мешавад, дар ҳамаи компютерҳо.\n3) Қарзи муштариён гум намешавад — дар варақи нав «Қарзи моҳҳои гузашта» нишон дода мешавад.`, { title: "Моҳи нав", ok: "Кушодан" }))) return;
+      const btn = $("newMonthBtn"); btn.disabled = true;
+      try {
+        let sheets = 0;
+        for (const x of nb) sheets += await x.archiveMonth(prev, next);
+        const r = await HN.putRow("app_settings", "key", { key: "book_month", value: next }); if (r.error) throw r.error;
+        S.bookMonth = next;
+        HN.toast(`Моҳи «${HN.monthLabel(next)}» кушода шуд. ${sheets} варақи «${HN.monthLabel(prev)}» дар бойгонӣ.`, "ok");
+      } catch (err) { HN.toast("Моҳи нав кушода нашуд: " + HN.dbError(err), "error"); }
+      finally { btn.disabled = false; }
+      await HN.reload();
+    };
     if ($("unlockBtn")) $("unlockBtn").onclick = async () => {
       if (!(await HN.confirm("Давраи пӯшида кушода шавад? Пас аз ин сабтҳои кӯҳна иваз карда мешаванд.", { ok: "Кушодан", danger: true }))) return;
       const r = await S.db.from("app_settings").delete().eq("key", "closed_until");

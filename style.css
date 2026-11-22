@@ -969,3 +969,10 @@ body.dark .arch-detail > td { background: #142036; }
 .since { display: block; font-style: normal; font-size: 11px; font-weight: 600; color: #B45309; }
 .rank-name .since { display: inline; }
 body.dark .since { color: #FCD34D; }
+
+/* «Моҳи навро кушодан» in the month card */
+.newmonth { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin: 12px 0; padding: 14px 16px; border-radius: 14px; background: linear-gradient(135deg, rgba(245,183,0,.14), rgba(245,183,0,.04)); border: 1px solid rgba(245,183,0,.45); }
+.newmonth > div span { display: block; font-size: 12px; }
+.newmonth > div b { font-size: 18px; }
+.btn-gold { background: linear-gradient(90deg, #F5B700, #FFD45A); color: #14284B; border: 0; font-weight: 800; }
+.btn-gold:hover { filter: brightness(1.05); }
