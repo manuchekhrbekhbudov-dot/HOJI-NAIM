@@ -582,7 +582,10 @@
     const fin = HN.can("finance"), admin = HN.can("admin");
     const lastBackup = HN.lsGet("hn-last-backup", null);
     const days = lastBackup ? Math.floor((Date.now() - new Date(lastBackup).getTime()) / 864e5) : null;
-    const prevMonth = (() => { const d = new Date(); d.setDate(0); return HN.isoDate(d).slice(0, 7); })();
+    // Month picker in Tajik: the last 12 months; the first month that is not closed yet is chosen (not later than this month).
+    const thisMonth = HN.today().slice(0, 7), closedTo = S.closedUntil ? String(S.closedUntil).slice(0, 7) : "";
+    const lockMonths = Array.from({ length: 12 }, (_, i) => shiftMonth(thisMonth, -i));
+    const prevMonth = closedTo ? (shiftMonth(closedTo, 1) > thisMonth ? thisMonth : shiftMonth(closedTo, 1)) : shiftMonth(thisMonth, -1);
     box.innerHTML = `
       <div class="panel">
         <div class="panel-head"><div><h3>Қурби рӯз</h3><p class="muted">Қурби доллар ва юан ба сомонӣ. Дар формаҳо ва ҳисобот бо доллар истифода мешавад.${S.features.rates ? "" : " Ҳоло танҳо дар ҳамин браузер (SQL лозим)."}</p></div></div>
@@ -598,7 +601,7 @@
           ${admin ? `<button class="btn btn-gold" id="newMonthBtn" type="button"><svg><use href="#i-plus"/></svg><span>Моҳи навро кушодан · ${HN.monthLabel(nextBookMonth())}</span></button>` : ""}
         </div>
         <p><button type="button" class="link-btn" id="archOpenBtn">Бойгонӣ: моҳҳои пӯшида →</button></p>
-        ${admin ? `<div class="btn-row"><label class="field"><span>Моҳ</span><input id="lockMonth" type="month" value="${prevMonth}"></label><button class="btn btn-primary" id="lockBtn"><svg><use href="#i-shield"/></svg><span>Пӯшидан</span></button>${S.closedUntil ? '<button class="btn btn-ghost" id="unlockBtn">Кушодан</button>' : ""}</div>` : '<p class="muted">Танҳо админ давраро мепӯшад.</p>'}`}
+        ${admin ? `<div class="btn-row"><label class="field"><span>Моҳ</span><select id="lockMonth">${lockMonths.map(m => `<option value="${m}"${m === prevMonth ? " selected" : ""}>${HN.monthLabel(m)}${closedTo && m <= closedTo ? " · пӯшида" : ""}</option>`).join("")}</select></label><button class="btn btn-primary" id="lockBtn"><svg><use href="#i-shield"/></svg><span>Пӯшидан</span></button>${S.closedUntil ? '<button class="btn btn-ghost" id="unlockBtn">Кушодан</button>' : ""}</div>` : '<p class="muted">Танҳо админ давраро мепӯшад.</p>'}`}
       </div>
       <div class="panel">
         <div class="panel-head"><div><h3>Нусхаи эҳтиётии худкор</h3><p class="muted">Ҳар шаб GitHub аз база нусхаи рамзгузоришуда (AES-256) мегирад ва 90 рӯз нигоҳ медорад.</p></div></div>
