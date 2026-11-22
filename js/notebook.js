@@ -370,7 +370,7 @@ function makeNotebook(cfg) {
     if (S.resetMark && book.resetMark !== S.resetMark) {
       book = topUp({ sheets: [], active: null, usdRate: book.usdRate || D.usdRate, cnyRate: book.cnyRate || D.cnyRate, resetMark: S.resetMark });
       book.active = book.sheets[0].id; selected = null; showTotal = false;
-      try { localStorage.removeItem(OLD_DRAFT_KEY); localStorage.removeItem(OLD_META_KEY); } catch {}
+      try { localStorage.removeItem(OLD_DRAFT_KEY); localStorage.removeItem(OLD_META_KEY); localStorage.removeItem(ARC_LS); } catch {}
       HN.lsSet(BOOK_KEY, book);
     }
     // «Пӯшидани моҳ» on any computer → every browser starts the new month's notebook (old one is in the archive)
@@ -981,8 +981,8 @@ function makeNotebook(cfg) {
       if (!r.error) (r.data || []).filter(x => x.customer_key.includes(":" + PREFIX)).sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
         .forEach(x => add(x.customer_key.slice(4, 11), { name: x.sheet_name, code: x.client_code || "", phone: x.phone || "", ...(x.data || {}) }));
     }
-    const ls = HN.lsGet(ARC_LS, {}) || {};
-    Object.entries(ls).forEach(([m, list]) => { if (!out[m]) (list || []).forEach(sh => add(m, sh)); });
+    // the copy in this browser is used only when the shared table is not there
+    if (!S.features.sheetData) Object.entries(HN.lsGet(ARC_LS, {}) || {}).forEach(([m, list]) => { if (!out[m]) (list || []).forEach(sh => add(m, sh)); });
     return out;
   }
   // rows of an archived sheet, the same way as the live sheet shows them
