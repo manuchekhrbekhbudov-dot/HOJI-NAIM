@@ -17,7 +17,7 @@
   const D = HN.config.defaults;
   // Where a load came from: the Urumqi notebook marks its loads; everything else is Yiwu.
   HN.originOf = s => (/^URU-/i.test(String(s?.tracking_no || "")) || HN.noteValue(s, "Аз") === "Урумчи" ? "uru" : "iwu");
-  HN.ORIGINS = { iwu: "Иу", uru: "Урумчи" };
+  HN.ORIGINS = { iwu: "Иву", uru: "Урумчи" };
 
 // Two separate notebooks with the same template: «Дафтари Excel» (Yiwu) and «Дафтари Урумчи Excel».
 function makeNotebook(cfg) {
@@ -128,15 +128,25 @@ function makeNotebook(cfg) {
     HN.lsSet(BOOK_KEY, book);
   }
 
+  /* ---------- Month of the notebook: after «Пӯшидани моҳ» a sheet shows only loads of its own month ---------- */
+  const monthStart = () => (book?.month ? book.month + "-01" : null);
+  const inMonth = s => !monthStart() || HN.shipmentDate(s) >= monthStart();
+  const sameCustomer = (sh, s) => {
+    const code = String(sh.code || "").trim().toLocaleLowerCase(), pk = String(sh.phone || "").replace(/\D/g, "").slice(-9);
+    return code ? HN.customerCode(s).toLocaleLowerCase() === code : pk.length >= 7 && !HN.customerCode(s) && String(s.client_phone || "").replace(/\D/g, "").slice(-9) === pk;
+  };
+  // loads of this customer from months already closed (only these can carry an old debt into the new sheet)
+  const pastShips = sh => (monthStart() ? S.shipments.filter(s => HN.originOf(s) === cfg.origin && !inMonth(s) && sameCustomer(sh, s)) : []);
+
   /* ---------- Money of the sheet's customer: all their loads in the system and the payments on them ---------- */
   function sheetShips(sh) {
     const code = String(sh.code || "").trim().toLocaleLowerCase(), pk = String(sh.phone || "").replace(/\D/g, "").slice(-9);
     const mine = new Set(sh.rows.map(r => r.syncTrackingNo).filter(Boolean));
-    return S.shipments.filter(s => mine.has(s.tracking_no) || (HN.originOf(s) === cfg.origin && (code ? HN.customerCode(s).toLocaleLowerCase() === code : pk.length >= 7 && !HN.customerCode(s) && String(s.client_phone || "").replace(/\D/g, "").slice(-9) === pk)));
+    return S.shipments.filter(s => mine.has(s.tracking_no) || (HN.originOf(s) === cfg.origin && inMonth(s) && (code ? HN.customerCode(s).toLocaleLowerCase() === code : pk.length >= 7 && !HN.customerCode(s) && String(s.client_phone || "").replace(/\D/g, "").slice(-9) === pk)));
   }
   // Row 1: dollars (like the sheet's prices), row 2: the same in somoni.
-  function sheetMoney(sh) {
-    const list = sheetShips(sh), m = { n: list.length, total: 0, paid: 0, debt: 0, totalUsd: 0, paidUsd: 0, debtUsd: 0 };
+  function sheetMoney(sh, list = sheetShips(sh)) {
+    const m = { n: list.length, total: 0, paid: 0, debt: 0, totalUsd: 0, paidUsd: 0, debtUsd: 0 };
     list.forEach(s => {
       const t = HN.total(s), usd = s.currency === "USD" ? HN.num(s.total_original) : t / (book.usdRate || D.usdRate), k = t > 0 ? usd / t : 0;
       m.total += t; m.paid += HN.paid(s); m.debt += HN.debt(s);
@@ -152,7 +162,7 @@ function makeNotebook(cfg) {
     }
     const usd = (c, v, cls = "") => td(1, c, m.n ? "$" + xf(v) : "—", `xl-box xl-num xl-b ${cls}`);
     return td(1, 10, "Ҳисоб", "xl-b xl-right xl-lav") + usd(11, m.totalUsd) + td(1, 12, "Пардохт", "xl-b xl-right xl-lav") + usd(13, m.paidUsd) + td(1, 14, "Қарз", "xl-b xl-right xl-lav") + usd(15, m.debtUsd, red) +
-      `<td class="xl-c xl-paycell" colspan="2" data-r="1" data-c="16">${m.debt > 0.005 ? '<button type="button" class="xl-paybtn" data-xl="pay" title="Пардохти ин муштарӣ">+ Пардохт</button>' : m.n ? '<span class="xl-paid">✓ Пардохт шуд</span>' : ""}</td>`;
+      `<td class="xl-c xl-paycell" colspan="2" data-r="1" data-c="16">${m.debt > 0.005 || sheetMoney(sh, pastShips(sh)).debt > 0.005 ? '<button type="button" class="xl-paybtn" data-xl="pay" title="Пардохти ин муштарӣ">+ Пардохт</button>' : m.n ? '<span class="xl-paid">✓ Пардохт шуд</span>' : ""}</td>`;
   }
 
   /* ---------- Database rows of the sheet's customer (read-only) ---------- */
@@ -161,7 +171,7 @@ function makeNotebook(cfg) {
     if (!code && pk.length < 7) return [];
     const mine = new Set(sh.rows.map(r => r.syncTrackingNo).filter(Boolean));
     const hit = s => code ? HN.customerCode(s).toLocaleLowerCase() === code : (!HN.customerCode(s) && String(s.client_phone || "").replace(/\D/g, "").slice(-9) === pk);
-    return S.shipments.filter(s => hit(s) && HN.originOf(s) === cfg.origin && !mine.has(s.tracking_no))
+    return S.shipments.filter(s => hit(s) && HN.originOf(s) === cfg.origin && inMonth(s) && !mine.has(s.tracking_no))
       .sort((a, b) => HN.shipmentDate(a).localeCompare(HN.shipmentDate(b)))
       .map(s => {
         const places = HN.places(s) || 1, dims = String(HN.noteValue(s, "Андоза") || "").replace(/м/g, "").split("×").map(x => N(x.trim()));
@@ -291,6 +301,7 @@ function makeNotebook(cfg) {
     const R = {
       file: grp("Файл", ico(SAVE_ICO, "Сабт ба компютер (Ctrl+S)", "pc-save", { lg: true }), ico(SAVE_ICO, pcName ? "Файл: " + esc(pcName) : "Файли Excel дар компютер", "pc-link", { title: "Файле, ки 💾 ва Ctrl+S нав мекунанд" }))
         + grp("Содирот", ico("i-download", "Ҳамаи дафтар (.xlsx)", "export-all", { lg: true }), ico("i-download", "Ин варақ (.xlsx)", "export-sheet"))
+        + grp("Бойгонӣ", ico('<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10h14V9M10 13h4"/></svg>', "Моҳҳои пӯшида", "archive", { lg: true, title: "Варақҳои моҳҳои гузашта: дидан ва Excel" }))
         + grp("Чоп", ico('<svg viewBox="0 0 24 24"><path d="M7 9V3h10v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/></svg>', "Чоп / PDF", "print", { lg: true })),
       home: grp("Сатрҳо", ico("i-refresh", "Сабт дар система", "sync", { lg: true, off }), ico("i-trash", "Нест кардани сатр", "del-row", { off }))
         + grp("Муштарӣ", find, "", "xl-find")
@@ -362,6 +373,12 @@ function makeNotebook(cfg) {
       try { localStorage.removeItem(OLD_DRAFT_KEY); localStorage.removeItem(OLD_META_KEY); } catch {}
       HN.lsSet(BOOK_KEY, book);
     }
+    // «Пӯшидани моҳ» on any computer → every browser starts the new month's notebook (old one is in the archive)
+    if (S.bookMonth && book.month !== S.bookMonth) {
+      book = topUp({ sheets: [], active: null, usdRate: book.usdRate || D.usdRate, cnyRate: book.cnyRate || D.cnyRate, resetMark: book.resetMark, rateDate: book.rateDate, month: S.bookMonth });
+      book.active = book.sheets[0].id; selected = null; showTotal = false; ready = false;
+      HN.lsSet(BOOK_KEY, book);
+    }
     if (!ready) {
       ready = true; await loadRemote(); scheduleAuto();
       // newest daily rate from the database (shared by all computers) wins over an older local one
@@ -429,7 +446,11 @@ function makeNotebook(cfg) {
     let h = "";
     h += row(1, td(1, 0, "Код", "xl-b xl-box") + `<td class="xl-c xl-box xl-in" colspan="5" data-r="1" data-c="1">${metaIn("code", sh.code, "Код")}</td>` + blanks(6, 6, 1) + td(1, 7, "Курс $", "xl-b xl-right") + `<td class="xl-c xl-box xl-in xl-num" data-r="1" data-c="8">${metaIn("usdRate", book.usdRate, "Курси доллар")}</td>` + blanks(9, 9, 1) + moneyCells(sh, 1));
     h += row(2, td(2, 0, "Тел", "xl-b xl-box") + `<td class="xl-c xl-box xl-in" colspan="5" data-r="2" data-c="1">${metaIn("phone", sh.phone, "Тел")}</td>` + blanks(6, 6, 2) + td(2, 7, "Курс ¥", "xl-b xl-right") + `<td class="xl-c xl-box xl-in xl-num" data-r="2" data-c="8">${metaIn("cnyRate", book.cnyRate, "Курси юан")}</td>` + blanks(9, 9, 2) + moneyCells(sh, 2));
-    h += row(3, blanks(0, 17, 3));
+    const past = sheetMoney(sh, pastShips(sh));
+    if (past.debt > 0.005) {
+      const since = HN.debtSince(pastShips(sh));
+      h += row(3, blanks(0, 9, 3) + `<td class="xl-c xl-pastdebt" colspan="8" data-r="3" data-c="10" title="Борҳои моҳҳои пӯшида, ки ҳанӯз пурра пардохт нашудаанд">Қарзи моҳҳои гузашта${since ? ` (аз ${esc(HN.monthLabel(since))})` : ""}: <b>$${xf(past.debtUsd)}</b> · ${HN.money(past.debt)} сом.</td>`);
+    } else h += row(3, blanks(0, 17, 3));
     h += row(4, blanks(0, 10, 4) + td(4, 11, "", "xl-box xl-lav") + `<td class="xl-c xl-box xl-lav xl-center" colspan="2" data-r="4" data-c="12">Место</td><td class="xl-c xl-box xl-lav xl-center" colspan="2" data-r="4" data-c="14">Юань</td><td class="xl-c xl-box xl-lav xl-center" colspan="2" data-r="4" data-c="16">Доллар</td>`);
     const cargoIn = (f, c, label) => `<td class="xl-c xl-box xl-in xl-center" colspan="2" data-r="5" data-c="${c}"${f === "cargoUsd" ? ' title="Юанро дар O5 нависед — доллар худаш ҳисоб мешавад (юан × Курс ¥ ÷ Курс $)"' : ""}>${metaIn(f, sh[f] ?? "", label, "xl-center-in")}</td>`;
     h += row(5, blanks(0, 10, 5) + td(5, 11, "Карго", "xl-box") + cargoIn("cargoPlaces", 12, "Карго: место") + cargoIn("cargoYuan", 14, "Карго: юань") + cargoIn("cargoUsd", 16, "Карго: доллар"));
@@ -661,6 +682,7 @@ function makeNotebook(cfg) {
       setStatus("Варақи «" + n.name + "» илова шуд"); return;
     }
     if (kind === "clean") { await cleanEmpty(); return; }
+    if (kind === "archive") { await openArchive(); return; }
     if (kind === "zoom-in" || kind === "zoom-out" || kind === "zoom-reset") {
       zoom = kind === "zoom-reset" ? 100 : Math.max(50, Math.min(200, zoom + (kind === "zoom-in" ? 10 : -10)));
       HN.lsSet(BOOK_KEY + "-zoom", zoom); await render(); return;
@@ -681,7 +703,7 @@ function makeNotebook(cfg) {
       setStatus(`Сатри нав илова шуд (сатри ${FIRST + Number(tr.dataset.i)})`); return;
     }
     if (kind === "pay") {
-      const ship = sheetShips(sh).find(x => HN.debt(x) > 0.005);
+      const ship = [...sheetShips(sh), ...pastShips(sh)].find(x => HN.debt(x) > 0.005);
       if (ship) HN.openPayment?.(null, HN.customerKey(ship)); return;
     }
     if (kind === "customer") { HN.openCustomerHistory(showTotal ? "" : (sh.code || sh.phone || "")); return; }
@@ -802,8 +824,9 @@ function makeNotebook(cfg) {
   }
 
   /* ---------- Real .xlsx in the company's template layout («Новый образец 2025») ---------- */
-  async function exportBook(sheets) {
+  async function exportBook(sheets, name) {
     const b = await buildBook(sheets); if (!b) return;
+    if (name) b.file = name;
     b.X.writeFile(b.wb, b.file.replace(/[\\/?*[\]:]/g, "-"), { compression: true, cellStyles: true });
     setStatus("Файл омода шуд: " + b.file);
   }
@@ -819,7 +842,7 @@ function makeNotebook(cfg) {
     const fill = rgb => ({ patternType: "solid", fgColor: { rgb } });
     const ctr = { horizontal: "center", vertical: "center", wrapText: true };
     sheets.forEach(sh => {
-      const all = [...dbRows(sh), ...sh.rows.filter(used)];
+      const all = [...(sh.archRo || dbRows(sh)), ...sh.rows.filter(used)];
       const total = Math.max(MIN_ROWS, all.length), last = FIRST + total - 1;
       const ws = {}, merges = [];
       const put = (ref, cell) => (ws[ref] = cell);
@@ -827,8 +850,8 @@ function makeNotebook(cfg) {
       const merge = r => merges.push(X.utils.decode_range(r));
       txt("A1", "Код", { font: { bold: true }, border: B }); txt("B1", sh.code || "", { font: { sz: 14, bold: true }, border: B, alignment: ctr, numFmt: "@" }); ["C1", "D1", "E1", "F1"].forEach(r => txt(r, "", { border: B })); merge("B1:F1");
       txt("A2", "Тел", { font: { bold: true }, border: B }); txt("B2", sh.phone || "", { font: { sz: 14, bold: true }, border: B, alignment: ctr, numFmt: "@" }); ["C2", "D2", "E2", "F2"].forEach(r => txt(r, "", { border: B })); merge("B2:F2");
-      txt("H1", "Курс $", { font: { bold: true }, alignment: { horizontal: "right" } }); put("I1", { t: "n", v: N(book.usdRate), z: "0.0000", s: { font: font(), border: B, numFmt: "0.0000" } });
-      txt("H2", "Курс ¥", { font: { bold: true }, alignment: { horizontal: "right" } }); put("I2", { t: "n", v: N(book.cnyRate), z: "0.0000", s: { font: font(), border: B, numFmt: "0.0000" } });
+      txt("H1", "Курс $", { font: { bold: true }, alignment: { horizontal: "right" } }); put("I1", { t: "n", v: N(sh.usdRate || book.usdRate), z: "0.0000", s: { font: font(), border: B, numFmt: "0.0000" } });
+      txt("H2", "Курс ¥", { font: { bold: true }, alignment: { horizontal: "right" } }); put("I2", { t: "n", v: N(sh.cnyRate || book.cnyRate), z: "0.0000", s: { font: font(), border: B, numFmt: "0.0000" } });
       txt("L4", "", { border: B, fill: fill("CCCCFF") });
       [["M4", "N4", "Место"], ["O4", "P4", "Юань"], ["Q4", "R4", "Доллар"]].forEach(([a, b, t]) => { txt(a, t, { border: B, alignment: ctr, fill: fill("CCCCFF") }); txt(b, "", { border: B, fill: fill("CCCCFF") }); merge(a + ":" + b); });
       txt("L5", "Карго", { border: B });
@@ -946,8 +969,78 @@ function makeNotebook(cfg) {
     }
   }
 
+  /* ---------- Бойгонӣ (archive of closed months) ---------- */
+  // Stored in customer_sheets as arc:<YYYY-MM>:<prefix><sheet id> (shared by all computers), else in this browser.
+  const ARC = month => "arc:" + month + ":" + PREFIX;
+  const ARC_LS = BOOK_KEY + "-arc";
+  async function readArchive() {
+    const out = {};
+    const add = (month, sh) => (out[month] = out[month] || []).push(sh);
+    if (S.features.sheetData) {
+      const r = await S.db.from("customer_sheets").select("customer_key,sheet_name,client_code,phone,data,position").like("customer_key", "arc:%");
+      if (!r.error) (r.data || []).filter(x => x.customer_key.includes(":" + PREFIX)).sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+        .forEach(x => add(x.customer_key.slice(4, 11), { name: x.sheet_name, code: x.client_code || "", phone: x.phone || "", ...(x.data || {}) }));
+    }
+    const ls = HN.lsGet(ARC_LS, {}) || {};
+    Object.entries(ls).forEach(([m, list]) => { if (!out[m]) (list || []).forEach(sh => add(m, sh)); });
+    return out;
+  }
+  // rows of an archived sheet, the same way as the live sheet shows them
+  const archRows = sh => [...(sh.ro || []).map(r => ({ ...r, x: r.c })), ...(sh.rows || []).filter(used).map(r => ({ ...r, x: calc(r) }))];
+  const forExport = sh => ({ ...sh, rows: (sh.rows || []).filter(used), archRo: (sh.ro || []).map(r => ({ ...r, ro: true })) });
+  // Close a month: this notebook goes to the archive, a new empty notebook starts for the next month.
+  async function archiveMonth(month, next) {
+    if (!book) book = loadBook();
+    if (!ready) { ready = true; await loadRemote(); }
+    const keep = book.sheets.filter(sh => !isEmptySheet(sh) || dbRows(sh).length);
+    const list = keep.map((sh, i) => ({ id: sh.id, name: sh.name, code: sh.code || "", phone: sh.phone || "", rows: sh.rows.filter(used), cargoUsd: sh.cargoUsd ?? "", cargoYuan: sh.cargoYuan ?? "", cargoPlaces: sh.cargoPlaces ?? "",
+      ro: dbRows(sh).map(r => { const { ship, ...rest } = r; return { ...rest, tracking: ship?.tracking_no || "" }; }), usdRate: book.usdRate, cnyRate: book.cnyRate, origin: cfg.origin, position: i }));
+    if (S.features.sheetData) {
+      const rows = list.map(sh => ({ customer_key: ARC(month) + sh.id, sheet_name: sh.name, client_code: sh.code, phone: sh.phone, customer_name: sh.code, data: sh, position: sh.position }));
+      const r = await HN.putRows("customer_sheets", "customer_key", rows); if (r.error) throw r.error;
+      const d = await S.db.from("customer_sheets").delete().like("customer_key", PREFIX + "%"); if (d.error) throw d.error;
+    }
+    const ls = HN.lsGet(ARC_LS, {}) || {}; ls[month] = list; HN.lsSet(ARC_LS, ls);
+    book = topUp({ sheets: [], active: null, usdRate: book.usdRate, cnyRate: book.cnyRate, resetMark: book.resetMark, rateDate: book.rateDate, month: next });
+    book.active = book.sheets[0].id; selected = null; showTotal = false;
+    HN.lsSet(BOOK_KEY, book);
+    if (S.features.sheetData) { book.sheets.forEach(x => dirty.add(x.id)); await flushRemote(); }
+    if (root()?.offsetParent) await render();
+    return list.length;
+  }
+  // Rows typed but not saved to the system yet (they would be left only in the archive).
+  function pendingCount() {
+    if (!book) book = loadBook();
+    return book.sheets.reduce((n, sh) => n + pendingOf(sh).ready.length, 0);
+  }
+  let archMonth = "";
+  async function openArchive() {
+    const dlg = HN.$("archDialog"), out = HN.$("archOut"); if (!dlg || !out) return;
+    HN.$("archTitle").textContent = "Бойгонӣ · " + cfg.label;
+    out.innerHTML = '<p class="muted">Бор шуда истодааст…</p>'; if (!dlg.open) dlg.showModal();
+    const arc = await readArchive(), months = Object.keys(arc).sort().reverse();
+    if (!months.length) { out.innerHTML = '<p class="muted">Ҳоло ягон моҳ пӯшида нашудааст. Моҳро дар «Админ-панел → Пӯшидани моҳ» пӯшед — варақҳои он ба ин ҷо меоянд.</p>'; return; }
+    if (!months.includes(archMonth)) archMonth = months[0];
+    const draw = () => {
+      const list = arc[archMonth] || [];
+      const tot = sh => archRows(sh).reduce((t, r) => ({ places: t.places + (r.x.places || 0), cube: t.cube + (r.x.cube || 0), kg: t.kg + (r.x.kg || 0), price: t.price + (r.x.price || 0) }), { places: 0, cube: 0, kg: 0, price: 0 });
+      const T = list.reduce((a, sh) => { const t = tot(sh); return { places: a.places + t.places, cube: a.cube + t.cube, kg: a.kg + t.kg, price: a.price + t.price }; }, { places: 0, cube: 0, kg: 0, price: 0 });
+      out.innerHTML = `<div class="arch-months">${months.map(m => `<button type="button" class="btn btn-xs ${m === archMonth ? "btn-primary" : "btn-ghost"}" data-arch-month="${esc(m)}">${esc(HN.monthLabel(m))}</button>`).join("")}</div>
+        <div class="table-wrap"><table class="tbl"><thead><tr><th>Варақ</th><th>Код</th><th>Тел</th><th class="num">Сатрҳо</th><th class="num">Место</th><th class="num">Куб</th><th class="num">Кг</th><th class="num">Итоговая цена, $</th></tr></thead>
+        <tbody>${list.map((sh, i) => { const t = tot(sh); return `<tr class="clickable" data-arch-sheet="${i}"><td><b>${esc(sh.name)}</b></td><td>${esc(sh.code || "—")}</td><td>${esc(sh.phone || "—")}</td><td class="num">${archRows(sh).length}</td><td class="num">${xf(t.places, 0)}</td><td class="num">${xf(t.cube, 3)}</td><td class="num">${xf(t.kg, 1)}</td><td class="num">${xf(t.price)}</td></tr>
+          <tr class="arch-detail hidden" data-arch-detail="${i}"><td colspan="8"><table class="tbl arch-rows"><thead><tr><th>Дата</th><th>Наим-ие товара</th><th class="num">место</th><th class="num">куб</th><th class="num">кг</th><th class="num">$</th></tr></thead><tbody>${archRows(sh).map(r => `<tr><td>${r.date ? esc(HN.fmtDate(toISO(r.date) || r.date)) : "—"}</td><td>${esc(r.item || "")}</td><td class="num">${xf(r.x.places, 0)}</td><td class="num">${xf(r.x.cube, 3)}</td><td class="num">${xf(r.x.kg, 1)}</td><td class="num">${xf(r.x.price)}</td></tr>`).join("")}</tbody></table></td></tr>`; }).join("")}</tbody>
+        <tfoot><tr><td>Ҳамагӣ</td><td></td><td></td><td></td><td class="num">${xf(T.places, 0)}</td><td class="num">${xf(T.cube, 3)}</td><td class="num">${xf(T.kg, 1)}</td><td class="num">${xf(T.price)}</td></tr></tfoot></table></div>
+        <p class="muted">Барои дидани сатрҳо ба варақ пахш кунед. Ин моҳ пӯшида аст — танҳо барои дидан.</p>
+        <div class="btn-row"><button type="button" class="btn btn-primary" id="archXlsx"><svg><use href="#i-download"/></svg><span>${esc(HN.monthLabel(archMonth))} (.xlsx)</span></button></div>`;
+      out.querySelectorAll("[data-arch-month]").forEach(b => (b.onclick = () => { archMonth = b.dataset.archMonth; draw(); }));
+      out.querySelectorAll("[data-arch-sheet]").forEach(tr => (tr.onclick = () => out.querySelector(`[data-arch-detail="${tr.dataset.archSheet}"]`)?.classList.toggle("hidden")));
+      HN.$("archXlsx").onclick = () => exportBook(list.map(forExport), `${cfg.filePrefix}-${HN.monthLabel(archMonth).replace(/\s+/g, "-")}.xlsx`);
+    };
+    draw();
+  }
+
   return {
-    render,
+    render, archiveMonth, pendingCount, openArchive, get month() { if (!book) book = loadBook(); return book.month || ""; },
     // A load saved in «Бори нав»: make sure its customer has a sheet (by code, else by phone) so the load shows there.
     ensureSheet(code, phone, name) {
       if (!book) book = loadBook();
@@ -979,7 +1072,7 @@ function makeNotebook(cfg) {
 }
 
   HN.notebook = makeNotebook({ main: true, el: "notebook", key: "hn-workbook-v3", prefix: "sheet:", track: "SHEET-", origin: "iwu", fileKey: "book",
-    docTitle: "Новый образец — HOJI-NAIM CARGO.xlsx", docFile: "HOJI-NAIM CARGO.xlsx", filePrefix: "HOJI-NAIM-Дафтар", docLabel: "Дафтари Excel" });
+    label: "Иву", docTitle: "Новый образец — HOJI-NAIM CARGO.xlsx", docFile: "HOJI-NAIM CARGO.xlsx", filePrefix: "HOJI-NAIM-Дафтар", docLabel: "Дафтари Excel" });
   HN.notebookUru = makeNotebook({ main: false, el: "notebookUru", key: "hn-workbook-uru", prefix: "uru:", track: "URU-", origin: "uru", fileKey: "uru",
-    docTitle: "Урумчи — HOJI-NAIM CARGO.xlsx", docFile: "HOJI-NAIM CARGO Урумчи.xlsx", filePrefix: "HOJI-NAIM-Урумчи", docLabel: "Дафтари Урумчи Excel" });
+    label: "Урумчи", docTitle: "Урумчи — HOJI-NAIM CARGO.xlsx", docFile: "HOJI-NAIM CARGO Урумчи.xlsx", filePrefix: "HOJI-NAIM-Урумчи", docLabel: "Дафтари Урумчи Excel" });
 })();

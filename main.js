@@ -18,7 +18,7 @@
     expenses: ["Хароҷот", "Хароҷоти ҳаррӯзаи ширкат", "finance"],
     reports: ["Ҳисобот", "Ҳисоботи давравӣ: борҳо, пардохтҳо, хароҷот, муштариён"],
     kassa: ["Касса", "Пули нақд ва бонк: даромад, хароҷот ва бақия", "finance"],
-    excel: ["Дафтари Excel", "Борҳои Иу: варақҳои муштариён (Лист1, Лист2 …). Пас аз санҷиш «Сабт дар система»-ро пахш кунед"],
+    excel: ["Дафтари Excel", "Борҳои Иву: варақҳои муштариён (Лист1, Лист2 …). Пас аз санҷиш «Сабт дар система»-ро пахш кунед"],
     "excel-uru": ["Дафтари Урумчи Excel", "Борҳои Урумчи: варақҳо ва ҳисоби алоҳида. Пас аз санҷиш «Сабт дар система»-ро пахш кунед"],
     admin: ["Админ-панел", "Кормандон, нусхаи эҳтиётӣ ва ҳолати система", "admin"],
   };
@@ -102,7 +102,7 @@
   /* Fast start: the last data of this user is shown at once from the browser, fresh data comes right after.
      The copy is removed on «Баромадан». */
   const CACHE_KEY = "hn-cache-v1";
-  const CACHE_STATE = ["profile", "shipments", "payments", "expenses", "sheets", "rates", "batches", "closedUntil", "resetMark", "tgSubs", "tgLog", "tgTexts"];
+  const CACHE_STATE = ["profile", "shipments", "payments", "expenses", "sheets", "rates", "batches", "closedUntil", "resetMark", "bookMonth", "tgSubs", "tgLog", "tgTexts"];
   function saveCache() {
     const c = { uid: S.user?.id, at: Date.now(), features: S.features };
     CACHE_STATE.forEach(k => (c[k] = S[k]));
@@ -260,7 +260,7 @@
     if (HN.cashBalance) $("kCash").textContent = money(HN.cashBalance("cash"));
     drawChart();
     const top = debtors.slice(0, 6), max = top[0]?.debt || 1;
-    $("debtorList").innerHTML = top.map(c => `<li><button class="rank-row" data-sheet-key="${esc(c.key)}"><span class="rank-name"><b>${esc(c.name)}</b><small>${esc([c.code, c.phone].filter(Boolean).join(" · ") || "—")}</small></span><span class="rank-val">${money(c.debt)}</span><span class="rank-bar"><i style="width:${Math.max(4, (c.debt / max) * 100)}%"></i></span></button></li>`).join("");
+    $("debtorList").innerHTML = top.map(c => `<li><button class="rank-row" data-sheet-key="${esc(c.key)}"><span class="rank-name"><b>${esc(c.name)}</b><small>${esc([c.code, c.phone].filter(Boolean).join(" · ") || "—")}${c.since ? ` · <em class="since">қарздор аз ${esc(HN.monthLabel(c.since))}</em>` : ""}</small></span><span class="rank-val">${money(c.debt)}</span><span class="rank-bar"><i style="width:${Math.max(4, (c.debt / max) * 100)}%"></i></span></button></li>`).join("");
     empty("debtorEmpty", !top.length);
     const recent = S.shipments.slice(0, 8);
     $("recentRows").innerHTML = recent.map(s => `<tr data-ship="${esc(s.id)}">${td(HN.fmtDate(HN.shipmentDate(s)), "nowrap")}${td(`<b>${esc(s.tracking_no || "—")}</b>`)}${td(esc(s.client_name || "—"))}${td(HN.fmtQty(s.weight_kg) + " кг / " + HN.fmtQty(s.volume_m3, 3) + " м³", "num nowrap")}${td(money(HN.total(s)), "num")}${td(money(HN.debt(s)), "num" + (HN.debt(s) > 0.005 ? " neg" : ""))}${td(payPill(s))}</tr>`).join("");
@@ -614,10 +614,10 @@
   $("repGroup").addEventListener("click", e => { const b = e.target.closest("[data-group]"); if (!b) return; repGroup = b.dataset.group; $("repGroup").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); renderAnalysis(); });
   ["repFrom", "repTo"].forEach(id => $(id).addEventListener("input", renderAnalysis));
   $("repCustomer").addEventListener("change", renderAnalysis);
-  // Иу and Урумчи come on separate cars and are counted separately.
+  // Иву and Урумчи come on separate cars and are counted separately.
   let repOrigin = "";
   $("repOrigin").addEventListener("click", e => { const b = e.target.closest("[data-origin]"); if (!b) return; repOrigin = b.dataset.origin; $("repOrigin").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); renderAnalysis(); });
-  // a car (batch) belongs to Иу or Урумчи by the loads on it; its expenses follow it
+  // a car (batch) belongs to Иву or Урумчи by the loads on it; its expenses follow it
   const batchOrigin = id => { const l = S.shipments.filter(s => String(s.batch_id || "") === String(id)); if (!l.length) return ""; const u = l.filter(s => HN.originOf(s) === "uru").length; return u * 2 >= l.length ? "uru" : "iwu"; };
   $("repCur").addEventListener("click", e => { const b = e.target.closest("[data-cur]"); if (!b) return; HN.cur = b.dataset.cur; HN.lsSet("hn-report-cur", HN.cur); renderAnalysis(); });
   $("custSearch").addEventListener("input", renderAnalysis);
@@ -673,8 +673,9 @@
     empty("repEmpty", !d.rows.length);
     // customers in range
     const q = $("custSearch").value.trim().toLocaleLowerCase();
+    const sinceOf = new Map(HN.customers().map(c => [c.key, c.since]));   // month of the oldest unpaid load (all time)
     const groups = customerGroups(d.shipsIn).filter(c => !q || [c.name, c.code, c.phone].some(v => String(v || "").toLocaleLowerCase().includes(q)));
-    $("custRows").innerHTML = groups.map(c => `<tr class="clickable" data-sheet-key="${esc(c.key)}">${td(esc(c.code || "—"), "code")}${td(`<b>${esc(c.name)}</b> <button class="btn btn-xs btn-soft" data-statement="${esc(c.key)}" title="Акт сверки">Акт</button>`)}${td(esc(c.phone || "—"), "nowrap")}${td(c.shipments.length, "num")}${td(fmt(c.places, 0), "num")}${td(fmt(c.kg, 1), "num")}${td(fmt(c.cube, 3), "num")}${td(money(c.billed), "num")}${td(money(c.paid), "num")}${td(money(c.debt), "num" + (c.debt > 0.005 ? " neg" : ""))}</tr>`).join("");
+    $("custRows").innerHTML = groups.map(c => `<tr class="clickable" data-sheet-key="${esc(c.key)}">${td(esc(c.code || "—"), "code")}${td(`<b>${esc(c.name)}</b> <button class="btn btn-xs btn-soft" data-statement="${esc(c.key)}" title="Акт сверки">Акт</button>`)}${td(esc(c.phone || "—"), "nowrap")}${td(c.shipments.length, "num")}${td(fmt(c.places, 0), "num")}${td(fmt(c.kg, 1), "num")}${td(fmt(c.cube, 3), "num")}${td(money(c.billed), "num")}${td(money(c.paid), "num")}${td(money(c.debt) + (c.debt > 0.005 && sinceOf.get(c.key) ? `<small class="since">аз ${esc(HN.monthLabel(sinceOf.get(c.key)))}</small>` : ""), "num" + (c.debt > 0.005 ? " neg" : ""))}</tr>`).join("");
     const G = k => groups.reduce((n, c) => n + c[k], 0);
     $("custFoot").innerHTML = groups.length ? `<tr>${td("Ҳамагӣ")}${td("")}${td("")}${td(groups.reduce((n, c) => n + c.shipments.length, 0), "num")}${td(fmt(G("places"), 0), "num")}${td(fmt(G("kg"), 1), "num")}${td(fmt(G("cube"), 3), "num")}${td(money(G("billed")), "num")}${td(money(G("paid")), "num")}${td(money(G("debt")), "num")}</tr>` : "";
     empty("custEmpty", !groups.length);

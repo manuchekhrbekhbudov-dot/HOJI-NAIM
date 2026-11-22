@@ -29,7 +29,8 @@
     S.features.batches = !batches.error; S.batches = batches.error ? [] : batches.data || [];
     S.features.lock = !settings.error;
     S.closedUntil = (settings.data || []).find(x => x.key === "closed_until")?.value || null;
-    S.resetMark = (settings.data || []).find(x => x.key === "data_reset_at")?.value || "";   // set by supabase/reset-data.sql
+    S.resetMark = (settings.data || []).find(x => x.key === "data_reset_at")?.value || "";
+    S.bookMonth = (settings.data || []).find(x => x.key === "book_month")?.value || "";   // month of the open Excel notebooks (after «Пӯшидани моҳ»)   // set by supabase/reset-data.sql
     S.tgTexts = Object.fromEntries(["tg_prices", "tg_address", "tg_contact", "tg_payment", "tg_remind", "tg_link_code", "tg_staff_chat"].map(k => [k, (settings.data || []).find(x => x.key === k)?.value || ""]));
     S.features.expMethod = !method.error;
     applyFeatures();
@@ -195,7 +196,7 @@
       .sort((a, b) => (bSel.has(String(b.id)) - bSel.has(String(a.id))) || HN.shipmentDate(b).localeCompare(HN.shipmentDate(a)))
       .slice(0, 200);
     box.innerHTML = list.map(s => `<label class="b-load"><input type="checkbox" data-bload="${esc(s.id)}" ${bSel.has(String(s.id)) ? "checked" : ""}>
-      <span><b>${esc(HN.customerCode(s) || s.client_name || "—")}</b> · ${esc(s.client_name || "")}${HN.originOf(s) === "uru" ? ' <em class="og-uru">Урумчи</em>' : ' <em class="og-iwu">Иу</em>'}<small>${HN.fmtDate(HN.shipmentDate(s))} · ${esc(HN.noteValue(s, "Мол") || s.tracking_no)} · ${HN.places(s)} ҷой · ${fmt(HN.num(s.weight_kg), 1)} кг · ${fmt(HN.num(s.volume_m3), 3)} м³</small></span>
+      <span><b>${esc(HN.customerCode(s) || s.client_name || "—")}</b> · ${esc(s.client_name || "")}${HN.originOf(s) === "uru" ? ' <em class="og-uru">Урумчи</em>' : ' <em class="og-iwu">Иву</em>'}<small>${HN.fmtDate(HN.shipmentDate(s))} · ${esc(HN.noteValue(s, "Мол") || s.tracking_no)} · ${HN.places(s)} ҷой · ${fmt(HN.num(s.weight_kg), 1)} кг · ${fmt(HN.num(s.volume_m3), 3)} м³</small></span>
       <span class="b-sum">${money(HN.total(s))}</span></label>`).join("") || '<p class="muted" style="padding:10px 12px">Бори озод нест. Аввал борҳоро сабт кунед.</p>';
     const chosen = S.shipments.filter(s => bSel.has(String(s.id)));
     $("bLoadsCount").textContent = chosen.length ? `Интихоб: ${chosen.length} бор · ${fmt(chosen.reduce((n, s) => n + HN.num(s.weight_kg), 0), 1)} кг · ${fmt(chosen.reduce((n, s) => n + HN.num(s.volume_m3), 0), 3)} м³` : "Ҳоло ягон бор интихоб нашудааст";
@@ -586,9 +587,10 @@
         <ul class="rate-list">${last.map(r => `<li><span>${HN.fmtDate(r.rate_date)}</span><b>$1 = ${HN.fmtQty(r.usd, 4)}</b>${r.cny ? `<small>¥1 = ${HN.fmtQty(r.cny, 4)}</small>` : ""}</li>`).join("") || '<li class="muted">Ҳоло қурб сабт нашудааст.</li>'}</ul>
       </div>
       <div class="panel">
-        <div class="panel-head"><div><h3>Пӯшидани моҳ</h3><p class="muted">Пас аз пӯшидан борҳо, пардохтҳо ва хароҷоти то ин сана иваз ё нест намешаванд. Супоридани бор аз анбор иҷозат аст.</p></div></div>
+        <div class="panel-head"><div><h3>Пӯшидани моҳ</h3><p class="muted">Варақҳои Excel-и моҳ (Иву ва Урумчи) ба «Бойгонӣ» мераванд ва дафтари нави холӣ барои моҳи оянда кушода мешавад. Қарзи муштариён гум намешавад. Борҳо, пардохтҳо ва хароҷоти моҳи пӯшида иваз ё нест намешаванд.</p></div></div>
         ${!S.features.lock ? '<p class="hint">Барои ин қисм SQL-и supabase/SETUP-ALL.sql-ро иҷро кунед.</p>' : `
-        <p>${S.closedUntil ? `Ҳоло пӯшида то: <b>${HN.fmtDate(S.closedUntil)}</b>` : "Ҳоло ягон давра пӯшида нест."}</p>
+        <p>${S.closedUntil ? `Ҳоло пӯшида то: <b>${HN.fmtDate(S.closedUntil)}</b>` : "Ҳоло ягон давра пӯшида нест."}${S.bookMonth ? ` · Дафтари ҳозира: <b>${HN.monthLabel(S.bookMonth)}</b>` : ""}</p>
+        <p><button type="button" class="link-btn" id="archOpenBtn">Бойгонӣ: моҳҳои пӯшида →</button></p>
         ${admin ? `<div class="btn-row"><label class="field"><span>Моҳ</span><input id="lockMonth" type="month" value="${prevMonth}"></label><button class="btn btn-primary" id="lockBtn"><svg><use href="#i-shield"/></svg><span>Пӯшидан</span></button>${S.closedUntil ? '<button class="btn btn-ghost" id="unlockBtn">Кушодан</button>' : ""}</div>` : '<p class="muted">Танҳо админ давраро мепӯшад.</p>'}`}
       </div>
       <div class="panel">
@@ -602,12 +604,36 @@
     if (rf) rf.onsubmit = async e => { e.preventDefault(); const f = rf.elements; const usd = HN.num(f.usd.value), cny = HN.num(f.cny.value); if (usd <= 0) return HN.toast("Қурби долларро дуруст нависед.", "error"); try { await saveRate(f.date.value, usd, cny); HN.toast("Қурб сабт шуд: $1 = " + HN.fmtQty(usd, 4), "ok"); renderAdminExtras(); } catch (er) { HN.toast(HN.dbError(er), "error"); } };
     if ($("lockBtn")) $("lockBtn").onclick = async () => {
       const m = $("lockMonth").value; if (!m) return;
-      const [y, mo] = m.split("-").map(Number), until = HN.isoDate(new Date(y, mo, 0));
-      if (!(await HN.confirm(`Ҳамаи сабтҳо то ${HN.fmtDate(until)} пӯшида шаванд? Баъд онҳоро иваз ё нест кардан мумкин нест, то админ давраро накушояд.`, { title: "Пӯшидани давра", ok: "Пӯшидан" }))) return;
-      const r = await HN.putRow("app_settings", "key", { key: "closed_until", value: until });
-      if (r.error) return HN.toast(HN.dbError(r.error), "error");
-      HN.toast("Давра то " + HN.fmtDate(until) + " пӯшида шуд.", "ok"); await HN.reload();
+      const [y, mo] = m.split("-").map(Number), until = HN.isoDate(new Date(y, mo, 0)), next = HN.isoDate(new Date(y, mo, 1)).slice(0, 7);
+      const label = HN.monthLabel(m), nb = [HN.notebook, HN.notebookUru].filter(Boolean);
+      // the notebook of this month is already in the archive → only the lock
+      const archive = !S.bookMonth || m >= S.bookMonth;
+      const pend = archive ? nb.reduce((n, x) => n + (x.pendingCount?.() || 0), 0) : 0;
+      if (pend) return HN.toast(`${pend} сатр дар дафтари Excel ҳанӯз «Сабт дар система» нашудааст. Аввал онҳоро сабт кунед, баъд моҳро пӯшед.`, "error");
+      const text = archive
+        ? `Моҳи «${label}» пӯшида шавад?
+
+1) Варақҳои Excel (Иву ва Урумчи) ба «Бойгонӣ» мераванд — дидан ва .xlsx гирифтан мумкин, иваз кардан не.
+2) Дафтари нави холӣ барои «${HN.monthLabel(next)}» кушода мешавад.
+3) Қарзи муштариён гум намешавад — дар варақи нав «Қарзи моҳҳои гузашта» нишон дода мешавад.
+4) Борҳо, пардохтҳо ва хароҷот то ${HN.fmtDate(until)} иваз ё нест намешаванд.`
+        : `Сабтҳо то ${HN.fmtDate(until)} пӯшида шаванд? Дафтари «${label}» аллакай дар бойгонӣ аст.`;
+      if (!(await HN.confirm(text, { title: "Пӯшидани моҳ", ok: "Пӯшидан" }))) return;
+      const btn = $("lockBtn"); btn.disabled = true;
+      try {
+        if (!S.closedUntil || until > S.closedUntil) { const r = await HN.putRow("app_settings", "key", { key: "closed_until", value: until }); if (r.error) throw r.error; }
+        let sheets = 0;
+        if (archive) {
+          for (const x of nb) sheets += await x.archiveMonth(m, next);
+          const r = await HN.putRow("app_settings", "key", { key: "book_month", value: next }); if (r.error) throw r.error;
+          S.bookMonth = next;
+        }
+        HN.toast(archive ? `«${label}» пӯшида шуд: ${sheets} варақ дар бойгонӣ. Дафтари «${HN.monthLabel(next)}» тайёр.` : "Давра то " + HN.fmtDate(until) + " пӯшида шуд.", "ok");
+      } catch (err) { HN.toast("Моҳ пӯшида нашуд: " + HN.dbError(err), "error"); }
+      finally { btn.disabled = false; }
+      await HN.reload();
     };
+    if ($("archOpenBtn")) $("archOpenBtn").onclick = () => HN.notebook?.openArchive();
     if ($("unlockBtn")) $("unlockBtn").onclick = async () => {
       if (!(await HN.confirm("Давраи пӯшида кушода шавад? Пас аз ин сабтҳои кӯҳна иваз карда мешаванд.", { ok: "Кушодан", danger: true }))) return;
       const r = await S.db.from("app_settings").delete().eq("key", "closed_until");
