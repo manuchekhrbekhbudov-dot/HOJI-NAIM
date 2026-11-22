@@ -18,7 +18,8 @@
     expenses: ["Хароҷот", "Хароҷоти ҳаррӯзаи ширкат", "finance"],
     reports: ["Ҳисобот", "Ҳисоботи давравӣ: борҳо, пардохтҳо, хароҷот, муштариён"],
     kassa: ["Касса", "Пули нақд ва бонк: даромад, хароҷот ва бақия", "finance"],
-    excel: ["Дафтари Excel", "Варақҳои муштариён (Лист1, Лист2 …). Пас аз санҷиш «Сабт дар система»-ро пахш кунед"],
+    excel: ["Дафтари Excel", "Борҳои Иу: варақҳои муштариён (Лист1, Лист2 …). Пас аз санҷиш «Сабт дар система»-ро пахш кунед"],
+    "excel-uru": ["Дафтари Урумчи Excel", "Борҳои Урумчи: варақҳо ва ҳисоби алоҳида. Пас аз санҷиш «Сабт дар система»-ро пахш кунед"],
     admin: ["Админ-панел", "Кормандон, нусхаи эҳтиётӣ ва ҳолати система", "admin"],
   };
   let current = "dashboard";
@@ -210,7 +211,7 @@
 
   /* ================= Render ================= */
   function renderView(name) {
-    const fn = { dashboard: renderDashboard, shipments: renderShipments, warehouse: renderWarehouse, payments: renderPayments, expenses: renderExpenses, reports: renderReports, excel: () => HN.notebook?.render(), kassa: () => HN.extras?.renderKassa(), admin: renderAdmin }[name];
+    const fn = { dashboard: renderDashboard, shipments: renderShipments, warehouse: renderWarehouse, payments: renderPayments, expenses: renderExpenses, reports: renderReports, excel: () => HN.notebook?.render(), "excel-uru": () => HN.notebookUru?.render(), kassa: () => HN.extras?.renderKassa(), admin: renderAdmin }[name];
     fn && fn();
     HN.extras?.afterRender(name);
     $("navWarehouseCount").textContent = S.features.warehouse ? (S.shipments.filter(s => HN.whStatus(s) === "in_warehouse").length || "") : "";
@@ -290,10 +291,10 @@
 
   /* ----- Shipments ----- */
   ["shipSearch", "shipFrom", "shipTo"].forEach(id => $(id).addEventListener("input", renderShipments));
-  ["shipPay", "shipWh"].forEach(id => $(id).addEventListener("change", renderShipments));
+  ["shipPay", "shipWh", "shipOrigin"].forEach(id => $(id).addEventListener("change", renderShipments));
   function filteredShipments() {
-    const q = $("shipSearch").value.trim(), pay = $("shipPay").value, wh = $("shipWh").value, from = $("shipFrom").value, to = $("shipTo").value;
-    return S.shipments.filter(s => HN.matches(s, q) && (!pay || HN.payStatus(s) === pay) && (!wh || HN.whStatus(s) === wh) && ((!from && !to) || HN.inRange(HN.shipmentDate(s), from, to)));
+    const q = $("shipSearch").value.trim(), pay = $("shipPay").value, wh = $("shipWh").value, og = $("shipOrigin").value, from = $("shipFrom").value, to = $("shipTo").value;
+    return S.shipments.filter(s => HN.matches(s, q) && (!pay || HN.payStatus(s) === pay) && (!wh || HN.whStatus(s) === wh) && (!og || HN.originOf(s) === og) && ((!from && !to) || HN.inRange(HN.shipmentDate(s), from, to)));
   }
   function renderShipments() {
     const list = filteredShipments();
@@ -301,7 +302,7 @@
     $("shipRows").innerHTML = list.map(s => {
       const debt = HN.debt(s);
       const acts = [debt > 0.005 && canPay ? `<button class="btn btn-xs btn-soft" data-act="pay" data-id="${esc(s.id)}">Пардохт</button>` : "", canEdit ? `<button class="icon-btn sm" data-act="edit" data-id="${esc(s.id)}" title="Таҳрир" aria-label="Таҳрир"><svg><use href="#i-edit"/></svg></button>` : ""].join("");
-      return `<tr data-ship="${esc(s.id)}">${td(HN.fmtDate(HN.shipmentDate(s)), "nowrap")}${td(`<b>${esc(s.tracking_no || "—")}</b>`, "nowrap")}${td(esc(HN.customerCode(s) || "—"), "code")}${td(esc(s.client_name || "—"))}${td(esc(s.client_phone || "—"), "nowrap")}${td(HN.places(s), "num")}${td(HN.fmtQty(s.weight_kg), "num")}${td(HN.fmtQty(s.volume_m3, 3), "num")}${td(money(HN.total(s)), "num")}${td(money(HN.paid(s)), "num")}${td(money(debt), "num" + (debt > 0.005 ? " neg" : ""))}${td(payPill(s))}${td(S.features.warehouse ? whPill(s) : "—")}<td class="acts">${acts}</td></tr>`;
+      return `<tr data-ship="${esc(s.id)}">${td(HN.fmtDate(HN.shipmentDate(s)), "nowrap")}${td(`<b>${esc(s.tracking_no || "—")}</b>${HN.originOf(s) === "uru" ? ' <em class="og-uru">Урумчи</em>' : ""}`, "nowrap")}${td(esc(HN.customerCode(s) || "—"), "code")}${td(esc(s.client_name || "—"))}${td(esc(s.client_phone || "—"), "nowrap")}${td(HN.places(s), "num")}${td(HN.fmtQty(s.weight_kg), "num")}${td(HN.fmtQty(s.volume_m3, 3), "num")}${td(money(HN.total(s)), "num")}${td(money(HN.paid(s)), "num")}${td(money(debt), "num" + (debt > 0.005 ? " neg" : ""))}${td(payPill(s))}${td(S.features.warehouse ? whPill(s) : "—")}<td class="acts">${acts}</td></tr>`;
     }).join("");
     empty("shipEmpty", !list.length);
     const sum = k => list.reduce((n, s) => n + k(s), 0);
@@ -613,6 +614,11 @@
   $("repGroup").addEventListener("click", e => { const b = e.target.closest("[data-group]"); if (!b) return; repGroup = b.dataset.group; $("repGroup").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); renderAnalysis(); });
   ["repFrom", "repTo"].forEach(id => $(id).addEventListener("input", renderAnalysis));
   $("repCustomer").addEventListener("change", renderAnalysis);
+  // Иу and Урумчи come on separate cars and are counted separately.
+  let repOrigin = "";
+  $("repOrigin").addEventListener("click", e => { const b = e.target.closest("[data-origin]"); if (!b) return; repOrigin = b.dataset.origin; $("repOrigin").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); renderAnalysis(); });
+  // a car (batch) belongs to Иу or Урумчи by the loads on it; its expenses follow it
+  const batchOrigin = id => { const l = S.shipments.filter(s => String(s.batch_id || "") === String(id)); if (!l.length) return ""; const u = l.filter(s => HN.originOf(s) === "uru").length; return u * 2 >= l.length ? "uru" : "iwu"; };
   $("repCur").addEventListener("click", e => { const b = e.target.closest("[data-cur]"); if (!b) return; HN.cur = b.dataset.cur; HN.lsSet("hn-report-cur", HN.cur); renderAnalysis(); });
   $("custSearch").addEventListener("input", renderAnalysis);
   if (!$("repFrom").value) { $("repFrom").value = HN.today().slice(0, 4) + "-01-01"; $("repTo").value = HN.today(); }
@@ -629,11 +635,11 @@
   }
   function reportData() {
     const from = $("repFrom").value || null, to = $("repTo").value || null, ck = $("repCustomer").value;
-    const ships = S.shipments.filter(s => (!ck || HN.customerKey(s) === ck));
+    const ships = S.shipments.filter(s => (!ck || HN.customerKey(s) === ck) && (!repOrigin || HN.originOf(s) === repOrigin));
     const shipIds = new Set(ships.map(s => String(s.id)));
     const shipsIn = ships.filter(s => HN.inRange(HN.shipmentDate(s), from, to));
     const pays = S.payments.filter(p => shipIds.has(String(p.shipment_id)) && HN.inRange(String(p.payment_date || "").slice(0, 10), from, to));
-    const exps = ck ? [] : S.expenses.filter(e => HN.inRange(String(e.expense_date || "").slice(0, 10), from, to));
+    const exps = ck ? [] : S.expenses.filter(e => HN.inRange(String(e.expense_date || "").slice(0, 10), from, to) && (!repOrigin || (e.batch_id && batchOrigin(e.batch_id) === repOrigin)));
     const buckets = new Map();
     const B = k => { if (!buckets.has(k)) buckets.set(k, { key: k, count: 0, kg: 0, m3: 0, billed: 0, income: 0, expense: 0 }); return buckets.get(k); };
     shipsIn.forEach(s => { const b = B(bucketOf(HN.shipmentDate(s))); b.count++; b.kg += HN.num(s.weight_kg); b.m3 += HN.num(s.volume_m3); b.billed += HN.val.ship(s); });
@@ -656,10 +662,10 @@
     $("rShipmentsSub").textContent = fmt(sum(d.shipsIn, "weight_kg"), 1) + " кг · " + fmt(sum(d.shipsIn, "volume_m3"), 3) + " м³";
     $("rIncome").textContent = money(income);
     $("rExpense").textContent = d.ck ? "—" : money(cost);
-    $("rExpenseSub").textContent = d.ck ? "хароҷот ба муштарӣ вобаста нест" : C;
+    $("rExpenseSub").textContent = d.ck ? "хароҷот ба муштарӣ вобаста нест" : repOrigin ? C + " · танҳо хароҷоти мошинҳои " + HN.ORIGINS[repOrigin] : C;
     $("rProfit").textContent = d.ck ? "—" : money(income - cost);
     $("repTableTitle").textContent = { day: "Ҳисоботи рӯзона", week: "Ҳисоботи ҳафтаина", month: "Ҳисоботи моҳона" }[repGroup];
-    $("repRangeLabel").textContent = (d.from ? HN.fmtDate(d.from) : "аз аввал") + " — " + (d.to ? HN.fmtDate(d.to) : "то имрӯз") + (d.ck ? " · " + (sel.selectedOptions[0]?.textContent || "") : "");
+    $("repRangeLabel").textContent = (d.from ? HN.fmtDate(d.from) : "аз аввал") + " — " + (d.to ? HN.fmtDate(d.to) : "то имрӯз") + (repOrigin ? " · " + HN.ORIGINS[repOrigin] : "") + (d.ck ? " · " + (sel.selectedOptions[0]?.textContent || "") : "");
     const finCells = r => (fin ? td(d.ck ? "—" : money(r.expense), "num") + td(d.ck ? "—" : money(r.income - r.expense), "num" + (!d.ck && r.income - r.expense < 0 ? " neg" : "")) : "");
     $("repRows").innerHTML = d.rows.map(r => `<tr>${td(`<b>${bucketLabel(r.key)}</b>`, "nowrap")}${td(r.count, "num")}${td(fmt(r.kg, 1), "num")}${td(fmt(r.m3, 3), "num")}${td(money(r.billed), "num")}${td(money(r.income), "num")}${finCells(r)}</tr>`).join("");
     const T = { count: sum(d.rows, "count"), kg: sum(d.rows, "kg"), m3: sum(d.rows, "m3"), billed: sum(d.rows, "billed"), income: sum(d.rows, "income"), expense: sum(d.rows, "expense") };
@@ -686,7 +692,7 @@
   }
   $("repExport").addEventListener("click", () => {
     const d = reportData(), fin = HN.can("finance");
-    const range = (d.from ? HN.fmtDate(d.from) : "аз аввал") + " — " + (d.to ? HN.fmtDate(d.to) : "то имрӯз");
+    const range = (d.from ? HN.fmtDate(d.from) : "аз аввал") + " — " + (d.to ? HN.fmtDate(d.to) : "то имрӯз") + (repOrigin ? " · " + HN.ORIGINS[repOrigin] : "");
     const periodCols = [
       { header: "Давра", value: r => bucketLabel(r.key), width: 22 },
       { header: "Борҳо", value: r => r.count, type: "int", width: 9, total: true },
@@ -913,6 +919,7 @@
     expenses: { text: "Хароҷоти нав", icon: "i-plus", perm: "finance", run: () => openExpense() },
     reports: { text: "Содирот ба Excel", icon: "i-download", perm: "staff", run: () => $("repExport").click() },
     excel: { text: "Варақи нав", icon: "i-plus", perm: "staff", run: () => document.querySelector('#notebook [data-xl="add-sheet"]')?.click() },
+    "excel-uru": { text: "Варақи нав", icon: "i-plus", perm: "staff", run: () => document.querySelector('#notebookUru [data-xl="add-sheet"]')?.click() },
     kassa: { text: "Касса ба Excel", icon: "i-download", perm: "finance", run: () => $("kExport")?.click() },
     admin: { text: "Нусха ба Excel", icon: "i-download", perm: "admin", run: () => $("backupXlsx").click() },
   };
@@ -1022,7 +1029,7 @@
       return;
     }
     const tr = e.target.closest("tr[data-ship]");
-    if (tr && !e.target.closest("button,a,input,select") && !tr.closest("#notebook")) openDetail(tr.dataset.ship); // notebook: double-click opens
+    if (tr && !e.target.closest("button,a,input,select") && !tr.closest(".nb-root")) openDetail(tr.dataset.ship); // notebook: double-click opens
   });
   // Click outside a modal closes it.
   document.querySelectorAll("dialog.modal, dialog.drawer").forEach(d => d.addEventListener("click", e => { if (e.target === d && d.id !== "confirmDialog") d.close(); }));

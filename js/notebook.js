@@ -15,8 +15,14 @@
   "use strict";
   const HN = window.HN, S = HN.state, esc = HN.esc;
   const D = HN.config.defaults;
+  // Where a load came from: the Urumqi notebook marks its loads; everything else is Yiwu.
+  HN.originOf = s => (/^URU-/i.test(String(s?.tracking_no || "")) || HN.noteValue(s, "Аз") === "Урумчи" ? "uru" : "iwu");
+  HN.ORIGINS = { iwu: "Иу", uru: "Урумчи" };
 
-  const BOOK_KEY = "hn-workbook-v3";
+// Two separate notebooks with the same template: «Дафтари Excel» (Yiwu) and «Дафтари Урумчи Excel».
+function makeNotebook(cfg) {
+  const BOOK_KEY = cfg.key, PREFIX = cfg.prefix, SEL = x => "#" + cfg.el + " " + x;
+  const mine = e => { const r = root(); return !!r && !!e.target && r.contains(e.target); };
   const OLD_DRAFT_KEY = "hoji-naim-cargo-sheet-v1";       // previous version — migrated, kept
   const OLD_META_KEY = "hoji-naim-cargo-sheet-meta-v1";
   const FIRST = 9;           // first data row, as in the template
@@ -97,14 +103,14 @@
     const ids = [...dirty]; dirty.clear();
     for (const id of ids) {
       const sh = book.sheets.find(x => x.id === id); if (!sh) continue;
-      const r = await HN.putRow("customer_sheets", "customer_key", { customer_key: "sheet:" + sh.id, sheet_name: sh.name, client_code: sh.code || "", phone: sh.phone || "", customer_name: sh.code || "", data: { rows: sh.rows }, position: book.sheets.indexOf(sh) });
+      const r = await HN.putRow("customer_sheets", "customer_key", { customer_key: PREFIX + sh.id, sheet_name: sh.name, client_code: sh.code || "", phone: sh.phone || "", customer_name: sh.code || "", data: { rows: sh.rows }, position: book.sheets.indexOf(sh) });
       if (r.error) { console.warn("Sheet sync", r.error); setStatus("Дар база сабт нашуд — дар браузер нигоҳ дошта шуд"); }
     }
   }
   // When the optional SQL (customer_sheets.data) exists, sheets are shared by all staff.
   async function loadRemote() {
     if (!S.features.sheets || !S.db) return;
-    const r = await S.db.from("customer_sheets").select("customer_key,sheet_name,client_code,phone,data,position").like("customer_key", "sheet:%");
+    const r = await S.db.from("customer_sheets").select("customer_key,sheet_name,client_code,phone,data,position").like("customer_key", PREFIX + "%");
     if (r.error) { S.features.sheetData = false; return; }
     S.features.sheetData = true;
     // Order of tabs = saved position; sheets saved with the same position (older versions) go in natural order Лист1, Лист2 … Лист10.
@@ -114,7 +120,7 @@
     if (broken) remote = remote.slice().sort(natural);
     if (!remote.length) { book.sheets.forEach(sh => dirty.add(sh.id)); flushRemote(); return; } // first upload
     const local = new Map(book.sheets.map(s => [s.id, s]));
-    book.sheets = remote.map(x => { const id = x.customer_key.slice(6); return { ...(local.get(id) || {}), id, name: x.sheet_name, code: x.client_code || "", phone: x.phone || "", rows: Array.isArray(x.data?.rows) ? x.data.rows : [] }; });
+    book.sheets = remote.map(x => { const id = x.customer_key.slice(PREFIX.length); return { ...(local.get(id) || {}), id, name: x.sheet_name, code: x.client_code || "", phone: x.phone || "", rows: Array.isArray(x.data?.rows) ? x.data.rows : [] }; });
     const before = book.sheets.length; topUp(book); book.sheets.slice(before).forEach(x => dirty.add(x.id));
     if (broken) book.sheets.forEach(x => dirty.add(x.id));   // write the repaired order back once
     if (dirty.size) flushRemote();
@@ -126,7 +132,7 @@
   function sheetShips(sh) {
     const code = String(sh.code || "").trim().toLocaleLowerCase(), pk = String(sh.phone || "").replace(/\D/g, "").slice(-9);
     const mine = new Set(sh.rows.map(r => r.syncTrackingNo).filter(Boolean));
-    return S.shipments.filter(s => mine.has(s.tracking_no) || (code ? HN.customerCode(s).toLocaleLowerCase() === code : pk.length >= 7 && !HN.customerCode(s) && String(s.client_phone || "").replace(/\D/g, "").slice(-9) === pk));
+    return S.shipments.filter(s => mine.has(s.tracking_no) || (HN.originOf(s) === cfg.origin && (code ? HN.customerCode(s).toLocaleLowerCase() === code : pk.length >= 7 && !HN.customerCode(s) && String(s.client_phone || "").replace(/\D/g, "").slice(-9) === pk)));
   }
   // Row 1: dollars (like the sheet's prices), row 2: the same in somoni.
   function sheetMoney(sh) {
@@ -155,7 +161,7 @@
     if (!code && pk.length < 7) return [];
     const mine = new Set(sh.rows.map(r => r.syncTrackingNo).filter(Boolean));
     const hit = s => code ? HN.customerCode(s).toLocaleLowerCase() === code : (!HN.customerCode(s) && String(s.client_phone || "").replace(/\D/g, "").slice(-9) === pk);
-    return S.shipments.filter(s => hit(s) && !mine.has(s.tracking_no))
+    return S.shipments.filter(s => hit(s) && HN.originOf(s) === cfg.origin && !mine.has(s.tracking_no))
       .sort((a, b) => HN.shipmentDate(a).localeCompare(HN.shipmentDate(b)))
       .map(s => {
         const places = HN.places(s) || 1, dims = String(HN.noteValue(s, "Андоза") || "").replace(/м/g, "").split("×").map(x => N(x.trim()));
@@ -204,7 +210,7 @@
     const ids = new Set(drop.map(x => x.id));
     book.sheets = book.sheets.filter(x => !ids.has(x.id));
     if (!book.sheets.some(x => x.id === book.active)) book.active = book.sheets[0].id;
-    savePositions(); if (S.features.sheetData) await S.db.from("customer_sheets").delete().in("customer_key", [...ids].map(id => "sheet:" + id));
+    savePositions(); if (S.features.sheetData) await S.db.from("customer_sheets").delete().in("customer_key", [...ids].map(id => PREFIX + id));
     await render(); HN.toast(`${drop.length} варақи холӣ тоза шуд.`, "ok");
   }
 
@@ -218,7 +224,7 @@
     const rows = [];
     S.shipments.filter(s => hitCode(HN.customerCode(s)) || hitPhone(s.client_phone)).forEach(s => {
       const sh = sheetOf.get(s.tracking_no), usd = s.currency === "USD" ? HN.num(s.total_original) : HN.total(s) / (book.usdRate || D.usdRate);
-      rows.push({ date: HN.shipmentDate(s), src: sh ? "Excel · " + sh.name : "Система", ship: s, code: HN.customerCode(s), phone: s.client_phone || "", item: HN.noteValue(s, "Мол") || (String(s.tracking_no).startsWith("SHEET-") ? "" : s.tracking_no), places: HN.places(s), cube: HN.num(s.volume_m3), kg: HN.num(s.weight_kg), usd, tjs: HN.total(s), paid: HN.paid(s), debt: HN.debt(s) });
+      rows.push({ date: HN.shipmentDate(s), src: (sh ? "Excel · " + sh.name : "Система") + (HN.originOf(s) === "uru" ? " · Урумчи" : ""), ship: s, code: HN.customerCode(s), phone: s.client_phone || "", item: HN.noteValue(s, "Мол") || (String(s.tracking_no).startsWith("SHEET-") ? "" : s.tracking_no), places: HN.places(s), cube: HN.num(s.volume_m3), kg: HN.num(s.weight_kg), usd, tjs: HN.total(s), paid: HN.paid(s), debt: HN.debt(s) });
     });
     const inSystem = new Set(S.shipments.map(s => s.tracking_no));
     sheets.forEach(sh => sh.rows.filter(used).forEach(r => {
@@ -254,16 +260,16 @@
       { header: "$", value: r => HN.round2(r.usd), type: "money", width: 12, total: true }, { header: "TJS", value: r => HN.round2(r.tjs), type: "money", width: 13, total: true }, { header: "Пардохт", value: r => r.paid, type: "money", width: 13, total: true }, { header: "Қарз", value: r => r.debt ?? "", type: "money", width: 13, total: true, red: true },
     ], rows }]);
   }
-  HN.openCustomerHistory = q => {
+  if (cfg.main) HN.openCustomerHistory = q => {
     if (!book) book = loadBook();
     HN.$("custQ").value = q || ""; renderHistory(q); HN.$("custDialog").showModal(); if (!q) HN.$("custQ").focus();
   };
-  document.addEventListener("submit", e => { if (e.target.id !== "custForm") return; e.preventDefault(); renderHistory(HN.$("custQ").value); });
-  document.addEventListener("click", e => { const tr = e.target.closest("#custOut tr[data-ship]"); if (tr) { HN.$("custDialog").close(); HN.openDetail(tr.dataset.ship); } });
+  if (cfg.main) document.addEventListener("submit", e => { if (e.target.id !== "custForm") return; e.preventDefault(); renderHistory(HN.$("custQ").value); });
+  if (cfg.main) document.addEventListener("click", e => { const tr = e.target.closest("#custOut tr[data-ship]"); if (tr) { HN.$("custDialog").close(); HN.openDetail(tr.dataset.ship); } });
 
   /* ---------- Rendering ---------- */
-  const root = () => HN.$("notebook");
-  const FS = typeof window.showSaveFilePicker === "function", PC_NAME = "hn-xlsx-name", PC_ASKED = "hn-xlsx-asked";
+  const root = () => HN.$(cfg.el);
+  const FS = typeof window.showSaveFilePicker === "function", PC_NAME = cfg.fileKey === "book" ? "hn-xlsx-name" : "hn-xlsx-name-" + cfg.fileKey, PC_ASKED = "hn-xlsx-asked";
   let pcFile = null;
   const fileStore = (mode, fn) => new Promise((res, rej) => {
     const o = indexedDB.open("hn-files", 1);
@@ -310,9 +316,10 @@
 
   async function render() {
     const el = root(); if (!el || !S.user) return;
+    document.querySelectorAll(".nb-root").forEach(x => { if (x !== el) x.innerHTML = ""; });
     // Keep the place: scroll of the grid and of the page, and the cell being typed in (a re-draw must not jump).
     const oldWrap = HN.$("xlGridWrap"), keep = { top: oldWrap?.scrollTop || 0, left: oldWrap?.scrollLeft || 0, y: window.scrollY, sheet: book?.active, total: showTotal };
-    const act = document.activeElement?.closest?.("#notebook .xl-c input");
+    const act = document.activeElement?.closest?.(SEL(".xl-c input"));
     if (act) keep.focus = { r: act.closest(".xl-c").dataset.r, c: act.closest(".xl-c").dataset.c, a: act.selectionStart, b: act.selectionEnd };
     if (!book) book = loadBook();
     // After «Аз сифр» (supabase/reset-data.sql) every browser forgets its old notebook.
@@ -337,7 +344,7 @@
         <div class="xl-titlebar">
           <span class="xl-logo" aria-hidden="true"><i>X</i></span>
           <button type="button" class="xl-qat" data-xl="pc-save" title="Сабт ба файли Excel дар компютер (Ctrl+S)" aria-label="Сабт ба файли Excel дар компютер"><svg viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></svg></button>
-          <b class="xl-docname">Новый образец — HOJI-NAIM CARGO.xlsx <span>— Excel</span></b>
+          <b class="xl-docname">${esc(cfg.docTitle)} <span>— Excel</span></b>
           <span class="xl-saved" id="xlSaved">${S.features.sheetData ? "Дар база сабт мешавад" : "Дар ҳамин браузер"}${HN.lsGet(PC_NAME, "") ? ` · 💾 ${esc(HN.lsGet(PC_NAME, ""))}` : ""}</span>
         </div>
         <div class="xl-menutabs" aria-hidden="true"><span>Файл</span><span class="on">Асосӣ</span><span>Ворид</span><span>Формулаҳо</span><span>Маълумот</span><span>Намоиш</span></div>
@@ -481,7 +488,7 @@
 
   /* ---------- Events ---------- */
   document.addEventListener("click", async e => {
-    if (!e.target.closest("#notebook")) return;
+    if (!mine(e)) return;
     if (e.target.closest("[data-total]")) { if (!showTotal) { showTotal = true; selected = null; await render(); } return; }
     const tab = e.target.closest("[data-sheet]");
     if (tab && !tab.querySelector("input")) {
@@ -495,18 +502,18 @@
     const cell = e.target.closest(".xl-c[data-r]");
     if (cell) selectCell(Number(cell.dataset.r), Number(cell.dataset.c));
   });
-  document.addEventListener("submit", e => { if (e.target.id !== "xlFind") return; e.preventDefault(); openCustomer(HN.$("xlFindIn").value); });
-  document.addEventListener("keydown", e => { if (e.shiftKey && e.key === "F11" && HN.$("notebook")?.offsetParent) { e.preventDefault(); action("add-sheet"); } });
-  document.addEventListener("keydown", e => { if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.code === "KeyS" && HN.$("notebook")?.offsetParent && !document.querySelector("dialog[open]")) { e.preventDefault(); action("pc-save"); } });
+  document.addEventListener("submit", e => { if (!mine(e) || e.target.id !== "xlFind") return; e.preventDefault(); openCustomer(HN.$("xlFindIn").value); });
+  document.addEventListener("keydown", e => { if (e.shiftKey && e.key === "F11" && root()?.offsetParent) { e.preventDefault(); action("add-sheet"); } });
+  document.addEventListener("keydown", e => { if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.code === "KeyS" && root()?.offsetParent && !document.querySelector("dialog[open]")) { e.preventDefault(); action("pc-save"); } });
   document.addEventListener("click", e => { const m = HN.$("xlSheetMenu"); if (m && !m.classList.contains("hidden") && !e.target.closest("#xlSheetMenu, [data-xl=all-sheets]")) m.classList.add("hidden"); });
   document.addEventListener("dblclick", async e => {
-    const go = e.target.closest("#notebook tr[data-goto-sheet]");
+    const go = e.target.closest(SEL("tr[data-goto-sheet]"));
     if (go) { showTotal = false; book.active = go.dataset.gotoSheet; selected = null; save(); await render(); return; }
-    const row = e.target.closest("#notebook tr.xl-datarow[data-ship]");
+    const row = e.target.closest(SEL("tr.xl-datarow[data-ship]"));
     if (row) HN.openDetail(row.dataset.ship);
   });
   document.addEventListener("focusin", e => {
-    const input = e.target.closest("#notebook .xl-c input"); if (!input) return;
+    const input = e.target.closest(SEL(".xl-c input")); if (!input) return;
     const cell = input.closest(".xl-c"); selectCell(Number(cell.dataset.r), Number(cell.dataset.c));
   });
   // Карго: dollars = yuan × Курс ¥ ÷ Курс $ (both rates from I1 / I2 of the sheet)
@@ -519,7 +526,7 @@
     save();
   }
   document.addEventListener("change", async e => {
-    if (e.target.id !== "xlCny") return;
+    if (!mine(e) || e.target.id !== "xlCny") return;
     const v = N(e.target.value);
     if (v <= 0) { HN.toast("Курби юанро дуруст нависед, масалан 7.2", "error"); e.target.value = cnyPerUsd(); return; }
     setYuanRate(v); await render();
@@ -530,13 +537,13 @@
     } else HN.toast(`Курби юан: 1 $ = ${cnyPerUsd()} ¥`, "ok");
   });
   document.addEventListener("input", e => {
-    if (e.target.id !== "xlYuanCalc") return;
+    if (!mine(e) || e.target.id !== "xlYuanCalc") return;
     const y = N(e.target.value), out = HN.$("xlYuanOut");
     if (out) out.textContent = (y ? xf(y / (N(cnyPerUsd()) || 1)) : "0") + " $";
   });
   function showCargoUsd(sh) { const el = root()?.querySelector('input[data-meta="cargoUsd"]'); if (el && document.activeElement !== el) el.value = sh.cargoUsd ?? ""; }
   document.addEventListener("input", e => {
-    const input = e.target.closest("#notebook .xl-c input"); if (!input) return;
+    const input = e.target.closest(SEL(".xl-c input")); if (!input) return;
     const sh = activeSheet();
     if (input.dataset.meta) {
       const k = input.dataset.meta;
@@ -563,9 +570,9 @@
     save(sh); refresh(); scheduleAuto();
   });
   document.addEventListener("change", e => {
-    const d = e.target.closest('#notebook input[data-key="date"]');
+    const d = e.target.closest(SEL('input[data-key="date"]'));
     if (d) { const iso = toISO(d.value); const sh = activeSheet(), i = Number(d.dataset.row); if (sh.rows[i]) { sh.rows[i].date = iso || d.value; save(sh); } if (iso) d.value = HN.fmtDate(iso); else if (d.value.trim()) HN.toast("Санаро ба шакли 07.11.2026 нависед.", "error"); return; }
-    if (!e.target.closest('#notebook input[data-meta="code"]')) return;
+    if (!e.target.closest(SEL('input[data-meta="code"]'))) return;
     // Same code on another sheet → this is the same customer: go there (and move rows) instead of a second sheet.
     const cur = activeSheet(), dup = codeKey(cur.code) && book.sheets.find(x => x.id !== cur.id && codeKey(x.code) === codeKey(cur.code));
     if (dup) { mergeInto(cur, dup); return; }
@@ -573,7 +580,7 @@
     const pos = selected; render().then(() => { if (pos) selectCell(pos.r, pos.c, true); });
   });
   document.addEventListener("keydown", e => {
-    const input = e.target.closest("#notebook .xl-c input"); if (!input) return;
+    const input = e.target.closest(SEL(".xl-c input")); if (!input) return;
     const cell = input.closest(".xl-c"), r = Number(cell.dataset.r), c = Number(cell.dataset.c);
     const go = dr => {
       for (let rr = r + dr, k = 0; k < 60; k++, rr += dr) {
@@ -650,7 +657,7 @@
       const filled = sh.rows.filter(used).length;
       if (!(await HN.confirm(`Варақи «${sh.name}»${filled ? ` (${filled} сатр)` : ""} нест карда шавад? Борҳое, ки аллакай дар система сабт шудаанд, нест намешаванд.`, { title: "Нест кардани варақ", ok: "Нест кардан", danger: true }))) return;
       book.sheets = book.sheets.filter(s => s.id !== sh.id); book.active = book.sheets[0].id; selected = null; savePositions();
-      if (S.features.sheetData) await S.db.from("customer_sheets").delete().eq("customer_key", "sheet:" + sh.id);
+      if (S.features.sheetData) await S.db.from("customer_sheets").delete().eq("customer_key", PREFIX + sh.id);
       await render(); return;
     }
     if (kind === "del-row") {
@@ -683,10 +690,10 @@
   async function upsertRow(sh, r, rate) {
     const x = calc(r), code = String(sh.code || "").trim(), phone = String(sh.phone || "").trim();
     if (HN.isLocked?.(toISO(r.date) || HN.today())) throw new Error(HN.lockMsg());
-    if (!r.syncTrackingNo) { const d = (toISO(r.date) || HN.today()).replace(/-/g, ""); r.syncTrackingNo = "SHEET-" + d + "-" + (code.replace(/[^a-zA-Z0-9]/g, "").slice(0, 12) || "CLIENT") + "-" + uid().toUpperCase(); }
+    if (!r.syncTrackingNo) { const d = (toISO(r.date) || HN.today()).replace(/-/g, ""); r.syncTrackingNo = cfg.track + d + "-" + (code.replace(/[^a-zA-Z0-9]/g, "").slice(0, 12) || "CLIENT") + "-" + uid().toUpperCase(); }
     const existing = S.shipments.find(s => s.tracking_no === r.syncTrackingNo);
-    const parts = { "Коди муштарӣ": code, "Телефон": phone, "Ҷойҳо": x.places, "Кг барои ҷой": N(r.kgPerPlace), "Нархи куб": x.cubePrice, "Сумма куб": x.cubeAmount.toFixed(2), "Нархи кг": x.kgPrice, "Сумма кг": x.kgAmount.toFixed(2), "Шаҳр": r.city || "", "Мол": r.item || "", "Андоза": N(r.height) && N(r.width) && N(r.length) ? `${r.height} × ${r.width} × ${r.length} м` : "", "Мағоза": r.shop || "" };
-    const notes = HN.buildNotes(existing ? existing.notes : "Дафтари Excel", parts, existing ? undefined : "");
+    const parts = { "Аз": HN.ORIGINS[cfg.origin], "Коди муштарӣ": code, "Телефон": phone, "Ҷойҳо": x.places, "Кг барои ҷой": N(r.kgPerPlace), "Нархи куб": x.cubePrice, "Сумма куб": x.cubeAmount.toFixed(2), "Нархи кг": x.kgPrice, "Сумма кг": x.kgAmount.toFixed(2), "Шаҳр": r.city || "", "Мол": r.item || "", "Андоза": N(r.height) && N(r.width) && N(r.length) ? `${r.height} × ${r.width} × ${r.length} м` : "", "Мағоза": r.shop || "" };
+    const notes = HN.buildNotes(existing ? existing.notes : cfg.docLabel, parts, existing ? undefined : "");
     if (existing && N(existing.fx_rate) > 0) rate = N(existing.fx_rate);   // a saved shipment keeps its own rate
     const tjs = HN.round2(x.price * rate);
     if (existing && tjs < HN.paid(existing) - 0.005) throw new Error(`бори ${r.syncTrackingNo}: ҳисоби нав аз пардохтшуда кам аст`);
@@ -866,22 +873,22 @@
       ws["!rows"] = [{ hpt: 45.75 }, { hpt: 67.5 }, { hpt: 28.5 }, { hpt: 30 }, ...totalRows.map(() => ({ hpt: 22.5 }))];
       X.utils.book_append_sheet(wb, ws, HN.safeSheetName(TOTAL_NAME, names));
     }
-    const file = sheets.length === 1 ? `HOJI-NAIM-${sheets[0].name}-${HN.today()}.xlsx` : `HOJI-NAIM-Дафтар-${HN.today()}.xlsx`;
+    const file = sheets.length === 1 ? `${cfg.filePrefix}-${sheets[0].name}-${HN.today()}.xlsx` : `${cfg.filePrefix}-${HN.today()}.xlsx`;
     return { X, wb, file };
   }
 
   /* ---------- The company's own .xlsx file on this computer (Chrome / Edge / Yandex) ---------- */
   // The file is chosen once; after that every «Сабт» and 💾 / Ctrl+S overwrite the same file with the whole book.
   async function pickPcFile() {
-    const h = await window.showSaveFilePicker({ suggestedName: "HOJI-NAIM CARGO.xlsx", types: [{ description: "Excel", accept: { "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"] } }] });
-    pcFile = h; HN.lsSet(PC_NAME, h.name); HN.lsSet(PC_ASKED, true); await fileStore("readwrite", st => st.put(h, "book")).catch(() => {});
+    const h = await window.showSaveFilePicker({ suggestedName: cfg.docFile, types: [{ description: "Excel", accept: { "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"] } }] });
+    pcFile = h; HN.lsSet(PC_NAME, h.name); HN.lsSet(PC_ASKED, true); await fileStore("readwrite", st => st.put(h, cfg.fileKey)).catch(() => {});
     return h;
   }
   // Must run inside a click: asks for the file (when `ask`) or for write permission the browser has forgotten.
   async function readyPcFile(ask) {
     if (!FS) return null;
     try {
-      pcFile = pcFile || await fileStore("readonly", st => st.get("book")).catch(() => null);
+      pcFile = pcFile || await fileStore("readonly", st => st.get(cfg.fileKey)).catch(() => null);
       if (!pcFile) return ask ? await pickPcFile() : null;
       const o = { mode: "readwrite" };
       if ((await pcFile.queryPermission(o)) === "granted" || (await pcFile.requestPermission(o)) === "granted") return pcFile;
@@ -904,7 +911,7 @@
     }
   }
 
-  HN.notebook = {
+  return {
     render,
     // A load saved in «Бори нав»: make sure its customer has a sheet (by code, else by phone) so the load shows there.
     ensureSheet(code, phone, name) {
@@ -931,7 +938,13 @@
       if (!sh && c?.code) { sh = blankSheet(0, { name: nextName(), code: c.code, phone: c.phone || "" }); if (!validName(c.code, sh.id)) sh.name = c.code; book.sheets.push(sh); save(sh); }
       if (sh) { book.active = sh.id; selected = null; save(); }
       else if (c) setTimeout(() => HN.toast("Ин муштарӣ код надорад. Варақи нав созед ва дар «Код» коди ӯро нависед."), 300);
-      if (!HN.$("rtab-notebook")?.classList.contains("hidden")) render();
+      if (root()?.offsetParent) render();
     },
   };
+}
+
+  HN.notebook = makeNotebook({ main: true, el: "notebook", key: "hn-workbook-v3", prefix: "sheet:", track: "SHEET-", origin: "iwu", fileKey: "book",
+    docTitle: "Новый образец — HOJI-NAIM CARGO.xlsx", docFile: "HOJI-NAIM CARGO.xlsx", filePrefix: "HOJI-NAIM-Дафтар", docLabel: "Дафтари Excel" });
+  HN.notebookUru = makeNotebook({ main: false, el: "notebookUru", key: "hn-workbook-uru", prefix: "uru:", track: "URU-", origin: "uru", fileKey: "uru",
+    docTitle: "Урумчи — HOJI-NAIM CARGO.xlsx", docFile: "HOJI-NAIM CARGO Урумчи.xlsx", filePrefix: "HOJI-NAIM-Урумчи", docLabel: "Дафтари Урумчи Excel" });
 })();

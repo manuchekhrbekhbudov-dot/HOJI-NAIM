@@ -932,3 +932,9 @@ button.xl-qat:hover { background: rgba(255,255,255,.18); }
 .brand-mark { box-shadow: 0 4px 12px rgba(0,0,0,.25) !important; }
 .auth .auth-mark { box-shadow: 0 10px 24px rgba(245,183,0,.3) !important; }
 .boot-mark { width: 84px; height: 84px; box-shadow: 0 14px 34px rgba(245,183,0,.35); }
+/* Where a load came from: Иу / Урумчи */
+.og-uru, .og-iwu { font-style: normal; font-size: 11px; font-weight: 800; padding: 1px 7px; border-radius: 999px; vertical-align: middle; }
+.og-uru { background: #EDE9FE; color: #5B21B6; }
+.og-iwu { background: #E0F2FE; color: #075985; }
+body.dark .og-uru { background: rgba(167,139,250,.18); color: #C4B5FD; }
+body.dark .og-iwu { background: rgba(56,189,248,.16); color: #7DD3FC; }
