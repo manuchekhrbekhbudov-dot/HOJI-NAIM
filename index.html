@@ -9,13 +9,13 @@
   <link rel="icon" href="assets/favicon.svg?v=2" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <link rel="preconnect" href="https://wfxbgkasstkxzmyrjwpi.supabase.co" crossorigin>
-  <link rel="stylesheet" href="style.css?v=20261122-xlmenu">
+  <link rel="stylesheet" href="style.css?v=20261122-month">
   <script src="vendor/supabase-js-2.118.0.js" defer></script>
-  <script src="js/core.js?v=20261122-xlmenu" defer></script>
-  <script src="js/exporter.js?v=20261122-xlmenu" defer></script>
-  <script src="js/notebook.js?v=20261122-xlmenu" defer></script>
-  <script src="js/extras.js?v=20261122-xlmenu" defer></script>
-  <script src="main.js?v=20261122-xlmenu" defer></script>
+  <script src="js/core.js?v=20261122-month" defer></script>
+  <script src="js/exporter.js?v=20261122-month" defer></script>
+  <script src="js/notebook.js?v=20261122-month" defer></script>
+  <script src="js/extras.js?v=20261122-month" defer></script>
+  <script src="main.js?v=20261122-month" defer></script>
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -497,6 +497,13 @@
       <h2 id="confirmTitle">Тасдиқ</h2>
       <p id="confirmText" class="confirm-text"></p>
       <div class="modal-foot"><button type="button" class="btn btn-ghost" id="confirmCancel">Бекор</button><button type="button" class="btn btn-primary" id="confirmOk">Тасдиқ</button></div>
+    </div>
+  </dialog>
+
+  <dialog id="archDialog" class="modal modal-xl" aria-labelledby="archTitle">
+    <div class="modal-body">
+      <div class="modal-head"><div><p class="eyebrow">Дафтари Excel · моҳҳои пӯшида</p><h2 id="archTitle">Бойгонӣ</h2></div><button type="button" class="icon-btn" data-close aria-label="Пӯшидан"><svg><use href="#i-x"/></svg></button></div>
+      <div id="archOut"></div>
     </div>
   </dialog>
 

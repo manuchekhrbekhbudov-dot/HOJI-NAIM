@@ -151,6 +151,9 @@
   };
   HN.shipmentById = id => HN.state.shipmentById?.get(String(id)) || null;
 
+  HN.monthLabel = m => (m ? HN.MONTHS[+String(m).slice(5, 7) - 1] + " " + String(m).slice(0, 4) : "");
+  // The month of the oldest load that is not fully paid: «қарздор аз Октябр 2026».
+  HN.debtSince = ships => { const d = ships.filter(s => HN.debt(s) > 0.005).map(HN.shipmentDate).filter(Boolean).sort()[0]; return d ? d.slice(0, 7) : ""; };
   HN.customers = () => {
     const groups = new Map();
     const ordered = HN.state.shipments.slice().sort((a, b) => String(a.created_at || "").localeCompare(String(b.created_at || "")));
@@ -163,7 +166,7 @@
       g.shipments.push(s); g.places += HN.places(s); g.kg += HN.num(s.weight_kg); g.cube += HN.num(s.volume_m3);
       g.billed += HN.total(s); g.paid += HN.paid(s); g.debt += HN.debt(s);
     });
-    groups.forEach(g => { if (!g.name) g.name = g.code || g.phone || "Муштарӣ"; g.shipments.sort((a, b) => HN.shipmentDate(b).localeCompare(HN.shipmentDate(a))); });
+    groups.forEach(g => { if (!g.name) g.name = g.code || g.phone || "Муштарӣ"; g.since = HN.debtSince(g.shipments); g.shipments.sort((a, b) => HN.shipmentDate(b).localeCompare(HN.shipmentDate(a))); });
     return [...groups.values()];
   };
 

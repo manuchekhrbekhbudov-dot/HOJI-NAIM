@@ -958,3 +958,14 @@ body.dark .og-iwu { background: rgba(56,189,248,.16); color: #7DD3FC; }
   body.print-xl .nb-root .xl-gridwrap, body.print-xl .nb-root .xl-gridwrap * { visibility: visible !important; }
   body.print-xl .nb-root .xl-gridwrap { position: absolute; left: 0; top: 0; overflow: visible !important; max-height: none !important; }
 }
+
+/* Month close: past debt line in a sheet, archive dialog, «қарздор аз» */
+.xl-grid td.xl-pastdebt { background: #FDECEC; color: #C00000; font-weight: 700; border: 1px solid #F3B4B4; text-align: left; padding-left: 10px; white-space: nowrap; }
+body.dark .xl-grid td.xl-pastdebt { background: #3a1b1f; color: #FCA5A5; border-color: #7f1d1d; }
+.arch-months { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.arch-detail > td { background: var(--navy-50); padding: 8px 10px !important; }
+.arch-rows { font-size: 12.5px; }
+body.dark .arch-detail > td { background: #142036; }
+.since { display: block; font-style: normal; font-size: 11px; font-weight: 600; color: #B45309; }
+.rank-name .since { display: inline; }
+body.dark .since { color: #FCD34D; }
