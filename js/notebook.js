@@ -303,7 +303,7 @@ function makeNotebook(cfg) {
         + grp("Содирот", ico("i-download", "Ҳамаи дафтар (.xlsx)", "export-all", { lg: true }), ico("i-download", "Ин варақ (.xlsx)", "export-sheet"))
         + grp("Бойгонӣ", ico('<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v10h14V9M10 13h4"/></svg>', "Моҳҳои пӯшида", "archive", { lg: true, title: "Варақҳои моҳҳои гузашта: дидан ва Excel" }))
         + grp("Чоп", ico('<svg viewBox="0 0 24 24"><path d="M7 9V3h10v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/></svg>', "Чоп / PDF", "print", { lg: true })),
-      home: grp("Сатрҳо", ico("i-refresh", "Сабт дар система", "sync", { lg: true, off }), ico("i-trash", "Нест кардани сатр", "del-row", { off }))
+      home: grp("Сатрҳо", ico("i-refresh", "Сабт дар система", "sync", { lg: true, off }), ico("i-refresh", allLabel(), "sync-all", { title: "Ҳамаи варақҳоеро, ки сатри сабтнашуда доранд, якбора ба система мефиристад" }) + ico("i-trash", "Нест кардани сатр", "del-row", { off }))
         + grp("Муштарӣ", find, "", "xl-find")
         + grp("Варақҳо", ico("i-sheet", "Варақи нав", "add-sheet", { lg: true }), ico("i-edit", "Номи варақ", "rename", { off }) + ico("i-trash", "Нест кардани варақ", "remove-sheet", { off: off || book.sheets.length < 2 }) + ico("i-trash", "Тоза: варақҳои холӣ", "clean"))
         + grp("Содирот", ico("i-download", "Ҳамаи дафтар (.xlsx)", "export-all", { lg: true }), ico("i-download", "Ин варақ (.xlsx)", "export-sheet") + ico(SAVE_ICO, pcName ? "Файл: " + esc(pcName) : "Файли Excel дар компютер", "pc-link")),
@@ -314,7 +314,7 @@ function makeNotebook(cfg) {
             <li><b>Общий объем, куб</b> = высота × ширина × длина × место</li><li><b>Общий объем, кг</b> = кг × место</li>
             <li><b>Сумма за куб</b> = куб × цена куб · <b>Сумма за кг</b> = кг × цена кг</li><li><b>итоговая цена</b> = калонтарини «Сумма за куб» ва «Сумма за кг»</li>
             <li><b>кг в одном кубе</b> = кг ÷ куб · <b>Карго $</b> = юан × Курс ¥ ÷ Курс $</li></ul></div><span class="xl-group-label">Чӣ тавр ҳисоб мешавад</span></div>`,
-      data: grp("Система", ico("i-refresh", "Сабт дар система", "sync", { lg: true, off }), ico("i-refresh", "Навсозӣ аз база", "reload"))
+      data: grp("Система", ico("i-refresh", "Сабт дар система", "sync", { lg: true, off }), ico("i-refresh", allLabel(), "sync-all") + ico("i-refresh", "Навсозӣ аз база", "reload"))
         + grp("Муштарӣ", find, "", "xl-find")
         + grp("Тоза кардан", ico("i-trash", "Тоза: варақҳои холӣ", "clean", { lg: true })),
       view: grp("Намоиш", ico("i-sheet", showTotal ? "Варақи муштарӣ" : TOTAL_NAME, "toggle-total", { lg: true }), ico('<svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>', "Пурраи экран", "fullscreen"))
@@ -450,7 +450,7 @@ function makeNotebook(cfg) {
         <div class="xl-tabsbar">
           <button class="xl-tabnav" data-xl="tabs-left" aria-label="Варақҳои пешина">◀</button><button class="xl-tabnav" data-xl="tabs-right" aria-label="Варақҳои баъдина">▶</button>
           <div class="xl-tabs" id="xlTabs" role="tablist" aria-label="Варақҳо">
-            ${book.sheets.map(x => `<button class="xl-tab${x.id === sh.id && !showTotal ? " on" : ""}" data-sheet="${esc(x.id)}" role="tab" aria-selected="${x.id === sh.id && !showTotal}" title="${esc(x.code ? "Код: " + x.code : "Код нанавишта")} — барои иваз кардани ном ду бор пахш кунед">${esc(x.name)}</button>`).join("")}
+            ${book.sheets.map(x => `<button class="xl-tab${x.id === sh.id && !showTotal ? " on" : ""}" data-sheet="${esc(x.id)}" role="tab" aria-selected="${x.id === sh.id && !showTotal}" title="${esc(x.code ? "Код: " + x.code : "Код нанавишта")}${unsaved(x) ? ` · ${unsaved(x)} сатр ҳанӯз «Сабт дар система» нашудааст` : ""} — барои иваз кардани ном ду бор пахш кунед">${unsaved(x) ? '<i class="xl-dot" aria-label="сабт нашудааст"></i>' : ""}${esc(x.name)}</button>`).join("")}
             <button class="xl-tab xl-tab-total${showTotal ? " on" : ""}" data-total="1" role="tab" aria-selected="${showTotal}" title="Ҷамъбасти ҳамаи варақҳо">${TOTAL_NAME}</button>
           </div>
           <button class="xl-more" data-xl="all-sheets" title="Ҳамаи варақҳо" aria-label="Ҳамаи варақҳо">⋯</button>
@@ -726,6 +726,7 @@ function makeNotebook(cfg) {
       setStatus("Варақи «" + n.name + "» илова шуд"); return;
     }
     if (kind === "clean") { await cleanEmpty(); return; }
+    if (kind === "sync-all") { await syncAll(); return; }
     if (kind === "archive") { await openArchive(); return; }
     if (kind === "zoom-in" || kind === "zoom-out" || kind === "zoom-reset") {
       zoom = kind === "zoom-reset" ? 100 : Math.max(50, Math.min(200, zoom + (kind === "zoom-in" ? 10 : -10)));
@@ -823,9 +824,40 @@ function makeNotebook(cfg) {
     const sh = activeSheet(), p = pendingOf(sh), n = p.ready.length;
     btn.textContent = n ? `Сабт дар система (${n})` : "Сабт дар система";
     btn.closest("button").classList.toggle("xl-pending", n > 0);
+    const tab = root()?.querySelector(".xl-tab.on"), dot = tab?.querySelector(".xl-dot");
+    if (tab && n && !dot) tab.insertAdjacentHTML("afterbegin", '<i class="xl-dot" aria-label="сабт нашудааст"></i>'); else if (!n && dot) dot.remove();
+    const all = root()?.querySelector('[data-xl="sync-all"] span'); if (all) all.textContent = allLabel();
     if (n) setStatus(`${n} сатр ҳанӯз дар система нест — санҷед ва «Сабт дар система»-ро пахш кунед`);
   }
   function scheduleAuto() { showPending(); }   // name kept: called after every edit
+  // rows of a sheet that are ready but not in the system yet (also rows typed on a sheet without a code)
+  const unsaved = sh => { try { return pendingOf(sh).ready.length; } catch { return 0; } };
+  const allLabel = () => { const n = book.sheets.filter(unsaved).length; return n ? `Сабт: ҳамаи варақҳо (${n})` : "Сабт: ҳамаи варақҳо"; };
+  // «Сабт: ҳамаи варақҳо»: every sheet with unsaved rows goes to the system after one confirmation.
+  async function syncAll() {
+    if (!HN.can("staff")) { HN.toast("Барои сабт дар система иҷозати корманд лозим аст."); return; }
+    const rate = N(book.usdRate);
+    if (rate <= 0) { HN.toast("Курси долларро (I1) дуруст нависед.", "error"); return; }
+    const todo = book.sheets.map(sh => ({ sh, p: pendingOf(sh) })).filter(x => x.p.ready.length);
+    if (!todo.length) { HN.toast("Ҳамаи варақҳо аллакай дар система ҳастанд ✓", "ok"); return; }
+    const noCode = todo.filter(x => !String(x.sh.code || "").trim()), go = todo.filter(x => String(x.sh.code || "").trim());
+    const rows = go.reduce((n, x) => n + x.p.ready.length, 0), usd = go.reduce((n, x) => n + x.p.ready.reduce((m, r) => m + calc(r).price, 0), 0);
+    if (!go.length) { HN.toast(`Дар варақҳои ${noCode.map(x => x.sh.name).join(", ")} «Код» (B1) нанавишта — аввал кодро нависед.`, "error"); return; }
+    const warn = noCode.length ? `\n\nБе код (сабт намешаванд): ${noCode.map(x => x.sh.name).join(", ")} — дар B1 коди муштариро нависед.` : "";
+    if (!(await HN.confirm(`${go.length} варақ (${rows} сатр, ҳамагӣ $${xf(usd)}) ба система сабт шаванд?\n\n${go.map(x => `• ${x.sh.name} (${x.sh.code}): ${x.p.ready.length} сатр`).join("\n")}${warn}\n\nПеш аз сабт рақамҳоро санҷед — баъд онҳо ба ҳисобот, қарз ва Telegram мераванд.`, { title: "Сабт: ҳамаи варақҳо", ok: "Сабт" }))) return;
+    setStatus("Сабт шуда истодааст…");
+    let done = 0, sheets = 0;
+    try {
+      for (const { sh, p } of go) { for (const r of p.ready) { await upsertRow(sh, r, rate); done++; } save(sh); sheets++; }
+      await HN.reload();
+      HN.toast(`${sheets} варақ ба система сабт шуд: ${done} сатр.`, "ok");
+      setStatus(`Дар система сабт шуд ✓ (${done}) · ` + new Date().toLocaleTimeString("ru-RU").slice(0, 5));
+    } catch (err) {
+      console.error("Notebook sync all", err); book.sheets.forEach(x => save(x));
+      HN.toast(`Сабт пас аз ${done} сатр қатъ шуд: ${HN.dbError(err)}`, "error"); setStatus("Хатои сабт: " + String(err?.message || "").slice(0, 160));
+    }
+    await render();
+  }
   async function sync(sh) {
     if (!HN.can("staff")) { HN.toast("Барои сабт дар система иҷозати корманд лозим аст."); return; }
     const code = String(sh.code || "").trim();
