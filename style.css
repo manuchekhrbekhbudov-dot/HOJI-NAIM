@@ -981,3 +981,12 @@ body.dark .since { color: #FCD34D; }
 .xt-note { padding: 10px 14px; font-size: 12.5px; color: #3B3A39; background: #FFF8E1; border-top: 1px solid #F5D77A; }
 .xt-note p { margin: 2px 0; }
 body.dark .xt-note { background: #2a2414; color: #F3E7C9; border-color: #6B5A2A; }
+
+.xt-recon { border-collapse: collapse; margin: 6px 0; min-width: 520px; }
+.xt-recon td { padding: 3px 10px; border-bottom: 1px dashed rgba(0,0,0,.12); }
+.xt-recon td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.xt-recon .xt-sign { width: 18px; text-align: center; font-weight: 800; color: #6B778C; }
+.xt-recon .xt-strong td { font-weight: 800; }
+.xt-recon .xt-warn td { color: #B45309; font-weight: 700; }
+body.dark .xt-recon td { border-color: rgba(255,255,255,.12); }
+body.dark .xt-recon .xt-warn td { color: #FCD34D; }

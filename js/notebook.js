@@ -363,22 +363,43 @@ function makeNotebook(cfg) {
     return `<table class="xl-grid xl-tot"><colgroup><col class="xl-rhcol">${cols.map(c => `<col style="width:${c[1]}px">`).join("")}</colgroup>
       <thead><tr class="xl-letters"><th class="xl-corner"></th>${cols.map((_, c) => `<th>${L(c)}</th>`).join("")}</tr></thead><tbody>${h}</tbody></table>${totalNote(list)}`;
   }
-  // Why «Итого Куб» can differ from «Асосӣ»: rows not saved to the system yet, and one code on two sheets.
+  // From «Итого Куб» to «Қарзи умумӣ» in «Асосӣ», step by step, so every difference has a name.
   function totalNote(list) {
-    const inSys = new Set(S.shipments.map(s => s.tracking_no));
-    let n = 0, kg = 0, cube = 0, usd = 0;
-    list.forEach(({ sh }) => sh.rows.filter(used).forEach(r => {
-      if (r.syncTrackingNo && inSys.has(r.syncTrackingNo) && r.syncSig === rowSig(sh, r)) return;
-      const x = calc(r); n++; kg += x.kg; cube += x.cube; usd += x.price;
-    }));
-    const ck = v => String(v || "").trim().toUpperCase().replace(/[^0-9A-ZА-ЯЁӢӮҚҒҲҶ]/g, ""), seen = new Map();
-    list.forEach(({ sh }) => { const k = ck(sh.code); if (k) seen.set(k, (seen.get(k) || 0) + 1); });
-    const dups = [...seen].filter(([, c]) => c > 1).map(([k]) => k);
-    const parts = [];
-    if (n) parts.push(`<b>${n} сатр</b> ҳанӯз «Сабт дар система» нашудааст (${xf(kg, 1)} кг · ${xf(cube, 3)} м³ · $${xf(usd)}). Онҳо дар «Итого» ҳастанд, вале дар «Асосӣ», «Ҳисобот» ва қарз ҳоло нестанд.`);
-    if (dups.length) parts.push(`Коди <b>${esc(dups.join(", "))}</b> дар якчанд варақ ҳаст (⚠) — борҳои он дар «Итого» ду бор ҳисоб мешаванд. Варақҳоро якҷо кунед.`);
-    parts.push(`Дар «Асосӣ» борҳои ${cfg.origin === "uru" ? "Иву" : "Урумчи"} ва борҳое, ки бо «Бори нав» сабт шудаанд, низ ҳисоб мешаванд.`);
-    return `<div class="xt-note">${parts.map(t => `<p>${t}</p>`).join("")}</div>`;
+    const byTrack = new Map(S.shipments.map(s => [s.tracking_no, s]));
+    const usdOf = s => (s.currency === "USD" ? HN.num(s.total_original) : HN.total(s) / (HN.rateOn ? HN.rateOn(HN.shipmentDate(s)) : book.usdRate || D.usdRate));
+    let total = 0, pend = 0, pendN = 0;
+    const seen = new Map();   // load → how many times it is counted in this notebook
+    list.forEach(({ sh, t }) => {
+      total += t.price || 0;
+      sh.rows.filter(used).forEach(r => {
+        const s = r.syncTrackingNo && byTrack.get(r.syncTrackingNo);
+        if (s && r.syncSig === rowSig(sh, r)) seen.set(s.tracking_no, (seen.get(s.tracking_no) || 0) + 1);
+        else { pend += calc(r).price; pendN++; }
+      });
+      dbRows(sh).forEach(r => seen.set(r.ship.tracking_no, (seen.get(r.ship.tracking_no) || 0) + 1));
+    });
+    let dup = 0; seen.forEach((n, k) => { if (n > 1) dup += (n - 1) * usdOf(byTrack.get(k)); });
+    const inBook = total - pend - dup;
+    const allUsd = S.shipments.reduce((n, s) => n + usdOf(s), 0), allTjs = S.shipments.reduce((n, s) => n + HN.total(s), 0);
+    const outside = allUsd - inBook;
+    const paid = S.payments.reduce((n, x) => n + HN.num(x.amount_tjs), 0), debt = HN.customers().reduce((n, c) => n + c.debt, 0);
+    const $ = v => "$" + xf(v), som = v => HN.money(v) + " сом.";
+    const line = (sign, t, v, cls = "") => `<tr class="${cls}"><td class="xt-sign">${sign}</td><td>${t}</td><td class="num">${v}</td></tr>`;
+    const ck = v => String(v || "").trim().toUpperCase().replace(/[^0-9A-ZА-ЯЁӢӮҚҒҲҶ]/g, ""), codes = new Map();
+    list.forEach(({ sh }) => { const k = ck(sh.code); if (k) codes.set(k, (codes.get(k) || 0) + 1); });
+    const dupCodes = [...codes].filter(([, n]) => n > 1).map(([k]) => k);
+    return `<div class="xt-note"><b>Аз «Итого» то «Қарзи умумӣ» дар «Асосӣ»</b>
+      <table class="xt-recon"><tbody>
+        ${line("", "«Сумма оплаты» дар ин дафтар", $(total), "xt-strong")}
+        ${line("−", `ҳанӯз «Сабт дар система» нашуда${pendN ? ` (${pendN} сатр)` : ""}`, $(pend), pend > 0.005 ? "xt-warn" : "")}
+        ${line("−", `ду бор ҳисобшуда${dupCodes.length ? ` (код дар якчанд варақ: ${esc(dupCodes.join(", "))})` : ""}`, $(dup), dup > 0.005 ? "xt-warn" : "")}
+        ${line("=", "борҳои ин дафтар дар система", $(inBook))}
+        ${line(outside >= 0 ? "+" : "−", `дар система, вале на дар ин дафтар (${cfg.origin === "uru" ? "Иву" : "Урумчи"}, «Бори нав», моҳҳои гузашта)`, $(Math.abs(outside)))}
+        ${line("=", "ҳамаи борҳо дар система («Ҳисоби борҳо», «Ҳама»)", `${$(allUsd)} · ${som(allTjs)}`, "xt-strong")}
+        ${line("−", "пардохтҳо", som(paid))}
+        ${line("=", "«Қарзи умумӣ» дар «Асосӣ»", som(debt), "xt-strong")}
+      </tbody></table>
+      <p class="muted">Доллар ба сомонӣ бо курби рӯзи ҳар бор. Барои он ки «Итого» ва система баробар шаванд: сатрҳои зардро «Сабт дар система» кунед ва варақҳои коди якхеларо якҷо кунед.</p></div>`;
   }
 
   async function render() {
