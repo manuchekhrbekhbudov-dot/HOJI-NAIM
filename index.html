@@ -9,13 +9,13 @@
   <link rel="icon" href="assets/favicon.svg?v=2" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <link rel="preconnect" href="https://wfxbgkasstkxzmyrjwpi.supabase.co" crossorigin>
-  <link rel="stylesheet" href="style.css?v=20261123-syncall">
+  <link rel="stylesheet" href="style.css?v=20261123-usd">
   <script src="vendor/supabase-js-2.118.0.js" defer></script>
-  <script src="js/core.js?v=20261123-syncall" defer></script>
-  <script src="js/exporter.js?v=20261123-syncall" defer></script>
-  <script src="js/notebook.js?v=20261123-syncall" defer></script>
-  <script src="js/extras.js?v=20261123-syncall" defer></script>
-  <script src="main.js?v=20261123-syncall" defer></script>
+  <script src="js/core.js?v=20261123-usd" defer></script>
+  <script src="js/exporter.js?v=20261123-usd" defer></script>
+  <script src="js/notebook.js?v=20261123-usd" defer></script>
+  <script src="js/extras.js?v=20261123-usd" defer></script>
+  <script src="main.js?v=20261123-usd" defer></script>
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -155,17 +155,17 @@
           </div>
         </div>
         <div class="kpis">
-          <article class="kpi kpi-accent"><span>Даромад</span><strong id="kIncome">—</strong><small>пардохтҳои гирифташуда, TJS</small></article>
-          <article class="kpi" data-perm="finance"><span>Хароҷот</span><strong id="kExpense">—</strong><small>TJS</small></article>
-          <article class="kpi" data-perm="finance"><span>Фоида</span><strong id="kProfit">—</strong><small>даромад − хароҷот, TJS</small></article>
-          <article class="kpi kpi-danger"><span>Қарзи умумӣ</span><strong id="kDebt">—</strong><small id="kDebtCount">TJS</small></article>
+          <article class="kpi kpi-accent"><span>Даромад</span><strong id="kIncome">—</strong><em class="kpi-usd" id="kIncomeUsd"></em><small>пардохтҳои гирифташуда, TJS</small></article>
+          <article class="kpi" data-perm="finance"><span>Хароҷот</span><strong id="kExpense">—</strong><em class="kpi-usd" id="kExpenseUsd"></em><small>TJS</small></article>
+          <article class="kpi" data-perm="finance"><span>Фоида</span><strong id="kProfit">—</strong><em class="kpi-usd" id="kProfitUsd"></em><small>даромад − хароҷот, TJS</small></article>
+          <article class="kpi kpi-danger"><span>Қарзи умумӣ</span><strong id="kDebt">—</strong><em class="kpi-usd" id="kDebtUsd"></em><small id="kDebtCount">TJS</small></article>
         </div>
         <div class="mini-kpis">
           <div><span>Борҳо</span><b id="kShipments">—</b><small id="kShipmentsSub">дар давра</small></div>
           <div><span>Муштариён</span><b id="kCustomers">—</b><small>ҳамагӣ</small></div>
           <div><span>Дар анбор</span><b id="kStock">—</b><small id="kStockSub">бор</small></div>
-          <div><span>Ҳисоби борҳо</span><b id="kBilled">—</b><small>дар давра, TJS</small></div>
-          <div data-perm="finance"><span>Дар касса (нақд)</span><b id="kCash">—</b><small>боқимонда, TJS</small></div>
+          <div><span>Ҳисоби борҳо</span><b id="kBilled">—</b><em class="kpi-usd sm" id="kBilledUsd"></em><small>дар давра, TJS</small></div>
+          <div data-perm="finance"><span>Дар касса (нақд)</span><b id="kCash">—</b><em class="kpi-usd sm" id="kCashUsd"></em><small>боқимонда, TJS</small></div>
         </div>
         <div class="grid-2">
           <div class="panel">

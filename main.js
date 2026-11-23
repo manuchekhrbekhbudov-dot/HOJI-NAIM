@@ -249,6 +249,16 @@
     $("kProfit").textContent = money(income - cost);
     $("kProfit").classList.toggle("neg", income - cost < 0);
     $("kDebt").textContent = money(totalDebt);
+    // the same in dollars (each load at its own dollar price — no today's rate)
+    const usdTxt = v => (v < 0 ? "−$" : "$") + money(Math.abs(v));
+    const incUsd = pays.reduce((n, p) => n + HN.usd.pay(p), 0), expUsd = exps.reduce((n, e) => n + HN.usd.exp(e), 0);
+    const debtUsd = S.shipments.reduce((n, s) => n + HN.usd.debt(s), 0);
+    $("kIncomeUsd").textContent = usdTxt(incUsd);
+    $("kExpenseUsd").textContent = usdTxt(expUsd);
+    $("kProfitUsd").textContent = usdTxt(incUsd - expUsd);
+    $("kDebtUsd").textContent = usdTxt(debtUsd);
+    $("kBilledUsd").textContent = usdTxt(ships.reduce((n, s) => n + HN.usd.ship(s), 0));
+    $("kCashUsd").textContent = usdTxt(S.payments.filter(p => (p.method || "other") === "cash").reduce((n, p) => n + HN.usd.pay(p), 0) - S.expenses.filter(e => (S.features.expMethod ? e.method || "cash" : "cash") === "cash").reduce((n, e) => n + HN.usd.exp(e), 0));
     $("kDebtCount").textContent = debtors.length + " муштарӣ қарздор";
     $("kShipments").textContent = ships.length;
     $("kShipmentsSub").textContent = fmt(ships.reduce((n, s) => n + HN.num(s.weight_kg), 0), 1) + " кг · " + fmt(ships.reduce((n, s) => n + HN.num(s.volume_m3), 0), 2) + " м³";
@@ -260,7 +270,7 @@
     if (HN.cashBalance) $("kCash").textContent = money(HN.cashBalance("cash"));
     drawChart();
     const top = debtors.slice(0, 6), max = top[0]?.debt || 1;
-    $("debtorList").innerHTML = top.map(c => `<li><button class="rank-row" data-sheet-key="${esc(c.key)}"><span class="rank-name"><b>${esc(c.name)}</b><small>${esc([c.code, c.phone].filter(Boolean).join(" · ") || "—")}${c.since ? ` · <em class="since">қарздор аз ${esc(HN.monthLabel(c.since))}</em>` : ""}</small></span><span class="rank-val">${money(c.debt)}</span><span class="rank-bar"><i style="width:${Math.max(4, (c.debt / max) * 100)}%"></i></span></button></li>`).join("");
+    $("debtorList").innerHTML = top.map(c => `<li><button class="rank-row" data-sheet-key="${esc(c.key)}"><span class="rank-name"><b>${esc(c.name)}</b><small>${esc([c.code, c.phone].filter(Boolean).join(" · ") || "—")}${c.since ? ` · <em class="since">қарздор аз ${esc(HN.monthLabel(c.since))}</em>` : ""}</small></span><span class="rank-val">${money(c.debt)}<small class="rank-usd">$${money(c.shipments.reduce((n, s) => n + HN.usd.debt(s), 0))}</small></span><span class="rank-bar"><i style="width:${Math.max(4, (c.debt / max) * 100)}%"></i></span></button></li>`).join("");
     empty("debtorEmpty", !top.length);
     const recent = S.shipments.slice(0, 8);
     $("recentRows").innerHTML = recent.map(s => `<tr data-ship="${esc(s.id)}">${td(HN.fmtDate(HN.shipmentDate(s)), "nowrap")}${td(`<b>${esc(s.tracking_no || "—")}</b>`)}${td(esc(s.client_name || "—"))}${td(HN.fmtQty(s.weight_kg) + " кг / " + HN.fmtQty(s.volume_m3, 3) + " м³", "num nowrap")}${td(money(HN.total(s)), "num")}${td(money(HN.debt(s)), "num" + (HN.debt(s) > 0.005 ? " neg" : ""))}${td(payPill(s))}</tr>`).join("");

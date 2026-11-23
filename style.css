@@ -993,3 +993,12 @@ body.dark .xt-recon .xt-warn td { color: #FCD34D; }
 
 /* sheet tab with rows not saved to the system */
 .xl-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #F97316; margin-right: 6px; vertical-align: middle; box-shadow: 0 0 0 2px rgba(249,115,22,.25); }
+
+/* Dashboard: the same money in dollars */
+.kpi .kpi-usd { display: block; font-style: normal; font-size: 19px; font-weight: 800; color: #B45309; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.kpi.kpi-accent .kpi-usd { color: #FDE68A; }
+.kpi.kpi-danger .kpi-usd { color: #C2410C; }
+.kpi-usd.sm { display: block; font-style: normal; font-size: 14px; font-weight: 800; color: #B45309; font-variant-numeric: tabular-nums; }
+.rank-val .rank-usd { display: block; font-size: 12px; font-weight: 700; color: #B45309; text-align: right; }
+body.dark .kpi .kpi-usd, body.dark .kpi-usd.sm, body.dark .rank-val .rank-usd { color: #FCD34D; }
+body.dark .kpi.kpi-danger .kpi-usd { color: #FDBA74; }
