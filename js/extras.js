@@ -66,6 +66,15 @@
     r = r || list[0];
     return HN.num(r?.cny) || D.cnyRate;
   };
+  // Dollars for the dashboard, without today's rate: a load keeps its own dollar price (as in Excel);
+  // a payment counts at the rate of its own load, so «paid $ + debt $ = billed $»; an expense at the rate of its day.
+  HN.usd = {
+    ship: s => (s.currency === "USD" ? HN.num(s.total_original) : HN.total(s) / HN.rateOn(HN.shipmentDate(s))),
+    ratio: s => { const t = HN.total(s); return t > 0 ? HN.usd.ship(s) / t : 1 / HN.rateOn(HN.shipmentDate(s)); },
+    pay: p => { if (p.currency === "USD") return HN.num(p.amount_original); const s = HN.shipmentById(p.shipment_id); return s ? HN.num(p.amount_tjs) * HN.usd.ratio(s) : HN.num(p.amount_tjs) / HN.rateOn(String(p.payment_date).slice(0, 10)); },
+    exp: e => (e.currency === "USD" ? HN.num(e.amount_original) : HN.num(e.amount_tjs) / HN.rateOn(String(e.expense_date).slice(0, 10))),
+    debt: s => HN.debt(s) * HN.usd.ratio(s),
+  };
   // Money in the currency chosen for reports: TJS, USD or CNY at the rate of that day.
   // A record made in the same currency keeps its own amount.
   HN.cur = ["USD", "CNY"].includes(HN.lsGet("hn-report-cur", "TJS")) ? HN.lsGet("hn-report-cur", "TJS") : "TJS";
