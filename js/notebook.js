@@ -345,7 +345,13 @@ function makeNotebook(cfg) {
     const fmtv = (k, v) => (v === null || v === undefined || v === "" ? "" : k === "places" ? xf(v, 0) : k === "cargo" ? xf(v, 0) + "$" : xf(v, k === "density" ? 1 : 2));
     let h = `<tr class="xt-title"><th class="xl-rh">1</th><td class="xl-c" data-r="1" data-c="0"></td><td class="xl-c xt-big" colspan="9" data-r="1" data-c="1">Общий итоги куб,кг (сумма куб,кг)</td></tr>`;
     h += `<tr class="xt-head"><th class="xl-rh">2</th>${cols.map(([t], c) => `<td class="xl-c" data-r="2" data-c="${c}">${t}</td>`).join("")}</tr>`;
-    h += `<tr class="xt-sum"><th class="xl-rh">3</th><td class="xl-c" data-r="3" data-c="0"></td><td class="xl-c xt-lbl" data-r="3" data-c="1">Итого:</td>${keys.slice(2).map((k, i) => { const c = i + 2; const v = G(k); /* SUBTOTAL(9, …) of the column, as in the company's file */ return `<td class="xl-c xl-num" data-r="3" data-c="${c}" data-f="=SUBTOTAL(9;${L(c)}5:${L(c)}${last})">${fmtv(k, v)}</td>`; }).join("")}</tr>`;
+    h += `<tr class="xt-sum"><th class="xl-rh">3</th><td class="xl-c" data-r="3" data-c="0"></td><td class="xl-c xt-lbl" data-r="3" data-c="1">Итого:</td>${keys.slice(2).map((k, i) => {
+      const c = i + 2;
+      // «кг в одном кубе» of all sheets = all kg ÷ all m³ (adding the sheets' densities together means nothing)
+      if (k === "density") return `<td class="xl-c xl-num" data-r="3" data-c="${c}" data-f="=IFERROR(E3/D3;&quot;&quot;)">${fmtv(k, G("cube") > 0 ? G("kg") / G("cube") : "")}</td>`;
+      /* SUBTOTAL(9, …) of the column, as in the company's file */
+      return `<td class="xl-c xl-num" data-r="3" data-c="${c}" data-f="=SUBTOTAL(9;${L(c)}5:${L(c)}${last})">${fmtv(k, G(k))}</td>`;
+    }).join("")}</tr>`;
     h += `<tr class="xt-band"><th class="xl-rh">4</th><td class="xl-c" data-r="4" data-c="0"></td>${cols.slice(1).map((_, i) => `<td class="xl-c" data-r="4" data-c="${i + 1}"></td>`).join("")}</tr>`;
     list.forEach(({ sh, t }, i) => {
       const R = 5 + i, ref = `'${sh.name}'!`;
@@ -355,7 +361,24 @@ function makeNotebook(cfg) {
     });
     if (!list.length) h += `<tr><th class="xl-rh">5</th><td class="xl-c" data-r="5" data-c="0"></td><td class="xl-c muted" colspan="9" data-r="5" data-c="1">Ҳоло ягон варақ пур нашудааст.</td></tr>`;
     return `<table class="xl-grid xl-tot"><colgroup><col class="xl-rhcol">${cols.map(c => `<col style="width:${c[1]}px">`).join("")}</colgroup>
-      <thead><tr class="xl-letters"><th class="xl-corner"></th>${cols.map((_, c) => `<th>${L(c)}</th>`).join("")}</tr></thead><tbody>${h}</tbody></table>`;
+      <thead><tr class="xl-letters"><th class="xl-corner"></th>${cols.map((_, c) => `<th>${L(c)}</th>`).join("")}</tr></thead><tbody>${h}</tbody></table>${totalNote(list)}`;
+  }
+  // Why «Итого Куб» can differ from «Асосӣ»: rows not saved to the system yet, and one code on two sheets.
+  function totalNote(list) {
+    const inSys = new Set(S.shipments.map(s => s.tracking_no));
+    let n = 0, kg = 0, cube = 0, usd = 0;
+    list.forEach(({ sh }) => sh.rows.filter(used).forEach(r => {
+      if (r.syncTrackingNo && inSys.has(r.syncTrackingNo) && r.syncSig === rowSig(sh, r)) return;
+      const x = calc(r); n++; kg += x.kg; cube += x.cube; usd += x.price;
+    }));
+    const ck = v => String(v || "").trim().toUpperCase().replace(/[^0-9A-ZА-ЯЁӢӮҚҒҲҶ]/g, ""), seen = new Map();
+    list.forEach(({ sh }) => { const k = ck(sh.code); if (k) seen.set(k, (seen.get(k) || 0) + 1); });
+    const dups = [...seen].filter(([, c]) => c > 1).map(([k]) => k);
+    const parts = [];
+    if (n) parts.push(`<b>${n} сатр</b> ҳанӯз «Сабт дар система» нашудааст (${xf(kg, 1)} кг · ${xf(cube, 3)} м³ · $${xf(usd)}). Онҳо дар «Итого» ҳастанд, вале дар «Асосӣ», «Ҳисобот» ва қарз ҳоло нестанд.`);
+    if (dups.length) parts.push(`Коди <b>${esc(dups.join(", "))}</b> дар якчанд варақ ҳаст (⚠) — борҳои он дар «Итого» ду бор ҳисоб мешаванд. Варақҳоро якҷо кунед.`);
+    parts.push(`Дар «Асосӣ» борҳои ${cfg.origin === "uru" ? "Иву" : "Урумчи"} ва борҳое, ки бо «Бори нав» сабт шудаанд, низ ҳисоб мешаванд.`);
+    return `<div class="xt-note">${parts.map(t => `<p>${t}</p>`).join("")}</div>`;
   }
 
   async function render() {
@@ -914,8 +937,8 @@ function makeNotebook(cfg) {
       put("B3", { t: "s", v: "Итого:", s: st({ font: { sz: 18, bold: true }, alignment: { vertical: "center" } }) });
       const sumOf = k => totalRows.reduce((n, e) => n + (k === "cargo" ? N(e.sh.cargoUsd) : e.T[k] || 0), 0);
       [["C", "places"], ["D", "cube"], ["E", "kg"], ["F", "cubeAmount"], ["G", "kgAmount"], ["H", "price"], ["I", null], ["J", "cargo"]].forEach(([c, k]) => {
-        const v = k ? sumOf(k) : 0, z = c === "J" ? '0"$"' : c === "C" ? "0" : "#,##0.0";
-        put(c + "3", { t: "n", f: `SUBTOTAL(9,${c}5:${c}${last})`, v, z, s: st({ font: { bold: true, color: { rgb: "FF0000" } }, numFmt: z }) });
+        const v = k ? sumOf(k) : sumOf("cube") > 0 ? sumOf("kg") / sumOf("cube") : 0, z = c === "J" ? '0"$"' : c === "C" ? "0" : "#,##0.0";
+        put(c + "3", { t: "n", f: c === "I" ? "IFERROR(E3/D3,0)" : `SUBTOTAL(9,${c}5:${c}${last})`, v, z, s: st({ font: { bold: true, color: { rgb: "FF0000" } }, numFmt: z }) });
       });
       put("A4", { t: "s", v: "", s: st({ border: BM }) });
       for (let c = 1; c <= 9; c++) put(L(c) + "4", { t: "s", v: "", s: st({ border: BM, fill: fill("C0C0C0") }) });
