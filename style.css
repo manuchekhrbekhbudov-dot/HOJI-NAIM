@@ -990,3 +990,6 @@ body.dark .xt-note { background: #2a2414; color: #F3E7C9; border-color: #6B5A2A;
 .xt-recon .xt-warn td { color: #B45309; font-weight: 700; }
 body.dark .xt-recon td { border-color: rgba(255,255,255,.12); }
 body.dark .xt-recon .xt-warn td { color: #FCD34D; }
+
+/* sheet tab with rows not saved to the system */
+.xl-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #F97316; margin-right: 6px; vertical-align: middle; box-shadow: 0 0 0 2px rgba(249,115,22,.25); }
